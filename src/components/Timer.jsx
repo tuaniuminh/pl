@@ -1,24 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import CircularProgress from './UI/CircularProgress';
 import { unlockSpeechAPI, speakText, playBeep } from '../utils/speechUtils';
-import { saveHistory, getActivePlan } from '../services/storageService';
+import { saveHistory } from '../services/storageService';
 import { 
   Play, 
   Pause, 
   RotateCcw, 
   SkipForward, 
-  Flame, 
-  Sparkles, 
   Trophy, 
   Plus, 
   Minus, 
-  Check, 
-  ArrowRight,
+  Sparkles,
   Info
 } from 'lucide-react';
 
 const Timer = ({ plan, onOpenAIPlan }) => {
-  // Chuẩn bị danh sách bài tập (từ Giáo án AI hoặc Mặc định)
   const [exercises, setExercises] = useState(() => {
     if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
       return plan.days[0].exercises;
@@ -39,7 +35,6 @@ const Timer = ({ plan, onOpenAIPlan }) => {
 
   const currentExercise = exercises[currentSetIndex] || exercises[0];
 
-  // Khi plan từ ngoài thay đổi (ví dụ nạp từ AI Coach)
   useEffect(() => {
     if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
       const exs = plan.days[0].exercises;
@@ -53,7 +48,6 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     }
   }, [plan]);
 
-  // Cập nhật thời gian khi đổi hiệp hoặc đổi trạng thái nghỉ
   useEffect(() => {
     if (!isActive) {
       const targetTime = isResting ? (currentExercise.restTime || 20) : currentExercise.holdTime;
@@ -62,19 +56,16 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     }
   }, [currentExercise, isResting]);
 
-  // Interval chạy đếm ngược
   useEffect(() => {
     let interval = null;
 
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
-          // Tính tổng thời gian đã giữ thực tế (chỉ tính khi đang hold plank, không tính khi nghỉ)
           if (!isResting) {
             setSessionTotalHoldSeconds(s => s + 1);
           }
 
-          // Trợ lý giọng nói đếm ngược 5 giây cuối
           if (!isResting) {
             if (prev === 6) { speakText("Năm"); playBeep(523, 100); }
             if (prev === 5) { speakText("Bốn"); playBeep(587, 100); }
@@ -82,7 +73,6 @@ const Timer = ({ plan, onOpenAIPlan }) => {
             if (prev === 3) { speakText("Hai"); playBeep(698, 100); }
             if (prev === 2) { speakText("Một"); playBeep(784, 150); }
           } else {
-            // Đếm ngược 3s khi sắp hết giờ nghỉ
             if (prev === 4) speakText("Chuẩn bị");
             if (prev === 3) playBeep(440, 80);
             if (prev === 2) playBeep(554, 80);
@@ -98,19 +88,16 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     return () => clearInterval(interval);
   }, [isActive, timeLeft, isResting]);
 
-  // Xử lý khi kết thúc 1 Set (Hold hoặc Rest)
   const handleSetFinished = () => {
     playBeep(880, 400);
 
     if (!isResting && (currentExercise.restTime > 0) && (currentSetIndex < exercises.length - 1)) {
-      // Chuyển sang Nghỉ ngơi
       setIsResting(true);
       const restSec = currentExercise.restTime || 25;
       setTimeLeft(restSec);
       setTotalSetDuration(restSec);
       speakText(`Tuyệt vời! Nghỉ ngơi ${restSec} giây.`);
     } else if (currentSetIndex < exercises.length - 1) {
-      // Chuyển sang Hiệp tập tiếp theo
       setIsResting(false);
       const nextIdx = currentSetIndex + 1;
       setCurrentSetIndex(nextIdx);
@@ -119,7 +106,6 @@ const Timer = ({ plan, onOpenAIPlan }) => {
       setTotalSetDuration(nextEx.holdTime);
       speakText(`Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`);
     } else {
-      // Đã hoàn thành toàn bộ bài tập
       setIsActive(false);
       setIsResting(false);
       speakText("Xuất sắc! Bạn đã hoàn thành xuất sắc toàn bộ bài tập!");
@@ -138,9 +124,8 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     }
   };
 
-  // Nút Play / Pause
   const handleToggleTimer = () => {
-    unlockSpeechAPI(); // Quan trọng: Unlock audio cho iOS
+    unlockSpeechAPI();
     if (!isActive) {
       if (isResting) {
         speakText("Tiếp tục nghỉ");
@@ -151,7 +136,6 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     setIsActive(!isActive);
   };
 
-  // Nút Reset / Stop
   const handleResetTimer = () => {
     setIsActive(false);
     setIsResting(false);
@@ -162,7 +146,6 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     setSessionTotalHoldSeconds(0);
   };
 
-  // Nút Bỏ qua / Chuyển hiệp thủ công
   const handleSkipSet = () => {
     if (currentSetIndex < exercises.length - 1) {
       setIsResting(false);
@@ -176,13 +159,11 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     }
   };
 
-  // Điều chỉnh nhanh thời gian +/- 15s
   const handleAdjustTime = (delta) => {
     setTimeLeft(t => Math.max(5, t + delta));
     setTotalSetDuration(d => Math.max(5, d + delta));
   };
 
-  // Quick Preset Selection
   const handleSelectQuickPreset = (name, holdTime, restTime = 20) => {
     setIsActive(false);
     setIsResting(false);
@@ -201,25 +182,25 @@ const Timer = ({ plan, onOpenAIPlan }) => {
       <div className="w-full flex space-x-2 overflow-x-auto py-1 scrollbar-none mb-2">
         <button
           onClick={() => handleSelectQuickPreset("Plank Cơ Bản 30s", 30, 15)}
-          className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white whitespace-nowrap active:scale-95 transition-all"
+          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap active:scale-95 transition-all shadow-sm"
         >
           ⚡ 30s Khởi Động
         </button>
         <button
           onClick={() => handleSelectQuickPreset("Plank Chuẩn 60s", 60, 25)}
-          className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white whitespace-nowrap active:scale-95 transition-all"
+          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap active:scale-95 transition-all shadow-sm"
         >
           🔥 60s Tiêu Chuẩn
         </button>
         <button
           onClick={() => handleSelectQuickPreset("Plank Thử Thách 2 Phút", 120, 30)}
-          className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:text-white whitespace-nowrap active:scale-95 transition-all"
+          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap active:scale-95 transition-all shadow-sm"
         >
           🏆 120s Bứt Phá
         </button>
         <button
           onClick={onOpenAIPlan}
-          className="px-3 py-1.5 rounded-full bg-neon/15 border border-neon/30 text-xs font-bold text-neon whitespace-nowrap active:scale-95 transition-all flex items-center space-x-1"
+          className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-neon/15 border border-emerald-300 dark:border-neon/30 text-xs font-bold text-emerald-700 dark:text-neon whitespace-nowrap active:scale-95 transition-all flex items-center space-x-1 shadow-sm"
         >
           <Sparkles size={12} />
           <span>Tạo Với AI</span>
@@ -227,25 +208,25 @@ const Timer = ({ plan, onOpenAIPlan }) => {
       </div>
 
       {/* Exercise Information Card */}
-      <div className="w-full glass-panel p-4 rounded-3xl border border-white/10 text-center shadow-card-glow transition-all">
+      <div className="w-full glass-panel p-5 rounded-3xl text-center transition-colors duration-300">
         <div className="flex items-center justify-center space-x-2">
-          <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300">
+          <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-gray-300">
             Hiệp {currentSetIndex + 1} / {exercises.length}
           </span>
           {plan?.planName && (
-            <span className="text-[11px] font-bold text-neon truncate max-w-[160px]">
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-neon truncate max-w-[160px]">
               {plan.planName}
             </span>
           )}
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-white dark:text-white light:text-slate-900">
+        <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-slate-900 dark:text-white">
           {isResting ? "❄️ Thời Gian Nghỉ Hồi Sức" : currentExercise.name}
         </h2>
 
         {/* Posture Coaching Tip */}
-        <p className="text-xs text-gray-400 dark:text-gray-400 light:text-slate-600 mt-1 flex items-center justify-center space-x-1">
-          <Info size={13} className="text-cyan-neon shrink-0" />
+        <p className="text-xs text-slate-600 dark:text-gray-400 mt-1 flex items-center justify-center space-x-1">
+          <Info size={13} className="text-cyan-600 dark:text-cyan-neon shrink-0" />
           <span>{isResting ? "Hít sâu bằng mũi, thở chậm bằng miệng để hồi sức" : (currentExercise.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều")}</span>
         </p>
 
@@ -257,10 +238,10 @@ const Timer = ({ plan, onOpenAIPlan }) => {
                 key={idx}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   idx === currentSetIndex
-                    ? 'w-6 bg-neon shadow-neon'
+                    ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm dark:shadow-neon'
                     : idx < currentSetIndex
-                    ? 'w-2 bg-gray-500'
-                    : 'w-2 bg-white/10'
+                    ? 'w-2 bg-slate-400 dark:bg-gray-500'
+                    : 'w-2 bg-slate-200 dark:bg-white/10'
                 }`}
               />
             ))}
@@ -282,7 +263,7 @@ const Timer = ({ plan, onOpenAIPlan }) => {
         <div className="flex justify-center space-x-4 mt-[-10px] z-10 relative">
           <button
             onClick={() => handleAdjustTime(-15)}
-            className="px-3 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-full text-xs font-bold text-gray-300 flex items-center space-x-1 active:scale-90 transition-all"
+            className="px-3.5 py-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full text-xs font-bold text-slate-700 dark:text-gray-300 flex items-center space-x-1 active:scale-90 transition-all shadow-sm"
             title="Giảm 15 giây"
           >
             <Minus size={12} />
@@ -290,7 +271,7 @@ const Timer = ({ plan, onOpenAIPlan }) => {
           </button>
           <button
             onClick={() => handleAdjustTime(15)}
-            className="px-3 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded-full text-xs font-bold text-gray-300 flex items-center space-x-1 active:scale-90 transition-all"
+            className="px-3.5 py-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full text-xs font-bold text-slate-700 dark:text-gray-300 flex items-center space-x-1 active:scale-90 transition-all shadow-sm"
             title="Tăng 15 giây"
           >
             <Plus size={12} />
@@ -305,7 +286,7 @@ const Timer = ({ plan, onOpenAIPlan }) => {
           {/* Reset / Stop Button */}
           <button
             onClick={handleResetTimer}
-            className="w-16 h-16 rounded-3xl bg-white/5 dark:bg-white/5 light:bg-slate-200 border border-white/10 dark:border-white/10 light:border-slate-300 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all shrink-0"
+            className="w-16 h-16 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
             title="Khởi động lại bài tập"
           >
             <RotateCcw size={24} />
@@ -314,10 +295,10 @@ const Timer = ({ plan, onOpenAIPlan }) => {
           {/* Huge Main Play / Pause Button */}
           <button
             onClick={handleToggleTimer}
-            className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-neon-lg ${
+            className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-md dark:shadow-neon-lg ${
               isActive
-                ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-glow'
-                : 'bg-neon hover:bg-neon-dark text-black shadow-neon'
+                ? 'bg-amber-500 hover:bg-amber-400 text-white dark:text-black dark:shadow-amber-glow'
+                : 'bg-emerald-500 hover:bg-emerald-600 text-white dark:bg-neon dark:hover:bg-neon-dark dark:text-black dark:shadow-neon'
             }`}
           >
             {isActive ? (
@@ -337,7 +318,7 @@ const Timer = ({ plan, onOpenAIPlan }) => {
           {exercises.length > 1 && (
             <button
               onClick={handleSkipSet}
-              className="w-16 h-16 rounded-3xl bg-white/5 dark:bg-white/5 light:bg-slate-200 border border-white/10 dark:border-white/10 light:border-slate-300 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all shrink-0"
+              className="w-16 h-16 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
               title="Chuyển sang hiệp kế tiếp"
             >
               <SkipForward size={24} />
@@ -348,30 +329,30 @@ const Timer = ({ plan, onOpenAIPlan }) => {
 
       {/* CELEBRATION MODAL KHI HOÀN THÀNH BÀI TẬP */}
       {showCelebration && completedSessionData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="glass-panel p-6 rounded-3xl border border-neon/50 shadow-neon-lg max-w-sm w-full text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-neon/20 border border-neon text-neon mx-auto flex items-center justify-center shadow-neon animate-bounce">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="glass-panel p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-neon/20 border border-emerald-400 dark:border-neon text-emerald-600 dark:text-neon mx-auto flex items-center justify-center shadow-md dark:shadow-neon animate-bounce">
               <Trophy size={32} />
             </div>
 
             <div>
-              <h3 className="text-2xl font-black text-white">XUẤT SẮC!</h3>
-              <p className="text-xs text-gray-400 mt-1">
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">XUẤT SẮC!</h3>
+              <p className="text-xs text-slate-600 dark:text-gray-400 mt-1">
                 Bạn vừa hoàn thành xuất sắc buổi luyện tập Plank hôm nay.
               </p>
             </div>
 
             {/* Workout Summary Stats */}
-            <div className="grid grid-cols-2 gap-2.5 p-3 rounded-2xl bg-white/5 border border-white/10">
+            <div className="grid grid-cols-2 gap-2.5 p-3 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
               <div className="text-center">
-                <div className="text-[10px] text-gray-400 uppercase font-bold">Thời Gian Giữ</div>
-                <div className="font-mono text-lg font-extrabold text-neon">
+                <div className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Thời Gian Giữ</div>
+                <div className="font-mono text-lg font-extrabold text-emerald-600 dark:text-neon">
                   {completedSessionData.duration}s
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-[10px] text-gray-400 uppercase font-bold">Calo Tiêu Hao</div>
-                <div className="font-mono text-lg font-extrabold text-cyan-neon">
+                <div className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Calo Tiêu Hao</div>
+                <div className="font-mono text-lg font-extrabold text-cyan-600 dark:text-cyan-neon">
                   {Math.round((completedSessionData.duration / 60) * 4.5)} kcal
                 </div>
               </div>
@@ -382,7 +363,7 @@ const Timer = ({ plan, onOpenAIPlan }) => {
                 setShowCelebration(false);
                 handleResetTimer();
               }}
-              className="w-full py-3.5 rounded-2xl bg-neon text-black font-extrabold text-sm uppercase tracking-wider shadow-neon active:scale-95 transition-all"
+              className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white dark:bg-neon dark:text-black font-extrabold text-sm uppercase tracking-wider shadow-md dark:shadow-neon active:scale-95 transition-all"
             >
               Tiếp Tục Luyện Tập
             </button>
