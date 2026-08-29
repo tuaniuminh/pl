@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun, Volume2, VolumeX } from 'lucide-react';
+import { Moon, Sun, Volume2, VolumeX, Flame } from 'lucide-react';
 import packageJson from '../../package.json';
 
 const Header = ({ settings, onToggleTheme, onToggleVoice, activePlan }) => {
@@ -9,13 +9,11 @@ const Header = ({ settings, onToggleTheme, onToggleVoice, activePlan }) => {
     <header className="w-full safe-top-padding px-5 pb-3 pt-2 bg-white/95 dark:bg-oled/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 z-30 transition-colors duration-300">
       <div className="flex items-center justify-between">
         {/* Logo & Title */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-sm dark:shadow-neon border border-slate-200 dark:border-neon/30 bg-white dark:bg-black shrink-0">
-            <img 
-              src="/logo.png" 
-              alt="Plank AI Logo" 
-              className="w-full h-full object-cover" 
-            />
+        <div className="flex items-center space-x-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-500 via-neon to-cyan-500 p-0.5 shadow-sm dark:shadow-neon">
+            <div className="w-full h-full bg-white dark:bg-oled rounded-[14px] flex items-center justify-center">
+              <Flame className="w-5 h-5 text-emerald-600 dark:text-neon animate-pulse" />
+            </div>
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
