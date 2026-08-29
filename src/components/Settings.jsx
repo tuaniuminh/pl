@@ -39,10 +39,10 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
     setTestResult(null);
 
     try {
-      await testGeminiApiKey(settings.apiKey);
+      const res = await testGeminiApiKey(settings.apiKey);
       setTestResult({
         success: true,
-        message: "Kết nối thành công! Google Gemini 3.7 Flash đã sẵn sàng phục vụ bạn."
+        message: `Kết nối thành công! Đang kết nối mô hình: ${res.activeModel || 'Google Gemini 3.7 Flash'}. Hệ thống sẵn sàng tạo giáo án cho bạn.`
       });
     } catch (err) {
       setTestResult({
