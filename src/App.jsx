@@ -1,82 +1,172 @@
 import React, { useState, useEffect } from 'react';
+import Header from './components/Header';
 import Timer from './components/Timer';
-import { getSettings, saveSettings, exportCSV } from './services/storageService';
-import { Settings as SettingsIcon, History as HistoryIcon, Home } from 'lucide-react';
-import packageJson from '../package.json';
+import PlanGenerator from './components/PlanGenerator';
+import History from './components/History';
+import Settings from './components/Settings';
+import { getSettings, saveSettings, getActivePlan, saveActivePlan } from './services/storageService';
+import { 
+  Timer as TimerIcon, 
+  Sparkles, 
+  History as HistoryIcon, 
+  Settings as SettingsIcon 
+} from 'lucide-react';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('timer');
+  const [activeTab, setActiveTab] = useState('timer'); // 'timer', 'ai_coach', 'history', 'settings'
   const [settings, setSettingsState] = useState(getSettings());
-  const [currentPlan, setCurrentPlan] = useState(null);
+  const [currentPlan, setCurrentPlan] = useState(getActivePlan());
 
+  // Áp dụng Dark Mode OLED lên phần tử gốc <html>
   useEffect(() => {
+    const root = document.documentElement;
     if (settings.theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      root.classList.remove('light');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.add('light');
+      root.classList.remove('dark');
     }
   }, [settings.theme]);
 
-  const updateSettings = (newSettings) => {
+  const handleUpdateSettings = (newSettings) => {
     setSettingsState(newSettings);
     saveSettings(newSettings);
   };
 
-  return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <div className="w-full text-center py-2 text-xs text-gray-500 bg-gray-100 dark:bg-gray-900 absolute top-0 z-10">
-        Plank AI - v{packageJson.version}
-      </div>
-      <div className="flex-1 overflow-y-auto pb-20 pt-10">
-        {activeTab === 'timer' && <Timer plan={currentPlan} />}
-        {activeTab === 'settings' && (
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Cài đặt</h2>
-            <div className="mb-4">
-              <label className="block mb-2 text-sm text-gray-400">Google Gemini API Key</label>
-              <input 
-                type="password"
-                value={settings.apiKey}
-                onChange={e => updateSettings({...settings, apiKey: e.target.value})}
-                className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:outline-none focus:border-neon"
-                placeholder="Nhập API Key..."
-              />
-            </div>
-            <div className="flex items-center justify-between mt-8">
-              <span>Dark Mode (OLED)</span>
-              <button 
-                onClick={() => updateSettings({...settings, theme: settings.theme === 'dark' ? 'light' : 'dark'})}
-                className={`w-14 h-8 rounded-full p-1 transition-colors ${settings.theme === 'dark' ? 'bg-neon' : 'bg-gray-400'}`}
-              >
-                <div className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${settings.theme === 'dark' ? 'translate-x-6' : ''}`} />
-              </button>
-            </div>
-          </div>
-        )}
-        {activeTab === 'history' && (
-          <div className="p-6 flex flex-col items-center">
-            <h2 className="text-2xl font-bold mb-6">Lịch sử tập</h2>
-            <button 
-              onClick={exportCSV}
-              className="bg-gray-800 text-white w-full py-4 rounded-xl font-bold active:scale-95 transition-transform"
-            >
-              Xuất dữ liệu (.CSV)
-            </button>
-          </div>
-        )}
-      </div>
+  const handleToggleTheme = () => {
+    const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
+    handleUpdateSettings({ ...settings, theme: newTheme });
+  };
 
-      <div className="fixed bottom-0 w-full bg-white dark:bg-oled border-t border-gray-200 dark:border-gray-900 px-6 py-4 flex justify-between pb-8">
-        <button onClick={() => setActiveTab('timer')} className={`p-2 ${activeTab === 'timer' ? 'text-neon' : 'text-gray-500'}`}>
-          <Home size={28} />
-        </button>
-        <button onClick={() => setActiveTab('history')} className={`p-2 ${activeTab === 'history' ? 'text-neon' : 'text-gray-500'}`}>
-          <HistoryIcon size={28} />
-        </button>
-        <button onClick={() => setActiveTab('settings')} className={`p-2 ${activeTab === 'settings' ? 'text-neon' : 'text-gray-500'}`}>
-          <SettingsIcon size={28} />
-        </button>
-      </div>
+  const handleToggleVoice = () => {
+    handleUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled });
+  };
+
+  const handleSelectPlan = (newPlan) => {
+    setCurrentPlan(newPlan);
+    saveActivePlan(newPlan);
+    setActiveTab('timer'); // Chuyển thẳng sang Tab Timer để bắt đầu tập
+  };
+
+  return (
+    <div className="h-screen w-screen flex flex-col bg-oled dark:bg-oled light:bg-slate-100 text-white dark:text-white light:text-slate-900 overflow-hidden font-sans transition-colors">
+      {/* 1. Header Cố Định Ở Trên Cùng Có Safe Area Cho iPhone */}
+      <Header 
+        settings={settings}
+        onToggleTheme={handleToggleTheme}
+        onToggleVoice={handleToggleVoice}
+        activePlan={currentPlan}
+      />
+
+      {/* 2. Phần Thân Scroll Được Chứa 4 Tab Tính Năng */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+        {activeTab === 'timer' && (
+          <Timer 
+            plan={currentPlan} 
+            onOpenAIPlan={() => setActiveTab('ai_coach')}
+          />
+        )}
+
+        {activeTab === 'ai_coach' && (
+          <PlanGenerator 
+            apiKey={settings.apiKey}
+            onSelectPlan={handleSelectPlan}
+            onOpenSettings={() => setActiveTab('settings')}
+          />
+        )}
+
+        {activeTab === 'history' && (
+          <History 
+            onStartWorkout={() => setActiveTab('timer')}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <Settings 
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+            onNavigateToAI={() => setActiveTab('ai_coach')}
+          />
+        )}
+      </main>
+
+      {/* 3. Bottom Navigation Bar Đỉnh Cao Với Safe Area Cho Home Bar iPhone */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-oled/90 dark:bg-oled/95 light:bg-white/95 backdrop-blur-2xl border-t border-white/5 dark:border-white/5 light:border-slate-200 safe-bottom-padding px-6 pt-2">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          {/* Tab 1: Timer */}
+          <button
+            onClick={() => setActiveTab('timer')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 relative ${
+              activeTab === 'timer'
+                ? 'text-neon scale-105'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <div className="relative">
+              <TimerIcon size={24} className={activeTab === 'timer' ? 'drop-shadow-neon' : ''} />
+              {activeTab === 'timer' && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-neon rounded-full shadow-neon" />
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight mt-1">Đồng Hồ</span>
+          </button>
+
+          {/* Tab 2: AI Coach */}
+          <button
+            onClick={() => setActiveTab('ai_coach')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 relative ${
+              activeTab === 'ai_coach'
+                ? 'text-cyan-neon scale-105'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <div className="relative">
+              <Sparkles size={24} className={activeTab === 'ai_coach' ? 'drop-shadow-cyan-glow' : ''} />
+              {activeTab === 'ai_coach' && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-cyan-neon rounded-full shadow-cyan-glow" />
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight mt-1">AI Coach</span>
+          </button>
+
+          {/* Tab 3: History */}
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 relative ${
+              activeTab === 'history'
+                ? 'text-amber-400 scale-105'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <div className="relative">
+              <HistoryIcon size={24} className={activeTab === 'history' ? 'drop-shadow-amber-glow' : ''} />
+              {activeTab === 'history' && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-amber-400 rounded-full shadow-amber-glow" />
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight mt-1">Lịch Sử</span>
+          </button>
+
+          {/* Tab 4: Settings */}
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 relative ${
+              activeTab === 'settings'
+                ? 'text-white scale-105'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <div className="relative">
+              <SettingsIcon size={24} />
+              {activeTab === 'settings' && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full" />
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight mt-1">Cài Đặt</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
