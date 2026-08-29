@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CircularProgress from './UI/CircularProgress';
 import { unlockSpeechAPI, speakText, playBeep } from '../utils/speechUtils';
 import { saveHistory } from '../services/storageService';
@@ -11,7 +11,13 @@ import {
   Plus, 
   Minus, 
   Sparkles,
-  Info
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  ShieldCheck,
+  Flame,
+  Activity
 } from 'lucide-react';
 
 const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
@@ -32,6 +38,11 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const [sessionTotalHoldSeconds, setSessionTotalHoldSeconds] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedSessionData, setCompletedSessionData] = useState(null);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
+  // Touch swipe handling
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
 
   const currentExercise = exercises[currentSetIndex] || exercises[0];
 
@@ -171,6 +182,49 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     }
   };
 
+  // Switch to specific set when browsing
+  const handleSelectSet = (idx) => {
+    if (isActive) return; // Không đổi khi đang chạy bài tập
+    if (idx >= 0 && idx < exercises.length) {
+      setIsResting(false);
+      setCurrentSetIndex(idx);
+      setTimeLeft(exercises[idx].holdTime);
+      setTotalSetDuration(exercises[idx].holdTime);
+    }
+  };
+
+  // Swipe handling
+  const handleTouchStart = (e) => {
+    if (isActive) return;
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    if (isActive) return;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (isActive || !touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (distance > minSwipeDistance) {
+      // Vuốt sang trái -> Xem hiệp kế tiếp
+      if (currentSetIndex < exercises.length - 1) {
+        handleSelectSet(currentSetIndex + 1);
+      }
+    } else if (distance < -minSwipeDistance) {
+      // Vuốt sang phải -> Xem hiệp trước đó
+      if (currentSetIndex > 0) {
+        handleSelectSet(currentSetIndex - 1);
+      }
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   const handleAdjustTime = (delta) => {
     setTimeLeft(t => Math.max(5, t + delta));
     setTotalSetDuration(d => Math.max(5, d + delta));
@@ -179,7 +233,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const handleSelectQuickPreset = (name, holdTime, restTime = 20) => {
     setIsActive(false);
     setIsResting(false);
-    const newEx = [{ name, holdTime, restTime, tip: "Hít thở nhịp nhàng, siết chặt cơ thể" }];
+    const newEx = [{ name, holdTime, restTime, tip: "Hít thở nhịp nhàng, siết chặt cơ bụng và cơ mông" }];
     setExercises(newEx);
     setCurrentSetIndex(0);
     setTimeLeft(holdTime);
@@ -190,37 +244,67 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
   return (
     <div className="flex flex-col items-center justify-between p-4 sm:p-6 w-full h-full max-w-lg mx-auto pb-28">
-      {/* Quick Presets Slider */}
-      <div className="w-full flex space-x-2 overflow-x-auto py-1 scrollbar-none mb-2">
+      {/* 1. Quick Presets Bar (Căn chỉnh chuẩn, không lệch mép) */}
+      <div className="w-full flex items-center space-x-2 overflow-x-auto py-2 px-1 mb-2">
         <button
           onClick={() => handleSelectQuickPreset("Plank Cơ Bản 30s", 30, 15)}
-          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap active:scale-95 transition-all shadow-sm"
+          className="shrink-0 px-4 py-2 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all shadow-sm flex items-center space-x-1.5"
         >
-          ⚡ 30s Khởi Động
+          <span>⚡</span>
+          <span>30s Khởi Động</span>
         </button>
         <button
           onClick={() => handleSelectQuickPreset("Plank Chuẩn 60s", 60, 25)}
-          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap active:scale-95 transition-all shadow-sm"
+          className="shrink-0 px-4 py-2 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all shadow-sm flex items-center space-x-1.5"
         >
-          🔥 60s Tiêu Chuẩn
+          <span>🔥</span>
+          <span>60s Tiêu Chuẩn</span>
         </button>
         <button
           onClick={() => handleSelectQuickPreset("Plank Thử Thách 2 Phút", 120, 30)}
-          className="px-3.5 py-1.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap active:scale-95 transition-all shadow-sm"
+          className="shrink-0 px-4 py-2 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all shadow-sm flex items-center space-x-1.5"
         >
-          🏆 120s Bứt Phá
+          <span>🏆</span>
+          <span>120s Bứt Phá</span>
         </button>
         <button
           onClick={onOpenAIPlan}
-          className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-neon/15 border border-emerald-300 dark:border-neon/30 text-xs font-bold text-emerald-700 dark:text-neon whitespace-nowrap active:scale-95 transition-all flex items-center space-x-1 shadow-sm"
+          className="shrink-0 px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-neon/15 border border-emerald-300 dark:border-neon/30 text-xs font-bold text-emerald-700 dark:text-neon active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm"
         >
-          <Sparkles size={12} />
+          <Sparkles size={14} />
           <span>Tạo Với AI</span>
         </button>
       </div>
 
-      {/* Exercise Information Card */}
-      <div className="w-full glass-panel p-5 rounded-3xl text-center transition-colors duration-300">
+      {/* 2. Exercise Information Card Có Hỗ Trợ Vuốt Trái/Phải & Xem Trước Hiệp */}
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="w-full glass-panel p-5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm"
+      >
+        {/* Nút lật hiệp trái/phải khi chưa bắt đầu */}
+        {exercises.length > 1 && !isActive && (
+          <>
+            <button
+              onClick={() => handleSelectSet(currentSetIndex - 1)}
+              disabled={currentSetIndex === 0}
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-20 active:scale-90 transition-all z-10"
+              title="Hiệp trước"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => handleSelectSet(currentSetIndex + 1)}
+              disabled={currentSetIndex === exercises.length - 1}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-20 active:scale-90 transition-all z-10"
+              title="Hiệp tiếp theo"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </>
+        )}
+
         <div className="flex items-center justify-center space-x-2">
           <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-gray-300">
             Hiệp {currentSetIndex + 1} / {exercises.length}
@@ -232,36 +316,47 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           )}
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-slate-900 dark:text-white px-8">
           {isResting ? "❄️ Thời Gian Nghỉ Hồi Sức" : currentExercise.name}
         </h2>
 
-        {/* Posture Coaching Tip */}
-        <p className="text-xs text-slate-600 dark:text-gray-400 mt-1 flex items-center justify-center space-x-1">
-          <Info size={13} className="text-cyan-600 dark:text-cyan-neon shrink-0" />
-          <span>{isResting ? "Hít sâu bằng mũi, thở chậm bằng miệng để hồi sức" : (currentExercise.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều")}</span>
-        </p>
+        {/* Nút bấm (i) Mở Modal Chi Tiết Tư Thế Chuẩn */}
+        <button 
+          onClick={() => setShowInfoModal(true)}
+          className="mt-2 inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full"
+        >
+          <div className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
+            <Info size={11} />
+          </div>
+          <span className="truncate text-[11px] font-medium">
+            {isResting ? "Hít sâu bằng mũi, thở chậm bằng miệng để hồi sức" : (currentExercise.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều")}
+          </span>
+          <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Xem chi tiết</span>
+        </button>
 
-        {/* Multi-set progress indicator dots */}
+        {/* Multi-set progress indicator dots (Bấm được để chuyển hiệp) */}
         {exercises.length > 1 && (
-          <div className="flex justify-center space-x-1.5 mt-3">
+          <div className="flex justify-center items-center space-x-2 mt-3.5">
             {exercises.map((_, idx) => (
-              <div
+              <button
                 key={idx}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
+                onClick={() => handleSelectSet(idx)}
+                disabled={isActive}
+                className={`h-2 rounded-full transition-all duration-300 ${
                   idx === currentSetIndex
-                    ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm dark:shadow-neon'
+                    ? 'w-7 bg-emerald-500 dark:bg-neon shadow-sm dark:shadow-neon'
                     : idx < currentSetIndex
                     ? 'w-2 bg-slate-400 dark:bg-gray-500'
                     : 'w-2 bg-slate-200 dark:bg-white/10'
                 }`}
+                title={`Chuyển tới Hiệp ${idx + 1}`}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Main HUD Circular Timer */}
+      {/* 3. Main HUD Circular Timer */}
       <div className="relative my-2">
         <CircularProgress
           progress={progressPercent}
@@ -292,7 +387,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         </div>
       </div>
 
-      {/* Giant Tactical Control Buttons */}
+      {/* 4. Giant Tactical Control Buttons */}
       <div className="w-full space-y-3">
         <div className="flex items-center space-x-3 w-full">
           {/* Reset / Stop Button */}
@@ -339,7 +434,88 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         </div>
       </div>
 
-      {/* CELEBRATION MODAL KHI HOÀN THÀNH BÀI TẬP */}
+      {/* 5. MODAL HƯỚNG DẪN TƯ THẾ CHI TIẾT KHI BẤM NÚT (i) */}
+      {showInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="glass-panel p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl relative max-h-[85vh] overflow-y-auto">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowInfoModal(false)}
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-slate-700 dark:text-white active:scale-90 transition-all"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-neon/20 text-emerald-600 dark:text-neon flex items-center justify-center shrink-0">
+                <Flame size={20} />
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-neon/10 dark:text-neon border border-emerald-300 dark:border-neon/30">
+                  Hiệp {currentSetIndex + 1} / {exercises.length}
+                </span>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">
+                  {currentExercise.name}
+                </h3>
+              </div>
+            </div>
+
+            {/* Thông số hiệp tập */}
+            <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs">
+              <div className="text-center">
+                <div className="text-slate-500 dark:text-gray-400 font-medium">Thời Gian Giữ</div>
+                <div className="text-base font-bold text-emerald-600 dark:text-neon font-mono mt-0.5">{currentExercise.holdTime} giây</div>
+              </div>
+              <div className="text-center">
+                <div className="text-slate-500 dark:text-gray-400 font-medium">Thời Gian Nghỉ</div>
+                <div className="text-base font-bold text-cyan-600 dark:text-cyan-neon font-mono mt-0.5">{currentExercise.restTime || 20} giây</div>
+              </div>
+            </div>
+
+            {/* Hướng dẫn kỹ thuật chuẩn */}
+            <div className="space-y-2 text-xs">
+              <h4 className="font-extrabold text-slate-900 dark:text-white flex items-center space-x-1.5 uppercase tracking-wider text-[11px]">
+                <ShieldCheck size={14} className="text-emerald-500" />
+                <span>Kỹ Thuật Chuẩn Khoa Học</span>
+              </h4>
+              <p className="text-slate-600 dark:text-gray-300 leading-relaxed bg-slate-50 dark:bg-white/5 p-3 rounded-xl border border-slate-200 dark:border-white/5">
+                {currentExercise.tip || "Siết chặt cơ bụng và cơ mông, giữ thân người tạo thành một đường thẳng song song mặt sàn. Hít thở nhịp nhàng bằng mũi và thở ra bằng miệng."}
+              </p>
+            </div>
+
+            {/* Lưu ý quan trọng */}
+            <div className="space-y-2 text-xs">
+              <h4 className="font-extrabold text-slate-900 dark:text-white flex items-center space-x-1.5 uppercase tracking-wider text-[11px]">
+                <Activity size={14} className="text-cyan-500" />
+                <span>Lỗi Sai Cần Tránh</span>
+              </h4>
+              <ul className="space-y-1.5 text-slate-600 dark:text-gray-400 pl-2">
+                <li className="flex items-start space-x-1.5">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span><strong>Không võng lưng:</strong> Giữ cột sống thẳng tự nhiên để bảo vệ đĩa đệm.</span>
+                </li>
+                <li className="flex items-start space-x-1.5">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span><strong>Không nhô mông quá cao:</strong> Đảm bảo cơ bụng luôn trong trạng thái siết căng.</span>
+                </li>
+                <li className="flex items-start space-x-1.5">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span><strong>Không nín thở:</strong> Thở đều giúp cung cấp đủ oxy cho cơ bắp chịu tải.</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setShowInfoModal(false)}
+              className="w-full py-3 rounded-2xl bg-emerald-500 text-white dark:bg-neon dark:text-black font-extrabold text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all"
+            >
+              Đã Hiểu, Sẵn Sàng Tập
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. CELEBRATION MODAL KHI HOÀN THÀNH BÀI TẬP */}
       {showCelebration && completedSessionData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
           <div className="glass-panel p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl">
