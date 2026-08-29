@@ -82,12 +82,11 @@ const CircularProgress = ({
           {isResting ? "❄️ HỒI SỨC" : "🔥 ĐANG GIỮ CORE"}
         </div>
 
-        {/* Big Digital Timer Display */}
-        <div className="flex items-baseline justify-center">
+        {/* Big Digital Timer Display (Đã bỏ chữ 's' nhỏ) */}
+        <div className="flex items-center justify-center">
           <span className="font-mono text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
             {timeLeft}
           </span>
-          <span className="text-sm font-bold text-slate-400 dark:text-gray-400 ml-1.5 uppercase">s</span>
         </div>
 
         {/* Total Set Time / Progress Percentage */}
