@@ -14,7 +14,7 @@ import {
   Info
 } from 'lucide-react';
 
-const Timer = ({ plan, onOpenAIPlan }) => {
+const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const [exercises, setExercises] = useState(() => {
     if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
       return plan.days[0].exercises;
@@ -34,6 +34,13 @@ const Timer = ({ plan, onOpenAIPlan }) => {
   const [completedSessionData, setCompletedSessionData] = useState(null);
 
   const currentExercise = exercises[currentSetIndex] || exercises[0];
+
+  // Dừng ngay giọng nói nếu người dùng bấm tắt âm thanh
+  useEffect(() => {
+    if (!voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [voiceEnabled]);
 
   useEffect(() => {
     if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
@@ -66,16 +73,18 @@ const Timer = ({ plan, onOpenAIPlan }) => {
             setSessionTotalHoldSeconds(s => s + 1);
           }
 
-          if (!isResting) {
-            if (prev === 6) { speakText("Năm"); playBeep(523, 100); }
-            if (prev === 5) { speakText("Bốn"); playBeep(587, 100); }
-            if (prev === 4) { speakText("Ba"); playBeep(659, 100); }
-            if (prev === 3) { speakText("Hai"); playBeep(698, 100); }
-            if (prev === 2) { speakText("Một"); playBeep(784, 150); }
-          } else {
-            if (prev === 4) speakText("Chuẩn bị");
-            if (prev === 3) playBeep(440, 80);
-            if (prev === 2) playBeep(554, 80);
+          if (voiceEnabled) {
+            if (!isResting) {
+              if (prev === 6) { speakText("Năm", { enabled: voiceEnabled }); playBeep(523, 100, { enabled: voiceEnabled }); }
+              if (prev === 5) { speakText("Bốn", { enabled: voiceEnabled }); playBeep(587, 100, { enabled: voiceEnabled }); }
+              if (prev === 4) { speakText("Ba", { enabled: voiceEnabled }); playBeep(659, 100, { enabled: voiceEnabled }); }
+              if (prev === 3) { speakText("Hai", { enabled: voiceEnabled }); playBeep(698, 100, { enabled: voiceEnabled }); }
+              if (prev === 2) { speakText("Một", { enabled: voiceEnabled }); playBeep(784, 150, { enabled: voiceEnabled }); }
+            } else {
+              if (prev === 4) speakText("Chuẩn bị", { enabled: voiceEnabled });
+              if (prev === 3) playBeep(440, 80, { enabled: voiceEnabled });
+              if (prev === 2) playBeep(554, 80, { enabled: voiceEnabled });
+            }
           }
 
           return prev - 1;
@@ -86,17 +95,17 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     }
 
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, isResting]);
+  }, [isActive, timeLeft, isResting, voiceEnabled]);
 
   const handleSetFinished = () => {
-    playBeep(880, 400);
+    if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
 
     if (!isResting && (currentExercise.restTime > 0) && (currentSetIndex < exercises.length - 1)) {
       setIsResting(true);
       const restSec = currentExercise.restTime || 25;
       setTimeLeft(restSec);
       setTotalSetDuration(restSec);
-      speakText(`Tuyệt vời! Nghỉ ngơi ${restSec} giây.`);
+      if (voiceEnabled) speakText(`Tuyệt vời! Nghỉ ngơi ${restSec} giây.`, { enabled: voiceEnabled });
     } else if (currentSetIndex < exercises.length - 1) {
       setIsResting(false);
       const nextIdx = currentSetIndex + 1;
@@ -104,11 +113,11 @@ const Timer = ({ plan, onOpenAIPlan }) => {
       const nextEx = exercises[nextIdx];
       setTimeLeft(nextEx.holdTime);
       setTotalSetDuration(nextEx.holdTime);
-      speakText(`Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`);
+      if (voiceEnabled) speakText(`Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
       setIsActive(false);
       setIsResting(false);
-      speakText("Xuất sắc! Bạn đã hoàn thành xuất sắc toàn bộ bài tập!");
+      if (voiceEnabled) speakText("Xuất sắc! Bạn đã hoàn thành xuất sắc toàn bộ bài tập!", { enabled: voiceEnabled });
       
       const totalHold = sessionTotalHoldSeconds + currentExercise.holdTime;
       const sessionResult = {
@@ -126,11 +135,11 @@ const Timer = ({ plan, onOpenAIPlan }) => {
 
   const handleToggleTimer = () => {
     unlockSpeechAPI();
-    if (!isActive) {
+    if (!isActive && voiceEnabled) {
       if (isResting) {
-        speakText("Tiếp tục nghỉ");
+        speakText("Tiếp tục nghỉ", { enabled: voiceEnabled });
       } else {
-        speakText(`Bắt đầu. ${currentExercise.name}`);
+        speakText(`Bắt đầu. ${currentExercise.name}`, { enabled: voiceEnabled });
       }
     }
     setIsActive(!isActive);
@@ -144,6 +153,9 @@ const Timer = ({ plan, onOpenAIPlan }) => {
     setTimeLeft(firstHold);
     setTotalSetDuration(firstHold);
     setSessionTotalHoldSeconds(0);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   };
 
   const handleSkipSet = () => {
@@ -153,7 +165,7 @@ const Timer = ({ plan, onOpenAIPlan }) => {
       setCurrentSetIndex(nextIdx);
       setTimeLeft(exercises[nextIdx].holdTime);
       setTotalSetDuration(exercises[nextIdx].holdTime);
-      speakText(`Chuyển sang ${exercises[nextIdx].name}`);
+      if (voiceEnabled) speakText(`Chuyển sang ${exercises[nextIdx].name}`, { enabled: voiceEnabled });
     } else {
       handleSetFinished();
     }

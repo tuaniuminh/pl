@@ -1,3 +1,5 @@
+import { getSettings } from '../services/storageService';
+
 let speechUnlocked = false;
 
 // Kích hoạt audio context ngay khi user tap vào màn hình (bắt buộc cho iOS Safari / WKWebView)
@@ -17,14 +19,21 @@ export const unlockSpeechAPI = () => {
 export const speakText = (text, options = {}) => {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   
+  // Kiểm tra nghiêm ngặt nếu trợ lý giọng nói đang bị tắt
   try {
+    const settings = getSettings();
+    if (options.enabled === false || (options.enabled === undefined && settings.voiceEnabled === false)) {
+      window.speechSynthesis.cancel();
+      return;
+    }
+
     window.speechSynthesis.cancel(); // Xóa hàng đợi cũ để đọc ngay lập tức
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = options.lang || 'vi-VN';
     utterance.rate = options.rate || 1.0;
     utterance.pitch = options.pitch || 1.0;
-    utterance.volume = options.volume !== undefined ? options.volume : 1.0;
+    utterance.volume = options.volume !== undefined ? options.volume : (settings.soundVolume || 1.0);
 
     // Tìm giọng tiếng Việt nếu có
     const voices = window.speechSynthesis.getVoices();
@@ -39,8 +48,13 @@ export const speakText = (text, options = {}) => {
   }
 };
 
-export const playBeep = (freq = 880, duration = 150) => {
+export const playBeep = (freq = 880, duration = 150, options = {}) => {
   try {
+    const settings = getSettings();
+    if (options.enabled === false || (options.enabled === undefined && settings.voiceEnabled === false)) {
+      return;
+    }
+
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
