@@ -29,7 +29,7 @@ jobs:
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Tạo Icon tự động
+      - name: Tạo Icon tự động từ Logo mới
         run: npm run generate-icons || true
 
       - name: Đọc và đồng bộ Version từ package.json
@@ -56,29 +56,22 @@ jobs:
         run: |
           codesign --force --sign - --deep --entitlements ios-build-entitlements.plist ios/App/build/Build/Products/Release-iphoneos/App.app
 
-      - name: Đóng gói thành file IPA và ZIP có kèm số phiên bản
+      - name: Đóng gói thành file IPA chuẩn
         run: |
-          echo "Đang đóng gói phiên bản: v${{ env.APP_VERSION }}"
+          echo "Đang đóng gói IPA phiên bản: v${{ env.APP_VERSION }}"
           mkdir -p Payload
           cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           
-          # Đặt tên file IPA có số phiên bản
+          # Đặt tên file IPA có số phiên bản chuẩn
           IPA_NAME="PlankAI-v${{ env.APP_VERSION }}-TrollStore.ipa"
           zip -r "$IPA_NAME" Payload
           rm -rf Payload
           
-          # Đặt tên file ZIP chứa IPA có số phiên bản
-          ZIP_NAME="PlankAI-v${{ env.APP_VERSION }}-TrollStore.zip"
-          zip -r "$ZIP_NAME" "$IPA_NAME"
-          
           echo "IPA_NAME=$IPA_NAME" >> $GITHUB_ENV
-          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
 
-      - name: Tải file IPA & ZIP lên GitHub Artifacts
+      - name: Tải file IPA lên GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: PlankAI-v${{ env.APP_VERSION }}-TrollStore
-          path: |
-            ${{ env.IPA_NAME }}
-            ${{ env.ZIP_NAME }}
+          path: ${{ env.IPA_NAME }}
           retention-days: 14
