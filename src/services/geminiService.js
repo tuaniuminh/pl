@@ -1,15 +1,15 @@
 /**
  * Dịch vụ gọi Google Gemini REST API trực tiếp.
- * Tối ưu hiệu năng, không cần cài thêm package.
+ * Sử dụng mô hình mới nhất: Google Gemini 3.7 Flash.
  */
 
-// Hàm kiểm tra nhanh tính hợp lệ của API Key
+// Hàm kiểm tra nhanh tính hợp lệ của API Key bằng Gemini 3.7 Flash
 export const testGeminiApiKey = async (apiKey) => {
   if (!apiKey || !apiKey.trim()) {
     throw new Error("Vui lòng nhập API Key.");
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey.trim()}`;
 
   const requestBody = {
     contents: [
@@ -28,14 +28,14 @@ export const testGeminiApiKey = async (apiKey) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const message = errorData.error?.message || `Lỗi HTTP ${response.status}: API Key không hợp lệ hoặc bị giới hạn.`;
+      const message = errorData.error?.message || `Lỗi HTTP ${response.status}: API Key không hợp lệ hoặc model không phản hồi.`;
       throw new Error(message);
     }
 
     const data = await response.json();
     return !!data.candidates?.[0]?.content?.parts?.[0]?.text;
   } catch (error) {
-    console.error("Gemini Test Error:", error);
+    console.error("Gemini 3.7 Flash Test Error:", error);
     throw error;
   }
 };
@@ -45,7 +45,6 @@ const extractJsonFromText = (text) => {
   try {
     return JSON.parse(text);
   } catch (e) {
-    // Thử regex trích xuất khối JSON
     const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (match) {
       return JSON.parse(match[0]);
@@ -54,13 +53,13 @@ const extractJsonFromText = (text) => {
   }
 };
 
-// Hàm tạo giáo án thông minh từ thể trạng người dùng
+// Hàm tạo giáo án thông minh từ thể trạng người dùng sử dụng Gemini 3.7 Flash
 export const generatePlankPlan = async (apiKey, userProfile) => {
   if (!apiKey || !apiKey.trim()) {
     throw new Error("Vui lòng nhập Google Gemini API Key trong phần Cài đặt.");
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${apiKey.trim()}`;
 
   const promptText = `
 Bạn là Huấn luyện viên Fitness chuyên nghiệp cấp cao thế giới, chuyên sâu về Plank và tăng cường nhóm cơ Core.
@@ -134,21 +133,21 @@ Lưu ý:
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `Lỗi kết nối Gemini API (HTTP ${response.status})`);
+      throw new Error(errorData.error?.message || `Lỗi kết nối Gemini 3.7 Flash API (HTTP ${response.status})`);
     }
 
     const data = await response.json();
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!resultText) {
-      throw new Error("Không nhận được nội dung trả về từ Gemini AI.");
+      throw new Error("Không nhận được nội dung trả về từ Gemini 3.7 Flash.");
     }
 
     const parsedPlan = extractJsonFromText(resultText);
     return parsedPlan;
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error(error.message || "Không thể tạo giáo án tự động.");
+    console.error("Gemini 3.7 Flash Error:", error);
+    throw new Error(error.message || "Không thể tạo giáo án tự động với Gemini 3.7 Flash.");
   }
 };
 

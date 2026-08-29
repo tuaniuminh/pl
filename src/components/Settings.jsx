@@ -44,7 +44,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
       await testGeminiApiKey(settings.apiKey);
       setTestResult({
         success: true,
-        message: "Kết nối thành công! Google Gemini 1.5 Flash đã sẵn sàng phục vụ bạn."
+        message: "Kết nối thành công! Google Gemini 3.7 Flash đã sẵn sàng phục vụ bạn."
       });
     } catch (err) {
       setTestResult({
