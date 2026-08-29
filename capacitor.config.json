@@ -1,0 +1,6 @@
+{
+  "appId": "com.plankai.app",
+  "appName": "Plank AI",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

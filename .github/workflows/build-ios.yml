@@ -1,0 +1,70 @@
+name: Build iOS IPA for TrollStore
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Thiết lập Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cài đặt Dependencies
+        run: npm install
+
+      - name: Build Web (Vite)
+        run: npm run build
+
+      - name: Khởi tạo & Đồng bộ Capacitor
+        run: |
+          npx cap add ios || true
+          npx cap sync ios
+
+      - name: Tạo Icon tự động
+        run: npm run generate-icons || true
+
+      - name: Đồng bộ Version từ package.json vào Xcode
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "Cập nhật MARKETING_VERSION = $VERSION"
+          sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = $VERSION;/g" ios/App/App.xcodeproj/project.pbxproj
+
+      - name: Build mã nguồn iOS bằng Xcode (Không ký)
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_IDENTITY=""
+
+      - name: Ký mã giả (Ad-Hoc) với Entitlements cho TrollStore
+        run: |
+          codesign --force --sign - --deep --entitlements ios-build-entitlements.plist ios/App/build/Build/Products/Release-iphoneos/App.app
+
+      - name: Đóng gói thành file IPA chuẩn
+        run: |
+          mkdir -p Payload
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -r PlankAI-TrollStore.ipa Payload
+          rm -rf Payload
+
+      - name: Tải file IPA lên GitHub Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlankAI-TrollStore-IPA
+          path: PlankAI-TrollStore.ipa
+          retention-days: 7
