@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Squircle Card Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e2e8f0" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- Neon Glow Gradient -->
+    <linearGradient id="neonCyanEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#39ff14" />
+    </linearGradient>
+
+    <!-- Inner Dark Disc Gradient for Depth -->
+    <linearGradient id="innerDisc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#092027" />
+      <stop offset="100%" stop-color="#041216" />
+    </linearGradient>
+
+    <!-- Filter Glow -->
+    <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Base White Canvas -->
+  <rect width="512" height="512" fill="url(#bgGrad)" rx="112" />
+
+  <!-- Outer Glassmorphism Squircle Card -->
+  <rect x="40" y="40" width="432" height="432" rx="96" fill="url(#cardGrad)" filter="url(#softShadow)" stroke="#ffffff" stroke-width="4" />
+
+  <!-- Inner High-tech Dark Cyber Core -->
+  <rect x="64" y="64" width="384" height="384" rx="80" fill="url(#innerDisc)" stroke="url(#neonCyanEmerald)" stroke-width="2" />
+
+  <!-- Stopwatch HUD Outer Ring -->
+  <circle cx="256" cy="256" r="145" fill="none" stroke="#1e3a47" stroke-width="6" />
+  <circle cx="256" cy="256" r="145" fill="none" stroke="url(#neonCyanEmerald)" stroke-width="6" stroke-dasharray="680 240" stroke-linecap="round" filter="url(#glowFilter)" />
+
+  <!-- Stopwatch Ticks -->
+  <g stroke="url(#neonCyanEmerald)" stroke-width="2" opacity="0.7">
+    <line x1="256" y1="120" x2="256" y2="132" stroke-width="4" />
+    <line x1="256" y1="380" x2="256" y2="392" stroke-width="4" />
+    <line x1="120" y1="256" x2="132" y2="256" stroke-width="4" />
+    <line x1="380" y1="256" x2="392" y2="256" stroke-width="4" />
+    
+    <line x1="160" y1="160" x2="168" y2="168" />
+    <line x1="352" y1="160" x2="344" y2="168" />
+    <line x1="160" y1="352" x2="168" y2="344" />
+    <line x1="352" y1="352" x2="344" y2="344" />
+  </g>
+
+  <!-- Stopwatch Top Button -->
+  <rect x="246" y="88" width="20" height="16" rx="4" fill="url(#neonCyanEmerald)" filter="url(#glowFilter)" />
+
+  <!-- Floor Line -->
+  <line x1="110" y1="324" x2="402" y2="324" stroke="url(#neonCyanEmerald)" stroke-width="3" stroke-linecap="round" filter="url(#glowFilter)" />
+
+  <!-- FOREARM PLANK ATHLETE SILHOUETTE (Khuỷu tay vuông góc 90 độ, cẳng tay chạm sàn) -->
+  <g filter="url(#glowFilter)">
+    <!-- Head -->
+    <circle cx="360" cy="235" r="18" fill="none" stroke="url(#neonCyanEmerald)" stroke-width="4" />
+    <circle cx="360" cy="235" r="8" fill="url(#neonCyanEmerald)" />
+
+    <!-- Forearm on ground (Cẳng tay đặt phẳng trên sàn từ khuỷu tay đến bàn tay) -->
+    <!-- Elbow position: (330, 320) -> Forearm to Hand: (375, 320) -->
+    <path d="M 330 320 L 375 320" stroke="url(#neonCyanEmerald)" stroke-width="7" stroke-linecap="round" />
+
+    <!-- Upper Arm (Bắp tay vuông góc 90 độ từ vai xuống khuỷu tay) -->
+    <!-- Shoulder: (330, 252) -> Elbow: (330, 320) -->
+    <path d="M 330 252 L 330 320" stroke="url(#neonCyanEmerald)" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Torso, Glutes, Legs, Feet (Đường thẳng tắp từ Vai -> Lưng -> Hông -> Chân -> Mũi chân) -->
+    <!-- Shoulder(330, 252) -> Chest/Back(290, 260) -> Core/Hips(235, 275) -> Thighs(180, 290) -> Heels(135, 305) -> Toes on floor(135, 320) -->
+    <path d="M 330 252 L 290 260 L 235 272 L 180 288 L 135 306 L 135 320" fill="none" stroke="url(#neonCyanEmerald)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Under Body Muscle Contour -->
+    <path d="M 326 270 L 285 278 L 235 288 L 180 300 L 142 316" fill="none" stroke="url(#neonCyanEmerald)" stroke-width="2.5" opacity="0.6" stroke-dasharray="4 3" />
+
+    <!-- AI Neural Energy Nodes along Core & Spine -->
+    <circle cx="330" cy="252" r="5" fill="#ffffff" stroke="#00f2fe" stroke-width="2" />
+    <circle cx="290" cy="260" r="4" fill="#ffffff" stroke="#00f2fe" stroke-width="2" />
+    <circle cx="235" cy="272" r="5.5" fill="#ffffff" stroke="#39ff14" stroke-width="2" />
+    <circle cx="180" cy="288" r="4" fill="#ffffff" stroke="#10b981" stroke-width="2" />
+    <circle cx="135" cy="306" r="4.5" fill="#ffffff" stroke="#10b981" stroke-width="2" />
+    <circle cx="330" cy="320" r="4.5" fill="#ffffff" stroke="#00f2fe" stroke-width="2" />
+
+    <!-- AI Neural Synapse Lines (Tia sáng năng lượng bừng sáng từ cơ bụng Core) -->
+    <path d="M 235 272 Q 220 230 200 215" fill="none" stroke="#00f2fe" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+    <circle cx="200" cy="215" r="3.5" fill="#00f2fe" />
+
+    <path d="M 235 272 Q 250 220 270 205" fill="none" stroke="#39ff14" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+    <circle cx="270" cy="205" r="3.5" fill="#39ff14" />
+
+    <path d="M 290 260 Q 305 225 325 210" fill="none" stroke="#00f2fe" stroke-width="1.5" stroke-linecap="round" opacity="0.75" />
+    <circle cx="325" cy="210" r="3" fill="#00f2fe" />
+  </g>
+</svg>
