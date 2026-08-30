@@ -10,8 +10,8 @@ const CircularProgress = ({
   personalRecord = 60,
   exerciseName = "Plank Cơ Bản"
 }) => {
-  const size = 230;
-  const strokeWidth = 12;
+  const size = 260;
+  const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = isMaxChallenge 
@@ -30,10 +30,10 @@ const CircularProgress = ({
   }
 
   return (
-    <div className="relative flex items-center justify-center my-2">
+    <div className="relative flex items-center justify-center my-auto">
       {/* Background radial glow */}
       <div 
-        className="absolute w-48 h-48 rounded-full blur-2xl opacity-20 dark:opacity-30 transition-all duration-700 pointer-events-none"
+        className="absolute w-56 h-56 rounded-full blur-3xl opacity-20 dark:opacity-35 transition-all duration-700 pointer-events-none"
         style={{ 
           backgroundColor: isMaxChallenge ? '#8b5cf6' : (isResting ? '#00f2fe' : '#10b981') 
         }}
@@ -84,7 +84,7 @@ const CircularProgress = ({
           className="fill-transparent"
           style={{
             transition: isActive ? 'stroke-dashoffset 1000ms linear' : 'stroke-dashoffset 300ms ease-out',
-            filter: isActive ? `drop-shadow(0 0 8px ${glowColor})` : 'none',
+            filter: isActive ? `drop-shadow(0 0 10px ${glowColor})` : 'none',
             willChange: 'stroke-dashoffset'
           }}
         />
@@ -104,12 +104,12 @@ const CircularProgress = ({
         </span>
 
         {/* Main Big Digit Timer */}
-        <div className="font-mono text-5xl sm:text-6xl font-black tracking-tighter leading-none text-slate-900 dark:text-white">
+        <div className="font-mono text-6xl font-black tracking-tighter leading-none text-slate-900 dark:text-white">
           {timeLeft}
         </div>
 
         {/* Secondary Info / Target */}
-        <div className="text-[11px] font-medium text-slate-500 dark:text-gray-400 mt-1">
+        <div className="text-[11px] font-medium text-slate-500 dark:text-gray-400 mt-1.5">
           {isMaxChallenge ? (
             <span>Kỷ lục: <strong className="text-purple-600 dark:text-purple-400 font-bold">{personalRecord}s</strong></span>
           ) : isResting ? (

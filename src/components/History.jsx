@@ -256,6 +256,11 @@ const History = ({ onStartWorkout }) => {
                       <div className="font-mono text-sm font-extrabold text-emerald-600 dark:text-neon">
                         {item.duration}s
                       </div>
+                      {item.maxSingleHold && item.completedSets > 1 && (
+                        <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                          Max: {item.maxSingleHold}s
+                        </div>
+                      )}
                       <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">
                         ~{item.calories || Math.round((item.duration / 60) * 4.5)} kcal
                       </div>

@@ -225,7 +225,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
       setTotalSetDuration(nextEx.holdTime);
       if (voiceEnabled) playVoiceClip('prepare_next', `Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
-      finishWorkoutSession(sessionTotalHoldSeconds + currentExercise.holdTime, exercises.length, plan?.planName || "Plank Tự Do");
+      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do");
     }
   };
 
@@ -238,9 +238,14 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
     if (voiceEnabled) playVoiceClip('workout_complete', 'Xuất sắc! Bạn vừa hoàn thành bài tập!', { enabled: voiceEnabled });
     
+    const maxSingleHold = isMaxChallenge 
+      ? totalHold 
+      : Math.max(...exercises.map(e => Number(e.holdTime || 0)));
+
     const sessionResult = {
       planName: planTitle,
       duration: totalHold,
+      maxSingleHold: maxSingleHold,
       completedSets: completedSetsCount,
       totalSets: completedSetsCount
     };
@@ -398,73 +403,13 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const progressPercent = totalSetDuration > 0 ? ((totalSetDuration - timeLeft) / totalSetDuration) * 100 : 0;
 
   return (
-    <div className="flex flex-col items-center justify-between p-3 sm:p-5 w-full max-w-lg mx-auto pb-36 min-h-[calc(100vh-135px)]">
-      {/* 1. Quick Presets & Challenge Bar - Cố định chắc chắn, chỉ cuộn thuần ngang 100% không bị dịch chuyển chéo */}
-      <div className="w-full shrink-0 flex items-center space-x-2 overflow-x-auto overflow-y-hidden py-1.5 px-0.5 mb-1 touch-pan-x overscroll-x-contain select-none">
-        {/* Nút Thách Thức Vô Cực Nổi Bật */}
-        <button
-          onClick={handleSwitchToMaxChallenge}
-          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-black active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm ${
-            isMaxChallenge 
-              ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-500/20' 
-              : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/30 dark:border-purple-500/30 dark:text-purple-300'
-          }`}
-        >
-          <InfinityIcon size={14} />
-          <span>Thách Thức Vô Cực</span>
-        </button>
-
-        <button
-          onClick={() => handleSelectQuickPreset("Plank Cơ Bản 30s", 30, 15)}
-          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
-            !isMaxChallenge && totalSetDuration === 30
-              ? 'bg-emerald-500 text-white border-emerald-400'
-              : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <span>⚡</span>
-          <span>30s Khởi Động</span>
-        </button>
-
-        <button
-          onClick={() => handleSelectQuickPreset("Plank Chuẩn 60s", 60, 25)}
-          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
-            !isMaxChallenge && totalSetDuration === 60
-              ? 'bg-emerald-500 text-white border-emerald-400'
-              : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <span>🔥</span>
-          <span>60s Tiêu Chuẩn</span>
-        </button>
-
-        <button
-          onClick={() => handleSelectQuickPreset("Plank Thử Thách 2 Phút", 120, 30)}
-          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
-            !isMaxChallenge && totalSetDuration === 120
-              ? 'bg-emerald-500 text-white border-emerald-400'
-              : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <span>🏆</span>
-          <span>120s Bứt Phá</span>
-        </button>
-
-        <button
-          onClick={onOpenAIPlan}
-          className="shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300/60 dark:border-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm"
-        >
-          <ClipboardList size={14} />
-          <span>Thư Viện Giáo Án</span>
-        </button>
-      </div>
-
-      {/* 2. Exercise Information Card */}
+    <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-24 select-none">
+      {/* 1. Exercise Information Card */}
       <div 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="w-full glass-panel p-4 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm"
+        className="w-full glass-panel p-4 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0"
       >
         {/* Nút lật hiệp trái/phải khi chưa bắt đầu */}
         {exercises.length > 1 && !isActive && !isMaxChallenge && (

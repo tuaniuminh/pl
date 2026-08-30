@@ -60,8 +60,8 @@ function App() {
         activePlan={currentPlan}
       />
 
-      {/* 2. Phần Thân Scroll Được Chứa 4 Tab Tính Năng */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative pb-20">
+      {/* 2. Phần Thân Chứa 4 Tab Tính Năng (Tab Tập Luyện khóa cứng không cuộn) */}
+      <main className={`flex-1 relative ${activeTab === 'timer' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden pb-20'}`}>
         {activeTab === 'timer' && (
           <Timer 
             plan={currentPlan} 
@@ -96,7 +96,7 @@ function App() {
       {/* 3. Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-oled/95 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 safe-bottom-padding px-6 pt-2 transition-colors duration-300">
         <div className="flex items-center justify-around max-w-md mx-auto">
-          {/* Tab 1: Timer */}
+          {/* Tab 1: Tập Luyện */}
           <button
             onClick={() => setActiveTab('timer')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
@@ -106,7 +106,7 @@ function App() {
             }`}
           >
             <TimerIcon size={24} />
-            <span className="text-[10px] tracking-tight mt-1">Đồng Hồ</span>
+            <span className="text-[10px] tracking-tight mt-1">Tập Luyện</span>
           </button>
 
           {/* Tab 2: Giáo Án (Workout Plans Hub) */}

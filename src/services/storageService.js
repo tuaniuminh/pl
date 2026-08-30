@@ -51,38 +51,38 @@ export const BADGES_LIST = [
   {
     id: 'hold_60s',
     name: 'Chiến Binh 1 Phút',
-    desc: 'Giữ Plank liên tục từ 60 giây trở lên',
+    desc: 'Giữ Plank liên tục trong 1 hiệp từ 60 giây trở lên',
     icon: '⚡',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats, history) => history.some(h => (h.duration || 0) >= 60)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 60)
   },
   {
     id: 'hold_120s',
     name: 'Bứt Phá 2 Phút',
-    desc: 'Giữ Plank liên tục từ 120 giây trở lên',
+    desc: 'Giữ Plank liên tục trong 1 hiệp từ 120 giây trở lên',
     icon: '🔥',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats, history) => history.some(h => (h.duration || 0) >= 120)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 120)
   },
   {
     id: 'hold_180s',
     name: 'Kỷ Lục Gia 3 Phút',
-    desc: 'Giữ Plank liên tục từ 180 giây trở lên',
+    desc: 'Giữ Plank liên tục trong 1 hiệp từ 180 giây trở lên',
     icon: '🏆',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats, history) => history.some(h => (h.duration || 0) >= 180)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 180)
   },
   {
     id: 'hold_300s',
     name: 'Bậc Thầy 5 Phút',
-    desc: 'Chinh phục mốc 300 giây (5 phút) huyền thoại',
+    desc: 'Chinh phục mốc 300 giây (5 phút) liên tục trong 1 hiệp',
     icon: '👑',
     rarity: 'Tối thượng',
     color: 'red',
-    check: (stats, history) => history.some(h => (h.duration || 0) >= 300)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 300)
   },
   {
     id: 'streak_3',
@@ -419,10 +419,15 @@ export const saveHistory = (session) => {
   try {
     const history = getHistory();
     const calories = Math.round((session.duration / 60) * 4.5);
+    const maxSingleHold = session.maxSingleHold !== undefined 
+      ? session.maxSingleHold 
+      : (session.totalSets === 1 ? (session.duration || 0) : (session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0));
+
     const newRecord = {
       id: Date.now(),
       date: new Date().toISOString(),
       duration: session.duration || 0,
+      maxSingleHold: maxSingleHold,
       planName: session.planName || "Plank Tự Do",
       completedSets: session.completedSets || 1,
       totalSets: session.totalSets || 1,
@@ -431,8 +436,10 @@ export const saveHistory = (session) => {
     history.unshift(newRecord);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
     
-    // Cập nhật kỷ lục cá nhân nếu có
-    updatePersonalRecord(session.duration || 0);
+    // Cập nhật kỷ lục cá nhân liên tục nếu có
+    if (maxSingleHold > 0) {
+      updatePersonalRecord(maxSingleHold);
+    }
 
     return newRecord;
   } catch (e) {
