@@ -11,12 +11,10 @@ import {
   ShieldCheck, 
   ExternalLink, 
   Github,
-  Play,
-  User,
-  Sliders
+  Play
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
-import { previewVoice } from '../utils/audioPack';
+import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
 import packageJson from '../../package.json';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
@@ -62,6 +60,8 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
     }
   };
 
+  const currentPersona = VOICE_PERSONAS.find(p => p.id === (settings.selectedVoice || 'female')) || VOICE_PERSONAS[0];
+
   return (
     <div className="p-4 sm:p-6 space-y-6 pb-28 max-w-lg mx-auto">
       {/* Title */}
@@ -70,11 +70,11 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           Cài Đặt Hệ Thống
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-          Tùy chọn giọng đọc Huấn luyện viên, API Key và giao diện hiển thị
+          Tùy chọn phong cách Huấn Luyện Viên AI, API Key và giao diện hiển thị
         </p>
       </div>
 
-      {/* SECTION 1: GIỌNG ĐỌC HUẤN LUYỆN VIÊN STUDIO AI */}
+      {/* SECTION 1: BỘ SƯU TẬP 6 PHONG CÁCH HUẤN LUYỆN VIÊN STUDIO AI */}
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-emerald-300/40 dark:border-emerald-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -82,98 +82,69 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
               <Volume2 size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Giọng Đọc Studio AI</h3>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">Chọn giọng Huấn Luyện Viên cá nhân (PT)</p>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Giọng Đọc Huấn Luyện Viên AI</h3>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">Chọn người bạn đồng hành luyện tập cùng bạn</p>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-500/30">
-            {settings.selectedVoice === 'male' ? '👨 Nam Minh' : '👩 Hoài My'}
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-500/30">
+            {currentPersona.emoji} {currentPersona.name}
           </span>
         </div>
 
-        {/* 2 Voice Options Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          {/* Voice 1: Nữ Hoài My */}
-          <div 
-            onClick={() => handleVoiceChange('female')}
-            className={`p-4 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
-              (settings.selectedVoice || 'female') === 'female'
-                ? 'bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-500 shadow-sm'
-                : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xl">👩</span>
-                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  (settings.selectedVoice || 'female') === 'female'
-                    ? 'border-emerald-500 bg-emerald-500 text-white'
-                    : 'border-slate-300 dark:border-white/20'
-                }`}>
-                  {(settings.selectedVoice || 'female') === 'female' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </span>
+        {/* 6 Voice Personas Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          {VOICE_PERSONAS.map((persona) => {
+            const isSelected = (settings.selectedVoice || 'female') === persona.id;
+
+            return (
+              <div 
+                key={persona.id}
+                onClick={() => handleVoiceChange(persona.id)}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-emerald-50/90 dark:bg-emerald-500/15 border-emerald-500 shadow-sm ring-1 ring-emerald-500/40'
+                    : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-xl">{persona.emoji}</span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-white dark:bg-white/10 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-white/10">
+                        {persona.tag}
+                      </span>
+                    </div>
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                        : 'border-slate-300 dark:border-white/20'
+                    }`}>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white mt-2">
+                    {persona.name}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                    {persona.desc}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    previewVoice(persona.id);
+                  }}
+                  className="mt-2.5 py-1 px-2.5 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center space-x-1 active:scale-95 shadow-sm"
+                >
+                  <Play size={10} fill="currentColor" />
+                  <span>Nghe Thử</span>
+                </button>
               </div>
-              <h4 className="text-xs font-black text-slate-900 dark:text-white mt-2">
-                Hoài My (Nữ)
-              </h4>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
-                Truyền cảm, trong trẻo, nhẹ nhàng và tự nhiên
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                previewVoice('female');
-              }}
-              className="mt-3 py-1.5 px-3 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center space-x-1 active:scale-95 shadow-sm"
-            >
-              <Play size={11} fill="currentColor" />
-              <span>Nghe Thử</span>
-            </button>
-          </div>
-
-          {/* Voice 2: Nam Minh */}
-          <div 
-            onClick={() => handleVoiceChange('male')}
-            className={`p-4 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
-              settings.selectedVoice === 'male'
-                ? 'bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-500 shadow-sm'
-                : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xl">👨</span>
-                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  settings.selectedVoice === 'male'
-                    ? 'border-emerald-500 bg-emerald-500 text-white'
-                    : 'border-slate-300 dark:border-white/20'
-                }`}>
-                  {settings.selectedVoice === 'male' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </span>
-              </div>
-              <h4 className="text-xs font-black text-slate-900 dark:text-white mt-2">
-                Nam Minh (Nam)
-              </h4>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
-                Trầm ấm, dứt khoát, phong thái PT chuyên nghiệp
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                previewVoice('male');
-              }}
-              className="mt-3 py-1.5 px-3 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center space-x-1 active:scale-95 shadow-sm"
-            >
-              <Play size={11} fill="currentColor" />
-              <span>Nghe Thử</span>
-            </button>
-          </div>
+            );
+          })}
         </div>
 
         {/* Master Voice Assistant Toggle */}

@@ -1,10 +1,62 @@
 /**
- * Hệ thống Phát Âm Thanh Huấn Luyện Viên Thể Hình Studio AI Đa Giọng Đọc (Audio Pack)
- * Hỗ trợ chọn Giọng Nữ (Hoài My) & Giọng Nam (Nam Minh), phát tức thì 0ms, offline 100%.
+ * Hệ thống Phát Âm Thanh Huấn Luyện Viên Thể Hình Studio AI Đa Phong Cách (Audio Pack)
+ * Hỗ trợ 6 phong cách HLV: Hoài My, Nam Minh, Quân Đội, Yoga Zen, Cyberpunk AI, English Pro.
+ * Phát tức thì 0ms, hoạt động offline 100%.
  */
 
 import { getSettings } from '../services/storageService';
 import { speakText } from './speechUtils';
+
+export const VOICE_PERSONAS = [
+  {
+    id: 'female',
+    name: 'Hoài My (Nữ PT)',
+    emoji: '👩',
+    tag: 'Truyền Cảm',
+    desc: 'Trong trẻo, nhẹ nhàng, tự nhiên và thư thái',
+    color: 'emerald'
+  },
+  {
+    id: 'male',
+    name: 'Nam Minh (Nam PT)',
+    emoji: '👨',
+    tag: 'Mạnh Mẽ',
+    desc: 'Trầm ấm, dứt khoát, phong thái HLV thể hình chuẩn',
+    color: 'cyan'
+  },
+  {
+    id: 'military',
+    name: 'HLV Quân Đội',
+    emoji: '🥊',
+    tag: 'Kỷ Luật Thép',
+    desc: 'Hùng hồn, đanh thép, thúc ép gồng Core bứt phá',
+    color: 'amber'
+  },
+  {
+    id: 'zen',
+    name: 'HLV Yoga & Zen',
+    emoji: '🧘',
+    tag: 'Tĩnh Tại',
+    desc: 'Êm dịu, dẫn dắt nhịp thở sâu và lắng nghe cơ thể',
+    color: 'purple'
+  },
+  {
+    id: 'cyber',
+    name: 'Cyberpunk AI',
+    emoji: '🤖',
+    tag: 'Công Nghệ',
+    desc: 'Trợ lý AI tương lai, âm hưởng Sci-Fi hiện đại',
+    color: 'cyan'
+  },
+  {
+    id: 'english',
+    name: 'English Pro Coach',
+    emoji: '🇺🇸',
+    tag: 'Quốc Tế',
+    desc: 'Phong cách phòng tập quốc tế (Nike / Peloton)',
+    color: 'emerald'
+  }
+];
 
 const CLIP_NAMES = [
   'start_workout',
@@ -28,28 +80,29 @@ const CLIP_NAMES = [
   'milestone_300s'
 ];
 
-const audioCache = {
-  female: {},
-  male: {}
-};
-
+const audioCache = {};
 let currentPlayingAudio = null;
 
-// Tải trước toàn bộ âm thanh của cả 2 giọng vào RAM
-export const preloadAudioPack = () => {
+// Tải trước các file âm thanh của persona đang chọn vào RAM
+export const preloadAudioPack = (personaId) => {
   if (typeof window === 'undefined') return;
 
-  ['female', 'male'].forEach((voice) => {
-    CLIP_NAMES.forEach((clipName) => {
-      try {
+  const currentPersona = personaId || getSettings()?.selectedVoice || 'female';
+  if (!audioCache[currentPersona]) {
+    audioCache[currentPersona] = {};
+  }
+
+  CLIP_NAMES.forEach((clipName) => {
+    try {
+      if (!audioCache[currentPersona][clipName]) {
         const audio = new Audio();
         audio.preload = 'auto';
-        audio.src = `/audio/${voice}/${clipName}.mp3`;
-        audioCache[voice][clipName] = audio;
-      } catch (e) {
-        console.warn(`Could not preload audio ${voice}/${clipName}:`, e);
+        audio.src = `/audio/${currentPersona}/${clipName}.mp3`;
+        audioCache[currentPersona][clipName] = audio;
       }
-    });
+    } catch (e) {
+      console.warn(`Could not preload audio ${currentPersona}/${clipName}:`, e);
+    }
   });
 };
 
@@ -74,13 +127,20 @@ export const stopAllVoice = () => {
 };
 
 /**
- * Nghe thử giọng đọc trong cài đặt
- * @param {'female' | 'male'} voiceKey
+ * Nghe thử giọng đọc trong Cài Đặt
+ * @param {string} voiceKey
  */
 export const previewVoice = (voiceKey = 'female') => {
   stopAllVoice();
   try {
-    const audio = audioCache[voiceKey]?.['start_workout'] || new Audio(`/audio/${voiceKey}/start_workout.mp3`);
+    preloadAudioPack(voiceKey);
+    let audio = audioCache[voiceKey]?.['start_workout'];
+    if (!audio) {
+      audio = new Audio(`/audio/${voiceKey}/start_workout.mp3`);
+      if (!audioCache[voiceKey]) audioCache[voiceKey] = {};
+      audioCache[voiceKey]['start_workout'] = audio;
+    }
+
     audio.currentTime = 0;
     audio.volume = 1.0;
     currentPlayingAudio = audio;
