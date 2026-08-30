@@ -54,6 +54,19 @@ const EXERCISE_SUGGESTIONS = [
   { name: 'Plank Nâng Luân Phiên Từng Chân', holdTime: 40, restTime: 20, tip: 'Nâng chân thẳng cách sàn 15cm, siết chặt cơ mông.' }
 ];
 
+export const formatDurationNice = (totalSeconds) => {
+  if (!totalSeconds || totalSeconds <= 0) return '0s';
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  if (mins > 0 && secs > 0) {
+    return `${mins}p ${secs}s`;
+  }
+  if (mins > 0 && secs === 0) {
+    return `${mins} phút`;
+  }
+  return `${secs}s`;
+};
+
 const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
   const [view, setView] = useState('library'); // 'library' | 'builder' | 'ai'
   const [plansList, setPlansList] = useState(getAllPlans());
@@ -443,12 +456,8 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
               const isActive = activePlan?.id === plan.id || activePlan?.planName === plan.planName;
               const exercises = plan.exercises || plan.days?.[0]?.exercises || [];
               const totalHoldSec = exercises.reduce((acc, curr) => acc + (Number(curr.holdTime) || 0), 0);
-              const totalHoldMin = (totalHoldSec / 60).toFixed(1).replace('.0', '');
               const totalRestSec = exercises.slice(0, -1).reduce((acc, curr) => acc + (Number(curr.restTime) || 20), 0);
               const totalWorkoutSec = totalHoldSec + totalRestSec;
-              const totalWorkoutMin = Math.floor(totalWorkoutSec / 60);
-              const totalWorkoutSecRemain = totalWorkoutSec % 60;
-              const totalWorkoutFormatted = `${totalWorkoutMin > 0 ? `${totalWorkoutMin}p ` : ''}${totalWorkoutSecRemain > 0 ? `${totalWorkoutSecRemain}s` : (totalWorkoutMin > 0 ? '' : '0s')}`;
               const isExpanded = expandedPlanId === plan.id;
 
               return (
@@ -505,23 +514,23 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     </div>
                   </div>
 
-                  {/* Comprehensive Time Metrics Badges (Thời gian Plank & Tổng bài tập) */}
+                  {/* Comprehensive Time Metrics Badges (Format: 10 phút, 1p 30s) */}
                   <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200/80 dark:border-white/5">
-                    <div className="p-2 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/40 dark:border-emerald-500/20 text-center">
+                    <div className="p-2.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/40 dark:border-emerald-500/20 text-center">
                       <span className="text-[10px] uppercase font-extrabold text-slate-500 dark:text-gray-400 block">
                         🔥 Thời Gian Plank
                       </span>
-                      <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
-                        {totalHoldMin} phút ({totalHoldSec}s)
+                      <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                        {formatDurationNice(totalHoldSec)}
                       </span>
                     </div>
 
-                    <div className="p-2 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 text-center">
+                    <div className="p-2.5 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 text-center">
                       <span className="text-[10px] uppercase font-extrabold text-slate-500 dark:text-gray-400 block">
                         ⏱️ Tổng Bài Tập
                       </span>
-                      <span className="font-mono text-xs font-black text-cyan-600 dark:text-cyan-neon">
-                        {totalWorkoutFormatted} ({totalWorkoutSec}s)
+                      <span className="font-mono text-xs font-black text-cyan-600 dark:text-cyan-neon mt-0.5 block">
+                        {formatDurationNice(totalWorkoutSec)}
                       </span>
                     </div>
                   </div>
