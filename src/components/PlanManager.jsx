@@ -1421,14 +1421,16 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     {isPromptCopied ? <Check size={15} className="animate-bounce" /> : <Copy size={14} />}
                     <span>{isPromptCopied ? "✓ Đã Sao Chép Prompt & Lịch Sử!" : "1. Sao Chép Prompt & Lịch Sử"}</span>
                   </button>
-                  <button
-                    onClick={handleOpenGeminiApp}
+                  <a
+                    href="https://gemini.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="py-3 px-3.5 rounded-2xl bg-purple-100 hover:bg-purple-200 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-extrabold text-xs flex items-center justify-center space-x-1.5 active:scale-95 transition-all border border-purple-300/40 dark:border-purple-500/30"
                     title="Mở ứng dụng Gemini trên điện thoại"
                   >
                     <ExternalLink size={13} />
-                    <span>2. Mở App Gemini</span>
-                  </button>
+                    <span>2. Mở Gemini</span>
+                  </a>
                 </div>
               </div>
 

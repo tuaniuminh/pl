@@ -7,6 +7,7 @@ import {
   AlertCircle, 
   Sparkles, 
   Volume2, 
+  ExternalLink,
   Play
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
