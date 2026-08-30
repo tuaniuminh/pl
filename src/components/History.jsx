@@ -40,6 +40,7 @@ const History = ({ onStartWorkout }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentViewDate, setCurrentViewDate] = useState(new Date());
   const [selectedDayDetail, setSelectedDayDetail] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null); // null | { type: 'single', id: string } | { type: 'all' }
 
   const refreshData = () => {
     recalibrateAndSyncAllData();
@@ -59,21 +60,25 @@ const History = ({ onStartWorkout }) => {
     setTimeout(() => setSynced(false), 2000);
   };
 
-  const handleDeleteSession = (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa buổi tập này khỏi lịch sử không?")) {
-      deleteHistoryItem(id);
-      refreshData();
-      setSelectedDayDetail(null);
-    }
+  const handleRequestDeleteSession = (id) => {
+    setDeleteTarget({ type: 'single', id });
   };
 
-  const handleClear = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử luyện tập không?")) {
+  const handleRequestClearAll = () => {
+    setDeleteTarget({ type: 'all' });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'single') {
+      deleteHistoryItem(deleteTarget.id);
+    } else if (deleteTarget.type === 'all') {
       clearHistory();
-      refreshData();
-      setSelectedDayDetail(null);
       setIsEditing(false);
     }
+    refreshData();
+    setSelectedDayDetail(null);
+    setDeleteTarget(null);
   };
 
   const unlockedCount = unlockedBadges.length;
@@ -274,51 +279,53 @@ const History = ({ onStartWorkout }) => {
           </div>
 
           {/* NHẬT KÝ HOẠT ĐỘNG THÁNG (MONTHLY ACTIVITY TRACKER) */}
-          <div className="glass-panel p-5 rounded-3xl space-y-4 border border-amber-300/40 dark:border-amber-500/20">
-            {/* Header: Title + Navigation (1 dòng ngang gọn gàng, không bị rớt dòng) */}
-            <div className="flex items-center justify-between gap-1.5">
-              <div className="flex items-center space-x-2 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm shrink-0">
-                  <Flame size={16} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-                    Nhật Ký Hoạt Động Tháng
+          <div className="glass-panel p-5 rounded-3xl space-y-3.5 border border-amber-300/40 dark:border-amber-500/20">
+            {/* Header: Title + Navigation (Bố cục thông minh không bao giờ bị đè chữ) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-7 h-7 rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm shrink-0">
+                    <Flame size={15} />
+                  </div>
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Nhật Ký Hoạt Động
                   </h3>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-gray-400 whitespace-nowrap truncate">
-                    {activeDaysThisMonth} ngày tập • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
-                  </p>
+                </div>
+
+                {/* Month Switcher Controls */}
+                <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-white/5 p-0.5 sm:p-1 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
+                  <button
+                    onClick={handlePrevMonth}
+                    className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
+                    title="Tháng trước"
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+                  <span className="text-[11px] font-extrabold px-1.5 text-slate-900 dark:text-white min-w-[64px] text-center">
+                    Th{viewMonth + 1}/{viewYear}
+                  </span>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
+                    title="Tháng sau"
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                  {!isCurrentMonthView && (
+                    <button
+                      onClick={handleGoToday}
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg bg-amber-500 text-white active:scale-95 transition-all ml-0.5"
+                    >
+                      Nay
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Month Switcher Controls */}
-              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
-                <button
-                  onClick={handlePrevMonth}
-                  className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
-                  title="Tháng trước"
-                >
-                  <ChevronLeft size={13} />
-                </button>
-                <span className="text-[11px] font-extrabold px-1 text-slate-900 dark:text-white min-w-[62px] text-center">
-                  Th{viewMonth + 1}/{viewYear}
-                </span>
-                <button
-                  onClick={handleNextMonth}
-                  className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
-                  title="Tháng sau"
-                >
-                  <ChevronRight size={13} />
-                </button>
-                {!isCurrentMonthView && (
-                  <button
-                    onClick={handleGoToday}
-                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg bg-amber-500 text-white active:scale-95 transition-all"
-                  >
-                    Nay
-                  </button>
-                )}
-              </div>
+              {/* Subtitle Summary */}
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 pl-9">
+                {activeDaysThisMonth} ngày tập • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
+              </p>
             </div>
 
             {/* Days of Week Header */}
@@ -454,7 +461,7 @@ const History = ({ onStartWorkout }) => {
 
                   {isEditing && (
                     <button
-                      onClick={handleClear}
+                      onClick={handleRequestClearAll}
                       className="text-[11px] text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center space-x-1 px-2 py-1 rounded-lg bg-red-50 dark:bg-red-950/40"
                     >
                       <Trash2 size={12} />
@@ -491,7 +498,7 @@ const History = ({ onStartWorkout }) => {
                     <div className="flex items-start space-x-3">
                       {isEditing ? (
                         <button
-                          onClick={() => handleDeleteSession(item.id)}
+                          onClick={() => handleRequestDeleteSession(item.id)}
                           className="w-9 h-9 rounded-2xl bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-sm"
                           title="Xóa buổi tập này"
                         >
@@ -622,6 +629,46 @@ const History = ({ onStartWorkout }) => {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA CHUẨN GIAO DIỆN APP */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="glass-panel max-w-xs w-full p-6 rounded-3xl border border-red-500/30 text-center space-y-4 shadow-2xl bg-white/95 dark:bg-slate-900/95">
+            {/* Red Warning Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-inner">
+              <Trash2 size={24} />
+            </div>
+
+            {/* Title & Desc */}
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                {deleteTarget.type === 'all' ? "Xóa Toàn Bộ Lịch Sử?" : "Xóa Buổi Tập Này?"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                {deleteTarget.type === 'all'
+                  ? "Toàn bộ dữ liệu luyện tập và biểu đồ sẽ được làm mới. Hành động này không thể hoàn tác."
+                  : "Dữ liệu buổi tập này sẽ được xóa khỏi lịch sử và các thống kê liên quan."}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-3 pt-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs shadow-md shadow-red-500/30 active:scale-95 transition-all"
+              >
+                {deleteTarget.type === 'all' ? "Xóa Tất Cả" : "Xóa Ngay"}
+              </button>
+            </div>
           </div>
         </div>
       )}
