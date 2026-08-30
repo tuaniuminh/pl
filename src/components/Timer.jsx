@@ -65,7 +65,9 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState([]);
   const [userProfile, setUserProfile] = useState(getUserProfile());
 
-  // Touch swipe handling
+  // Touch drag swipe state for iOS Photo-style carousel
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
@@ -346,30 +348,42 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     }
   };
 
-  // Swipe handling
+  // Swipe handling (Smooth iOS Photos style carousel with rubber-band elasticity)
   const handleTouchStart = (e) => {
-    if (isActive || isMaxChallenge) return;
+    if (isActive || isMaxChallenge || exercises.length <= 1) return;
     touchStartX.current = e.touches[0].clientX;
+    setIsDragging(true);
   };
 
   const handleTouchMove = (e) => {
-    if (isActive || isMaxChallenge) return;
-    touchEndX.current = e.touches[0].clientX;
+    if (!touchStartX.current || isActive || isMaxChallenge || exercises.length <= 1) return;
+    const currentX = e.touches[0].clientX;
+    let diff = currentX - touchStartX.current;
+
+    // Hiệu ứng lò xo đàn hồi (Rubber-band) khi ở 2 đầu
+    if ((currentSetIndex === 0 && diff > 0) || (currentSetIndex === exercises.length - 1 && diff < 0)) {
+      diff = diff * 0.28;
+    }
+    setDragOffset(diff);
   };
 
   const handleTouchEnd = () => {
-    if (isActive || isMaxChallenge || !touchStartX.current || !touchEndX.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-    const minSwipeDistance = 50;
+    if (!isDragging || isActive || isMaxChallenge || exercises.length <= 1) {
+      setDragOffset(0);
+      setIsDragging(false);
+      return;
+    }
 
-    if (distance > minSwipeDistance && currentSetIndex < exercises.length - 1) {
+    const threshold = 40;
+    if (dragOffset < -threshold && currentSetIndex < exercises.length - 1) {
       handleSelectSet(currentSetIndex + 1);
-    } else if (distance < -minSwipeDistance && currentSetIndex > 0) {
+    } else if (dragOffset > threshold && currentSetIndex > 0) {
       handleSelectSet(currentSetIndex - 1);
     }
 
+    setDragOffset(0);
+    setIsDragging(false);
     touchStartX.current = null;
-    touchEndX.current = null;
   };
 
   const handleAdjustTime = (delta) => {
@@ -405,12 +419,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
   return (
     <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-24 select-none">
-      {/* 1. Exercise Information Card */}
+      {/* 1. Exercise Information Card - iPhone Photos Style Smooth Carousel */}
       <div 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="w-full glass-panel p-4 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0"
+        className="w-full glass-panel p-3.5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0 overflow-hidden"
       >
         {/* Nút lật hiệp trái/phải khi chưa bắt đầu */}
         {exercises.length > 1 && !isActive && !isMaxChallenge && (
@@ -418,69 +432,88 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
             <button
               onClick={() => handleSelectSet(currentSetIndex - 1)}
               disabled={currentSetIndex === 0}
-              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-20 active:scale-90 transition-all z-10"
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-0 active:scale-90 transition-all z-20"
               title="Hiệp trước"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={22} />
             </button>
             <button
               onClick={() => handleSelectSet(currentSetIndex + 1)}
               disabled={currentSetIndex === exercises.length - 1}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-20 active:scale-90 transition-all z-10"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-0 active:scale-90 transition-all z-20"
               title="Hiệp tiếp theo"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={22} />
             </button>
           </>
         )}
 
-        <div className="flex items-center justify-center space-x-2">
-          <span className={`text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-            isMaxChallenge 
-              ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' 
-              : 'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-gray-300'
-          }`}>
-            {isMaxChallenge ? "MAX-OUT EFFORT" : `Hiệp ${currentSetIndex + 1} / ${exercises.length}`}
-          </span>
-          {plan?.planName && !isMaxChallenge && (
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-neon truncate max-w-[160px]">
-              {plan.planName}
-            </span>
-          )}
+        {/* Carousel Sliding Track */}
+        <div 
+          className="flex w-full will-change-transform"
+          style={{
+            transform: `translateX(calc(-${currentSetIndex * 100}% + ${dragOffset}px))`,
+            transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.25, 1, 0.5, 1)'
+          }}
+        >
+          {(isMaxChallenge ? [{ name: "Thách Thức Vô Cực (Max-Out)", holdTime: 0, tip: "Giữ form chuẩn, phá vỡ mọi giới hạn bản thân!" }] : exercises).map((ex, idx) => {
+            const isCurrent = idx === currentSetIndex;
+            return (
+              <div 
+                key={idx} 
+                className="w-full shrink-0 px-3 flex flex-col items-center justify-center"
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                    isMaxChallenge 
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' 
+                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40'
+                  }`}>
+                    {isMaxChallenge ? "🌌 MAX-OUT EFFORT" : `HIỆP ${idx + 1} / ${exercises.length}`}
+                  </span>
+                  {!isMaxChallenge && (
+                    <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-gray-400">
+                      {ex.holdTime}s giữ • {ex.restTime || 20}s nghỉ
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-lg sm:text-xl font-black mt-1.5 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
+                  {isMaxChallenge ? "🌌 Thách Thức Vô Cực" : (isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name)}
+                </h2>
+
+                {/* Nút bấm (i) Mở Modal Chi Tiết */}
+                <button 
+                  onClick={() => setShowInfoModal(true)}
+                  className="mt-1.5 inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full"
+                >
+                  <div className="w-3.5 h-3.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
+                    <Info size={10} />
+                  </div>
+                  <span className="truncate text-[10px] font-medium">
+                    {isMaxChallenge ? "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới" : (ex.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều")}
+                  </span>
+                  <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
+                </button>
+              </div>
+            );
+          })}
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-slate-900 dark:text-white px-8">
-          {isMaxChallenge ? "🌌 Thách Thức Vô Cực" : (isResting ? "❄️ Thời Gian Nghỉ Hồi Sức" : currentExercise.name)}
-        </h2>
-
-        {/* Nút bấm (i) Mở Modal Chi Tiết */}
-        <button 
-          onClick={() => setShowInfoModal(true)}
-          className="mt-2 inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full"
-        >
-          <div className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
-            <Info size={11} />
-          </div>
-          <span className="truncate text-[11px] font-medium">
-            {isMaxChallenge ? "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới" : (currentExercise.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều")}
-          </span>
-          <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Xem chi tiết</span>
-        </button>
-
-        {/* Multi-set progress indicator dots */}
+        {/* Multi-set progress indicator dots (iPhone pagination style) */}
         {exercises.length > 1 && !isMaxChallenge && (
-          <div className="flex justify-center items-center space-x-2 mt-3.5">
+          <div className="flex justify-center items-center space-x-1.5 mt-2.5">
             {exercises.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSelectSet(idx)}
                 disabled={isActive}
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`h-1.5 rounded-full transition-all duration-300 ${
                   idx === currentSetIndex
-                    ? 'w-7 bg-emerald-500 dark:bg-neon shadow-sm dark:shadow-neon'
+                    ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm'
                     : idx < currentSetIndex
-                    ? 'w-2 bg-slate-400 dark:bg-gray-500'
-                    : 'w-2 bg-slate-200 dark:bg-white/10'
+                    ? 'w-1.5 bg-slate-400 dark:bg-gray-500'
+                    : 'w-1.5 bg-slate-200 dark:bg-white/10'
                 }`}
                 title={`Chuyển tới Hiệp ${idx + 1}`}
               />
@@ -489,8 +522,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         )}
       </div>
 
-      {/* 3. Main HUD Circular Timer */}
-      <div className="relative my-2">
+      {/* 2. Main HUD Circular Timer */}
+      <div className="flex flex-col items-center justify-center my-auto w-full">
         <CircularProgress
           progress={progressPercent}
           timeLeft={timeLeft}
@@ -502,9 +535,9 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           exerciseName={currentExercise.name}
         />
 
-        {/* Quick Time Adjuster (chỉ hiện khi không ở chế độ Vô Cực) */}
+        {/* Quick Time Adjuster (Được đặt tách biệt bên dưới, có khoảng cách rõ ràng, không đè lên đồng hồ) */}
         {!isMaxChallenge && (
-          <div className="flex justify-center space-x-4 mt-[-10px] z-10 relative">
+          <div className="flex justify-center items-center space-x-3 mt-3.5">
             <button
               onClick={() => handleAdjustTime(-15)}
               className="px-3.5 py-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full text-xs font-bold text-slate-700 dark:text-gray-300 flex items-center space-x-1 active:scale-90 transition-all shadow-sm"
