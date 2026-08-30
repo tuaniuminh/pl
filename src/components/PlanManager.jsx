@@ -15,6 +15,9 @@ import {
   Trash2,
   Edit3,
   Copy,
+  CopyPlus,
+  Share2,
+  ClipboardCheck,
   ChevronDown,
   ChevronUp,
   RotateCcw,
@@ -73,6 +76,16 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
   const [aiGeneratedPlan, setAiGeneratedPlan] = useState(null);
+
+  // Toast feedback state
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2600);
+  };
 
   useEffect(() => {
     setPlansList(getAllPlans());
@@ -194,16 +207,50 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     }
   };
 
-  // ==================== 3. XỬ LÝ XÓA & NHÂN BẢN ====================
+  // ==================== 3. XỬ LÝ XÓA, NHÂN BẢN & SAO CHÉP ====================
   const handleDeletePlan = (planId) => {
     deletePlan(planId);
     refreshPlans();
     setDeleteConfirmId(null);
+    showToast("Đã xóa giáo án thành công.");
   };
 
   const handleDuplicatePlan = (planId) => {
-    duplicatePlan(planId);
+    const duplicated = duplicatePlan(planId);
     refreshPlans();
+    if (duplicated) {
+      showToast(`Đã tạo bản sao: "${duplicated.planName}" trong thư viện!`);
+    }
+  };
+
+  const handleCopyPlanToClipboard = (plan) => {
+    try {
+      const exs = plan.exercises || plan.days?.[0]?.exercises || [];
+      const totalHold = exs.reduce((a, c) => a + (c.holdTime || 0), 0);
+      
+      let text = `📋 GIÁO ÁN PLANK: ${plan.planName.toUpperCase()}\n`;
+      if (plan.goal) text += `🎯 Mục tiêu: ${plan.goal}\n`;
+      if (plan.level) text += `⚡ Cấp độ: ${plan.level}\n`;
+      text += `⏱️ Tổng thời gian giữ: ${totalHold}s (${Math.round(totalHold / 60)} phút) • ${exs.length} hiệp\n\n`;
+      text += `Chi tiết các hiệp bài tập:\n`;
+      
+      exs.forEach((ex, idx) => {
+        text += `${idx + 1}. ${ex.name}: Giữ ${ex.holdTime}s • Nghỉ ${ex.restTime || 20}s`;
+        if (ex.tip) text += ` (💡 ${ex.tip})`;
+        text += `\n`;
+      });
+      
+      text += `\n📱 Được tạo từ ứng dụng PlankAI`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Đã sao chép nội dung giáo án! Bạn có thể dán vào Ghi chú (Notes), Zalo...");
+      }).catch(() => {
+        showToast("Đã sao chép nội dung giáo án vào bộ nhớ tạm!");
+      });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi sao chép vào bộ nhớ tạm.");
+    }
   };
 
   // ==================== 4. XỬ LÝ GEMINI AI COACH ====================
@@ -492,18 +539,36 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                   </div>
 
                   {/* Action Buttons Row */}
-                  <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/80 dark:border-white/5 gap-2">
+                  <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/80 dark:border-white/5 gap-1.5">
                     {/* Select / Start Workout Button */}
                     <button
                       onClick={() => handleActivatePlan(plan)}
-                      className={`flex-1 py-2.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 active:scale-95 transition-all shadow-md ${
+                      className={`flex-1 py-2.5 px-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 active:scale-95 transition-all shadow-md ${
                         isActive
                           ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600'
                           : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
                       }`}
                     >
                       <Play size={13} fill="currentColor" />
-                      <span>{isActive ? "Bắt Đầu Tập Ngay" : "Chọn & Bắt Đầu Tập"}</span>
+                      <span>{isActive ? "Bắt Đầu Tập" : "Chọn & Tập"}</span>
+                    </button>
+
+                    {/* Copy to Clipboard (Ghi Chú) Button */}
+                    <button
+                      onClick={() => handleCopyPlanToClipboard(plan)}
+                      className="p-2.5 rounded-2xl bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-500/10 dark:hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-neon active:scale-95 transition-all"
+                      title="Sao chép nội dung ra Ghi chú (Notes)"
+                    >
+                      <Share2 size={15} />
+                    </button>
+
+                    {/* Duplicate (Nhân bản tạo bản sao) Button */}
+                    <button
+                      onClick={() => handleDuplicatePlan(plan.id)}
+                      className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-gray-300 active:scale-95 transition-all"
+                      title="Nhân bản (Tạo 1 bản sao trong thư viện)"
+                    >
+                      <CopyPlus size={15} />
                     </button>
 
                     {/* Edit Button */}
@@ -513,15 +578,6 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                       title="Chỉnh sửa giáo án này"
                     >
                       <Edit3 size={15} />
-                    </button>
-
-                    {/* Duplicate Button */}
-                    <button
-                      onClick={() => handleDuplicatePlan(plan.id)}
-                      className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-gray-300 active:scale-95 transition-all"
-                      title="Tạo bản sao để chỉnh sửa"
-                    >
-                      <Copy size={15} />
                     </button>
 
                     {/* Delete Button (Chỉ cho phép xóa giáo án tự tạo / AI, không xóa preset mặc định) */}
@@ -568,6 +624,14 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Toast Notification Banner */}
+          {toastMessage && (
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-extrabold shadow-2xl backdrop-blur-md border border-white/20 dark:border-black/10 flex items-center space-x-2 animate-fade-in max-w-xs text-center pointer-events-none">
+              <CheckCircle2 size={16} className="text-emerald-400 dark:text-emerald-600 shrink-0" />
+              <span className="line-clamp-2">{toastMessage}</span>
             </div>
           )}
         </div>

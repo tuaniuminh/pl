@@ -97,56 +97,56 @@ function App() {
       {/* 3. Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-oled/95 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 safe-bottom-padding px-6 pt-2 transition-colors duration-300">
         <div className="flex items-center justify-around max-w-md mx-auto">
-          {/* Tab 1: Tập Luyện */}
+          {/* Tab 1: Tập Luyện (Xanh Lá Neon / Emerald) */}
           <button
             onClick={() => setActiveTab('timer')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
               activeTab === 'timer'
-                ? 'text-emerald-600 dark:text-emerald-400 scale-105 font-extrabold'
+                ? 'text-emerald-500 dark:text-emerald-400 scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
             <TimerIcon size={24} />
-            <span className="text-[10px] tracking-tight mt-1">Tập Luyện</span>
+            <span className="text-[10px] tracking-tight mt-1 font-bold">Tập Luyện</span>
           </button>
 
-          {/* Tab 2: Giáo Án (Workout Plans Hub) */}
+          {/* Tab 2: Giáo Án (Xanh Cyan / Electric Blue) */}
           <button
             onClick={() => setActiveTab('plans')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
               activeTab === 'plans'
-                ? 'text-emerald-600 dark:text-emerald-400 scale-105 font-extrabold'
+                ? 'text-cyan-500 dark:text-cyan-neon scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
             <ClipboardList size={24} />
-            <span className="text-[10px] tracking-tight mt-1">Giáo Án</span>
+            <span className="text-[10px] tracking-tight mt-1 font-bold">Giáo Án</span>
           </button>
 
-          {/* Tab 3: History */}
+          {/* Tab 3: Thành Tích (Vàng Hổ Phách / Amber Gold) */}
           <button
             onClick={() => setActiveTab('history')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
               activeTab === 'history'
-                ? 'text-amber-500 dark:text-amber-400 scale-105 font-extrabold'
+                ? 'text-amber-500 dark:text-amber-400 scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
             <HistoryIcon size={24} />
-            <span className="text-[10px] tracking-tight mt-1">Thành Tích</span>
+            <span className="text-[10px] tracking-tight mt-1 font-bold">Thành Tích</span>
           </button>
 
-          {/* Tab 4: Settings */}
+          {/* Tab 4: Cài Đặt (Tím Điện Tử / Electric Purple) */}
           <button
             onClick={() => setActiveTab('settings')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
               activeTab === 'settings'
-                ? 'text-slate-900 dark:text-white scale-105 font-extrabold'
+                ? 'text-purple-600 dark:text-purple-400 scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
             <SettingsIcon size={24} />
-            <span className="text-[10px] tracking-tight mt-1">Cài Đặt</span>
+            <span className="text-[10px] tracking-tight mt-1 font-bold">Cài Đặt</span>
           </button>
         </div>
       </nav>
