@@ -29,7 +29,11 @@ import {
   ArrowRight,
   ListPlus,
   PlusCircle,
-  FileText
+  FileText,
+  Crown,
+  ClipboardPaste,
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 import { generatePlankPlan } from '../services/geminiService';
 import { 
@@ -67,6 +71,146 @@ export const formatDurationNice = (totalSeconds) => {
   return `${secs}s`;
 };
 
+// Hàm tạo Prompt chuyên sâu tối ưu cho tài khoản Gemini Pro / Advanced
+export const buildGeminiProPrompt = (userProfile) => {
+  const record = userProfile.record || 60;
+  const goal = userProfile.goal || "Tăng sức bền & Giảm mỡ bụng";
+  const level = userProfile.level || "Trung bình";
+
+  return `Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp cao thế giới. Dựa trên thể trạng của tôi:
+- Kỷ lục giữ Plank hiện tại: ${record} giây
+- Cấp độ thể lực: ${level}
+- Mục tiêu chính: ${goal}
+
+Hãy thiết kế cho tôi 1 bài tập Plank cá nhân hóa xuất sắc nhất gồm từ 4 đến 6 hiệp bài tập khoa học.
+
+YÊU CẦU BẮT BUỘC:
+Chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đúng cấu trúc mẫu sau (KHÔNG kèm lời chào hay văn bản giải thích ngoài JSON) để tôi dán trực tiếp vào ứng dụng PlankAI:
+{
+  "planName": "Tên bài tập hấp dẫn (vd: 5 Phút Kiến Tạo Cơ Core Vững Chắc)",
+  "goal": "${goal}",
+  "level": "${level}",
+  "exercises": [
+    {
+      "name": "Plank khuỷu tay chuẩn",
+      "holdTime": 45,
+      "restTime": 20,
+      "tip": "Siết chặt cơ bụng và cơ mông, giữ thẳng lưng"
+    },
+    {
+      "name": "Plank nghiêng bên trái",
+      "holdTime": 30,
+      "restTime": 15,
+      "tip": "Nâng cao hông siết chặt cơ liên sườn"
+    },
+    {
+      "name": "Plank nghiêng bên phải",
+      "holdTime": 30,
+      "restTime": 20,
+      "tip": "Giữ thẳng trục cơ thể từ đầu đến gót chân"
+    },
+    {
+      "name": "Plank cao tay duỗi thẳng",
+      "holdTime": 45,
+      "restTime": 30,
+      "tip": "Cổ tay thẳng dưới vai, mắt nhìn xuống sàn"
+    }
+  ]
+}`;
+};
+
+// Hàm phân tích thông minh giáo án được dán từ Gemini Pro (hỗ trợ cả JSON và Text tự do)
+export const parsePastedWorkoutText = (text) => {
+  if (!text || !text.trim()) {
+    throw new Error("Nội dung dán vào đang trống. Vui lòng dán câu trả lời từ Gemini Pro.");
+  }
+
+  // 1. Thử bóc tách JSON
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.exercises && Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+        return {
+          planName: parsed.planName || 'Giáo Án Gemini Pro',
+          goal: parsed.goal || 'Cá nhân hóa từ Gemini Pro',
+          level: parsed.level || 'Trung bình',
+          exercises: parsed.exercises.map(e => ({
+            name: e.name || 'Plank Biến Thể',
+            holdTime: Number(e.holdTime) || 45,
+            restTime: Number(e.restTime) || 20,
+            tip: e.tip || 'Siết chặt cơ bụng và giữ thẳng lưng'
+          }))
+        };
+      }
+      if (parsed.days && parsed.days[0]?.exercises) {
+        return {
+          planName: parsed.planName || 'Giáo Án Gemini Pro',
+          goal: parsed.goal || 'Cá nhân hóa từ Gemini Pro',
+          level: parsed.level || 'Trung bình',
+          exercises: parsed.days[0].exercises.map(e => ({
+            name: e.name || 'Plank Biến Thể',
+            holdTime: Number(e.holdTime) || 45,
+            restTime: Number(e.restTime) || 20,
+            tip: e.tip || 'Siết chặt cơ bụng và giữ thẳng lưng'
+          }))
+        };
+      }
+    }
+  } catch (e) {
+    // Tiếp tục chuyển sang bóc tách văn bản tự do
+  }
+
+  // 2. Bóc tách văn bản tự do theo dòng
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let planName = 'Giáo Án Từ Gemini Pro';
+  const extractedExercises = [];
+
+  for (const line of lines) {
+    if (line.toLowerCase().includes('tên bài') || line.toLowerCase().includes('giáo án:') || line.startsWith('# ')) {
+      planName = line.replace(/^[#*\-:\s]+/, '').replace(/^tên bài[^\w\s]*/i, '').replace(/^giáo án[^\w\s]*/i, '').trim();
+      continue;
+    }
+
+    const timeMatches = line.match(/(\d+)\s*(?:giây|s|phút|p)/gi);
+    if (timeMatches && timeMatches.length >= 1) {
+      let name = line.replace(/^\d+[\.\)\-]\s*/, '').split(/[:\-–]/)[0].trim();
+      name = name.replace(/[*_#]/g, '').trim();
+      if (!name || name.length > 40) name = 'Plank Biến Thể';
+
+      let holdTime = 45;
+      let restTime = 20;
+      const numMatch = line.match(/(\d+)\s*(?:giây|s)/i);
+      if (numMatch) {
+        holdTime = parseInt(numMatch[1], 10);
+      }
+      
+      const restMatch = line.match(/nghỉ\s*(\d+)\s*(?:giây|s)/i) || line.match(/rest\s*(\d+)/i);
+      if (restMatch) {
+        restTime = parseInt(restMatch[1], 10);
+      }
+
+      extractedExercises.push({
+        name,
+        holdTime,
+        restTime,
+        tip: 'Siết cơ bụng, giữ thẳng lưng'
+      });
+    }
+  }
+
+  if (extractedExercises.length > 0) {
+    return {
+      planName: planName || 'Giáo Án Gemini Pro',
+      goal: 'Thiết kế bởi Gemini Pro',
+      level: 'Trung bình',
+      exercises: extractedExercises
+    };
+  }
+
+  throw new Error("Không thể nhận diện các bài tập trong nội dung dán. Hãy đảm bảo bạn đã sao chép câu trả lời từ Gemini Pro.");
+};
+
 const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
   const [view, setView] = useState('library'); // 'library' | 'builder' | 'ai'
   const [plansList, setPlansList] = useState(getAllPlans());
@@ -85,8 +229,10 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [duplicateConfirmPlan, setDuplicateConfirmPlan] = useState(null);
 
-  // State cho AI Coach Generator
+  // State cho AI Coach Generator (Gemini Pro Bridge & API)
+  const [aiMode, setAiMode] = useState('pro_import'); // 'pro_import' (Khuyên dùng cho gói Pro) | 'api'
   const [profile, setProfile] = useState(getUserProfile());
+  const [pasteInputText, setPasteInputText] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
   const [aiGeneratedPlan, setAiGeneratedPlan] = useState(null);
@@ -267,11 +413,63 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     }
   };
 
-  // ==================== 4. XỬ LÝ GEMINI AI COACH ====================
+  // ==================== 4. XỬ LÝ GEMINI AI COACH (PRO BRIDGE & API) ====================
   const handleProfileChange = (field, value) => {
     const updated = { ...profile, [field]: value };
     setProfile(updated);
     saveUserProfile(updated);
+  };
+
+  // 4.1. Sao chép Prompt cho tài khoản Gemini Pro / Advanced
+  const handleCopyGeminiProPrompt = () => {
+    try {
+      const prompt = buildGeminiProPrompt(profile);
+      navigator.clipboard.writeText(prompt).then(() => {
+        showToast("Đã sao chép Prompt cho Gemini Pro! Hãy mở Web/App Gemini dán vào và gửi.");
+      }).catch(() => {
+        showToast("Đã sao chép Prompt vào bộ nhớ tạm!");
+      });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi sao chép prompt.");
+    }
+  };
+
+  // 4.2. Nhập và bóc tách giáo án từ câu trả lời của Gemini Pro
+  const handleImportFromPastedText = (customText) => {
+    const textToUse = (typeof customText === 'string' ? customText : pasteInputText);
+    if (!textToUse || !textToUse.trim()) {
+      setAiError("Vui lòng dán câu trả lời của Gemini Pro vào ô bên dưới trước khi bấm Nhập.");
+      return;
+    }
+    setAiError(null);
+
+    try {
+      const parsed = parsePastedWorkoutText(textToUse);
+      setAiGeneratedPlan(parsed);
+      setPasteInputText('');
+      showToast(`Đã nhận diện thành công: "${parsed.planName}" (${parsed.exercises.length} hiệp)!`);
+    } catch (err) {
+      console.error(err);
+      setAiError(err.message || "Lỗi đọc dữ liệu giáo án từ Gemini Pro. Vui lòng kiểm tra lại nội dung dán.");
+    }
+  };
+
+  // 4.3. Dán tự động từ Clipboard
+  const handleQuickPasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const clipText = await navigator.clipboard.readText();
+        if (clipText && clipText.trim()) {
+          setPasteInputText(clipText);
+          handleImportFromPastedText(clipText);
+          return;
+        }
+      }
+      showToast("Không tìm thấy nội dung trong bộ nhớ tạm. Hãy dán trực tiếp vào ô bên dưới.");
+    } catch (e) {
+      showToast("Vui lòng chạm giữ và Dán (Paste) câu trả lời từ Gemini vào ô bên dưới.");
+    }
   };
 
   const handleGenerateAIPlan = async () => {
@@ -962,19 +1160,46 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
         <div className="space-y-6">
           {/* AI Hero Banner */}
           <div className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white border border-white/10 shadow-lg">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
             <div className="relative z-10">
-              <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-neon border border-cyan-400/30 text-xs font-bold mb-2">
-                <Sparkles size={13} className="animate-spin" style={{ animationDuration: '4s' }} />
-                <span>GEMINI 3.7 FLASH COACH</span>
+              <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30 text-xs font-bold mb-2">
+                <Crown size={13} className="text-amber-300" />
+                <span>GEMINI PRO / ADVANCED COACH</span>
               </div>
               <h2 className="text-xl font-black text-white">
                 Tư Vấn Giáo Án Cá Nhân Hóa
               </h2>
               <p className="text-xs text-gray-300 mt-1">
-                Gemini AI sẽ phân tích thể lực và mục tiêu của bạn để thiết kế chuỗi bài tập tối ưu nhất.
+                Tận dụng trí tuệ tối thượng của Gemini để thiết kế chuỗi bài tập Plank tối ưu nhất cho bạn.
               </p>
             </div>
+          </div>
+
+          {/* AI Method Switcher (Gói Pro vs API Key) */}
+          <div className="flex bg-slate-200/80 dark:bg-white/5 p-1 rounded-2xl">
+            <button
+              onClick={() => setAiMode('pro_import')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 transition-all ${
+                aiMode === 'pro_import'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Crown size={14} className="text-amber-300" />
+              <span>Dùng Gói Gemini Pro (Khuyên Dùng)</span>
+            </button>
+
+            <button
+              onClick={() => setAiMode('api')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black flex items-center justify-center space-x-1.5 transition-all ${
+                aiMode === 'api'
+                  ? 'bg-white dark:bg-oled text-cyan-600 dark:text-cyan-neon shadow-sm'
+                  : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Sparkles size={14} />
+              <span>Tạo Qua API Key</span>
+            </button>
           </div>
 
           {/* Goal Selector */}
@@ -995,7 +1220,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                   onClick={() => handleProfileChange('goal', g.id)}
                   className={`p-3 rounded-2xl border transition-all cursor-pointer ${
                     profile.goal === g.id
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-sm'
+                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 shadow-sm'
                       : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300'
                   }`}
                 >
@@ -1015,7 +1240,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
               <select
                 value={profile.level}
                 onChange={(e) => handleProfileChange('level', e.target.value)}
-                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
               >
                 <option value="Mới bắt đầu">Mới bắt đầu (&lt; 30s)</option>
                 <option value="Trung bình">Trung bình (30s - 90s)</option>
@@ -1031,7 +1256,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                 type="number"
                 value={profile.record || 60}
                 onChange={(e) => handleProfileChange('record', parseInt(e.target.value) || 30)}
-                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs font-bold text-slate-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs font-bold text-slate-900 dark:text-white font-mono focus:outline-none focus:border-purple-500"
               />
             </div>
           </div>
@@ -1041,41 +1266,116 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
             <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-300 dark:border-red-500/30 text-xs text-red-700 dark:text-red-400 space-y-2">
               <div className="flex items-center space-x-2 font-bold">
                 <AlertCircle size={16} />
-                <span>Không Thể Tạo Giáo Án</span>
+                <span>Thông Báo</span>
               </div>
               <p className="text-[11px]">{aiError}</p>
-              {onOpenSettings && (
-                <button
-                  onClick={onOpenSettings}
-                  className="px-3 py-1.5 rounded-xl bg-red-600 text-white font-bold text-[11px] shadow-sm"
-                >
-                  Mở Cài Đặt Để Nhập Key
-                </button>
-              )}
             </div>
           )}
 
-          {/* Generate Button */}
-          <button
-            onClick={handleGenerateAIPlan}
-            disabled={aiLoading}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 active:scale-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-          >
-            {aiLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Sparkles size={16} />
-            )}
-            <span>{aiLoading ? "Gemini AI Đang Phân Tích & Thiết Kế..." : "Tạo Giáo Án Cá Nhân Hóa Với Gemini AI"}</span>
-          </button>
+          {/* MODE A: GEMINI PRO BRIDGE (Khuyên dùng cho gói Pro) */}
+          {aiMode === 'pro_import' && (
+            <div className="space-y-4">
+              {/* Step 1: Copy Master Prompt */}
+              <div className="glass-panel p-4 rounded-3xl border border-purple-400/40 dark:border-purple-500/20 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-950/20 dark:to-indigo-950/20 space-y-3">
+                <div className="flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-black flex items-center justify-center shadow-sm">
+                    1
+                  </span>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                    Sao Chép Prompt Cho Gemini Pro
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-gray-300">
+                  Ứng dụng tự động chuẩn hóa mục tiêu <strong className="text-purple-600 dark:text-purple-400">"{profile.goal}"</strong> và kỷ lục <strong className="text-purple-600 dark:text-purple-400">{profile.record || 60}s</strong> thành câu lệnh Huấn luyện viên thể hình thế giới.
+                </p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleCopyGeminiProPrompt}
+                    className="flex-1 py-3 px-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all"
+                  >
+                    <Copy size={14} />
+                    <span>Sao Chép Prompt</span>
+                  </button>
+                  <a
+                    href="https://gemini.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-3 px-3 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-gray-300 font-bold text-xs flex items-center justify-center space-x-1 active:scale-95 transition-all"
+                  >
+                    <span>Mở Gemini</span>
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Step 2: Paste & Import */}
+              <div className="glass-panel p-4 rounded-3xl border border-cyan-400/40 dark:border-cyan-500/20 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/20 dark:to-blue-950/20 space-y-3">
+                <div className="flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-full bg-cyan-600 text-white text-xs font-black flex items-center justify-center shadow-sm">
+                    2
+                  </span>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                    Dán Kết Quả Từ Gemini Pro Vào App
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-gray-300">
+                  Sau khi Gemini Pro trả lời, bạn bấm sao chép và dán vào đây để App tự động phân tích thành giáo án:
+                </p>
+
+                <textarea
+                  value={pasteInputText}
+                  onChange={(e) => setPasteInputText(e.target.value)}
+                  placeholder="Chạm giữ để Dán (Paste) câu trả lời từ Gemini Pro vào đây..."
+                  rows={3}
+                  className="w-full bg-white dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 resize-none font-mono"
+                />
+
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleQuickPasteFromClipboard}
+                    className="py-2.5 px-3 rounded-2xl bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-gray-300 font-bold text-xs flex items-center space-x-1 active:scale-95 transition-all"
+                  >
+                    <ClipboardPaste size={14} />
+                    <span>Dán Tự Động</span>
+                  </button>
+                  <button
+                    onClick={() => handleImportFromPastedText(pasteInputText)}
+                    className="flex-1 py-2.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-400 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md shadow-cyan-500/20 active:scale-95 transition-all"
+                  >
+                    <Sparkles size={14} />
+                    <span>Nhập Giáo Án</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODE B: DIRECT API GENERATOR */}
+          {aiMode === 'api' && (
+            <div>
+              <button
+                onClick={handleGenerateAIPlan}
+                disabled={aiLoading}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 active:scale-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+              >
+                {aiLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+                <span>{aiLoading ? "Gemini AI Đang Phân Tích & Thiết Kế..." : "Tạo Giáo Án Trực Tiếp Bằng API Key"}</span>
+              </button>
+            </div>
+          )}
 
           {/* AI Result Card Preview */}
           {aiGeneratedPlan && (
-            <div className="glass-panel p-5 rounded-3xl border border-cyan-400/40 dark:border-cyan-500/30 space-y-4 animate-fade-in bg-cyan-50/10 dark:bg-cyan-950/20">
+            <div className="glass-panel p-5 rounded-3xl border border-purple-400/40 dark:border-purple-500/30 space-y-4 animate-fade-in bg-purple-50/10 dark:bg-purple-950/20">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-neon border border-cyan-300/40">
-                    🤖 KẾT QUẢ TỪ GEMINI AI
+                  <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-300/40 flex items-center space-x-1 w-fit">
+                    <Crown size={11} className="text-amber-500" />
+                    <span>GIÁO ÁN TỪ GEMINI PRO</span>
                   </span>
                   <h3 className="text-base font-black text-slate-900 dark:text-white mt-1.5">
                     {aiGeneratedPlan.planName}
@@ -1088,7 +1388,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
 
               {/* Exercises in AI Plan */}
               <div className="space-y-2">
-                {(aiGeneratedPlan.days?.[0]?.exercises || []).map((ex, idx) => (
+                {(aiGeneratedPlan.exercises || aiGeneratedPlan.days?.[0]?.exercises || []).map((ex, idx) => (
                   <div key={idx} className="p-3 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 flex items-center justify-between text-xs">
                     <div>
                       <div className="font-bold text-slate-900 dark:text-white">
@@ -1102,7 +1402,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     </div>
                     <div className="text-right shrink-0 font-mono text-[11px]">
                       <span className="text-emerald-600 dark:text-emerald-400 font-bold">{ex.holdTime}s</span>
-                      <span className="text-slate-400 ml-1">/ {ex.restTime}s</span>
+                      <span className="text-slate-400 ml-1">/ {ex.restTime || 20}s</span>
                     </div>
                   </div>
                 ))}
