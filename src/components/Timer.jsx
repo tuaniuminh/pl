@@ -418,7 +418,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const progressPercent = totalSetDuration > 0 ? ((totalSetDuration - timeLeft) / totalSetDuration) * 100 : 0;
 
   return (
-    <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-24 select-none">
+    <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-28 sm:pb-32 select-none">
       {/* 1. Exercise Information Card - iPhone Photos Style Smooth Carousel */}
       <div 
         onTouchStart={handleTouchStart}
@@ -558,8 +558,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         )}
       </div>
 
-      {/* 4. Giant Tactical Control Buttons */}
-      <div className="w-full space-y-3">
+      {/* 4. Giant Tactical Control Buttons (Được nâng cao lên thoáng đãng cách xa navbar) */}
+      <div className="w-full space-y-3 mb-3 sm:mb-5">
         <div className="flex items-center space-x-3 w-full">
           {/* Reset / Stop Button */}
           <button

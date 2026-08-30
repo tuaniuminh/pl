@@ -10,8 +10,8 @@ const CircularProgress = ({
   personalRecord = 60,
   exerciseName = "Plank Cơ Bản"
 }) => {
-  const size = 240;
-  const strokeWidth = 13;
+  const size = 232;
+  const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = isMaxChallenge 
@@ -33,7 +33,7 @@ const CircularProgress = ({
     <div className="relative flex items-center justify-center">
       {/* Background radial glow */}
       <div 
-        className="absolute w-52 h-52 rounded-full blur-3xl opacity-20 dark:opacity-35 transition-all duration-700 pointer-events-none"
+        className="absolute w-48 h-48 rounded-full blur-3xl opacity-20 dark:opacity-35 transition-all duration-700 pointer-events-none"
         style={{ 
           backgroundColor: isMaxChallenge ? '#8b5cf6' : (isResting ? '#00f2fe' : '#10b981') 
         }}
