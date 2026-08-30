@@ -5,6 +5,7 @@ import PlanGenerator from './components/PlanGenerator';
 import History from './components/History';
 import Settings from './components/Settings';
 import { getSettings, saveSettings, getActivePlan, saveActivePlan } from './services/storageService';
+import { attachGlobalButtonHaptics } from './utils/hapticsUtils';
 import { 
   Timer as TimerIcon, 
   Sparkles, 
@@ -17,8 +18,10 @@ function App() {
   const [settings, setSettingsState] = useState(getSettings());
   const [currentPlan, setCurrentPlan] = useState(getActivePlan());
 
-  // Áp dụng Dark Mode chuẩn cho Tailwind CSS
+  // Kích hoạt phản hồi rung toàn cục cho tất cả nút bấm và Dark Mode
   useEffect(() => {
+    attachGlobalButtonHaptics();
+
     const root = document.documentElement;
     if (settings.theme === 'dark') {
       root.classList.add('dark');
@@ -90,7 +93,7 @@ function App() {
         )}
       </main>
 
-      {/* 3. Bottom Navigation Bar Sạch Sẽ (Đã xóa bỏ dấu chấm) */}
+      {/* 3. Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-oled/95 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 safe-bottom-padding px-6 pt-2 transition-colors duration-300">
         <div className="flex items-center justify-around max-w-md mx-auto">
           {/* Tab 1: Timer */}
@@ -129,7 +132,7 @@ function App() {
             }`}
           >
             <HistoryIcon size={24} />
-            <span className="text-[10px] tracking-tight mt-1">Lịch Sử</span>
+            <span className="text-[10px] tracking-tight mt-1">Thành Tích</span>
           </button>
 
           {/* Tab 4: Settings */}

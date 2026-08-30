@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import CircularProgress from './UI/CircularProgress';
 import { unlockSpeechAPI, speakText, playBeep } from '../utils/speechUtils';
 import { 
+  triggerHapticCount, 
+  triggerHapticHeavy, 
+  triggerHapticSuccess, 
+  triggerHapticMedium 
+} from '../utils/hapticsUtils';
+import { 
   saveHistory, 
   requestWakeLock, 
   releaseWakeLock, 
@@ -114,15 +120,34 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
             const nextSec = prev + 1;
             setSessionTotalHoldSeconds(s => s + 1);
 
-            // Mốc giọng nói động viên
-            if (voiceEnabled) {
-              if (nextSec === 30) speakText("30 giây! Cơ bụng đang kích hoạt rất tốt!", { enabled: voiceEnabled });
-              if (nextSec === 60) { speakText("1 phút! Xuất sắc, bạn đã đạt mốc tiêu chuẩn!", { enabled: voiceEnabled }); playBeep(880, 200, { enabled: voiceEnabled }); }
-              if (nextSec === 90) speakText("1 phút 30 giây! Cố lên, giữ vững nhịp thở!", { enabled: voiceEnabled });
-              if (nextSec === 120) { speakText("2 phút! Tuyệt vời, bạn đã là Chiến Binh Thép!", { enabled: voiceEnabled }); playBeep(880, 300, { enabled: voiceEnabled }); }
-              if (nextSec === 180) { speakText("3 phút! Đẳng cấp phi thường của Kỷ Lục Gia!", { enabled: voiceEnabled }); playBeep(988, 400, { enabled: voiceEnabled }); }
-              if (nextSec === 240) speakText("4 phút! Ý chí vô hạn!", { enabled: voiceEnabled });
-              if (nextSec === 300) { speakText("5 phút! Chúc mừng Chúa Tể Cơ Core!", { enabled: voiceEnabled }); playBeep(1046, 500, { enabled: voiceEnabled }); }
+            // Mốc giọng nói động viên & Rung phản hồi
+            if (nextSec === 30) {
+              if (voiceEnabled) speakText("30 giây! Cơ bụng đang kích hoạt rất tốt!", { enabled: voiceEnabled });
+              triggerHapticMedium();
+            }
+            if (nextSec === 60) {
+              if (voiceEnabled) { speakText("1 phút! Xuất sắc, bạn đã đạt mốc tiêu chuẩn!", { enabled: voiceEnabled }); playBeep(880, 200, { enabled: voiceEnabled }); }
+              triggerHapticHeavy();
+            }
+            if (nextSec === 90) {
+              if (voiceEnabled) speakText("1 phút 30 giây! Cố lên, giữ vững nhịp thở!", { enabled: voiceEnabled });
+              triggerHapticMedium();
+            }
+            if (nextSec === 120) {
+              if (voiceEnabled) { speakText("2 phút! Tuyệt vời, bạn đã là Chiến Binh Thép!", { enabled: voiceEnabled }); playBeep(880, 300, { enabled: voiceEnabled }); }
+              triggerHapticHeavy();
+            }
+            if (nextSec === 180) {
+              if (voiceEnabled) { speakText("3 phút! Đẳng cấp phi thường của Kỷ Lục Gia!", { enabled: voiceEnabled }); playBeep(988, 400, { enabled: voiceEnabled }); }
+              triggerHapticHeavy();
+            }
+            if (nextSec === 240) {
+              if (voiceEnabled) speakText("4 phút! Ý chí vô hạn!", { enabled: voiceEnabled });
+              triggerHapticMedium();
+            }
+            if (nextSec === 300) {
+              if (voiceEnabled) { speakText("5 phút! Chúc mừng Chúa Tể Cơ Core!", { enabled: voiceEnabled }); playBeep(1046, 500, { enabled: voiceEnabled }); }
+              triggerHapticSuccess();
             }
 
             return nextSec;
@@ -133,6 +158,11 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
             setTimeLeft((prev) => {
               if (!isResting) {
                 setSessionTotalHoldSeconds(s => s + 1);
+              }
+
+              // Rung phản hồi đếm ngược 5 giây cuối
+              if (prev <= 6 && prev >= 2) {
+                triggerHapticCount();
               }
 
               if (voiceEnabled) {
@@ -163,6 +193,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
   // Hoàn thành hiệp bài tập
   const handleSetFinished = () => {
+    triggerHapticHeavy();
     if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
 
     if (!isResting && (currentExercise.restTime > 0) && (currentSetIndex < exercises.length - 1)) {
@@ -189,6 +220,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     setIsActive(false);
     setIsResting(false);
     releaseWakeLock();
+    triggerHapticSuccess();
 
     if (voiceEnabled) speakText("Xuất sắc! Bạn đã hoàn thành buổi luyện tập!", { enabled: voiceEnabled });
     
@@ -207,6 +239,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     const unlocked = checkAndUnlockBadges();
     if (unlocked && unlocked.length > 0) {
       setNewlyUnlockedBadges(unlocked);
+      triggerHapticSuccess();
       if (voiceEnabled) speakText(`Chúc mừng bạn đã mở khóa huy hiệu: ${unlocked[0].name}!`, { enabled: voiceEnabled });
     }
 
@@ -215,6 +248,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
   const handleToggleTimer = () => {
     unlockSpeechAPI();
+    triggerHapticMedium();
     if (!isActive) {
       if (voiceEnabled) {
         if (isMaxChallenge) {
@@ -230,12 +264,14 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   };
 
   const handleStopMaxChallenge = () => {
+    triggerHapticSuccess();
     if (timeLeft > 0) {
       finishWorkoutSession(timeLeft, 1, "🌌 Thách Thức Vô Cực (Max-Out)");
     }
   };
 
   const handleResetTimer = () => {
+    triggerHapticMedium();
     setIsActive(false);
     setIsResting(false);
     releaseWakeLock();
@@ -257,6 +293,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   };
 
   const handleSkipSet = () => {
+    triggerHapticMedium();
     if (currentSetIndex < exercises.length - 1) {
       setIsResting(false);
       const nextIdx = currentSetIndex + 1;
@@ -272,6 +309,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const handleSelectSet = (idx) => {
     if (isActive || isMaxChallenge) return;
     if (idx >= 0 && idx < exercises.length) {
+      triggerHapticMedium();
       setIsResting(false);
       setCurrentSetIndex(idx);
       setTimeLeft(exercises[idx].holdTime);
@@ -307,11 +345,13 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
   const handleAdjustTime = (delta) => {
     if (isMaxChallenge) return;
+    triggerHapticMedium();
     setTimeLeft(t => Math.max(5, t + delta));
     setTotalSetDuration(d => Math.max(5, d + delta));
   };
 
   const handleSelectQuickPreset = (name, holdTime, restTime = 20) => {
+    triggerHapticMedium();
     setIsActive(false);
     setIsResting(false);
     setIsMaxChallenge(false);
@@ -323,6 +363,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   };
 
   const handleSwitchToMaxChallenge = () => {
+    triggerHapticMedium();
     setIsActive(false);
     setIsResting(false);
     setIsMaxChallenge(true);
