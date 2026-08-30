@@ -304,6 +304,39 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     setIsActive(!isActive);
   };
 
+  const handleToggleCountMode = () => {
+    if (isActive) {
+      if (!window.confirm("Bạn đang trong buổi tập, có chắc chắn muốn chuyển đổi chế độ đếm không?")) {
+        return;
+      }
+      setIsActive(false);
+      releaseWakeLock();
+      stopAllVoice();
+    }
+
+    triggerHapticMedium();
+    const nextMode = !isMaxChallenge;
+    setIsMaxChallenge(nextMode);
+    setIsResting(false);
+    setCurrentSetIndex(0);
+
+    if (nextMode) {
+      // Chuyển sang Đếm Xuôi (Max Hold Plank)
+      setTimeLeft(0);
+      setTotalSetDuration(0);
+      setSessionTotalHoldSeconds(0);
+      if (voiceEnabled) {
+        playVoiceClip('start_challenge', 'Chuyển sang chế độ đếm xuôi! Hãy giữ plank lâu nhất có thể!', { enabled: voiceEnabled });
+      }
+    } else {
+      // Chuyển về Đếm Ngược theo giáo án
+      const firstHold = exercises[0]?.holdTime || 60;
+      setTimeLeft(firstHold);
+      setTotalSetDuration(firstHold);
+      setSessionTotalHoldSeconds(0);
+    }
+  };
+
   const handleStopMaxChallenge = () => {
     triggerHapticSuccess();
     if (timeLeft > 0) {
@@ -508,7 +541,23 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
       </div>
 
       {/* 2. Main HUD Circular Timer */}
-      <div className="flex flex-col items-center justify-center my-auto w-full">
+      <div className="flex flex-col items-center justify-center my-auto w-full relative">
+        {/* Nút Chuyển Đổi Chế Độ Đếm Xuôi (Max Plank) ở Góc Phải Phía Trên Đồng Hồ */}
+        <div className="w-full flex justify-end px-2 sm:px-6 mb-1">
+          <button
+            onClick={handleToggleCountMode}
+            className={`py-1.5 px-3 rounded-2xl text-[11px] font-extrabold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm border ${
+              isMaxChallenge
+                ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-purple-600/30 ring-1 ring-purple-400'
+                : 'bg-white dark:bg-white/5 text-purple-700 dark:text-purple-300 border-purple-300/60 dark:border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/40'
+            }`}
+            title={isMaxChallenge ? "Đang ở Chế độ Đếm Xuôi (Bấm để về Đếm Ngược)" : "Bấm để chuyển sang Chế độ Đếm Xuôi (Giữ Plank lâu nhất có thể)"}
+          >
+            <InfinityIcon size={14} className={isMaxChallenge ? "animate-pulse" : ""} />
+            <span>{isMaxChallenge ? "🌌 Đang Đếm Xuôi" : "⚡ Đếm Xuôi"}</span>
+          </button>
+        </div>
+
         <CircularProgress
           progress={progressPercent}
           timeLeft={timeLeft}
