@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Timer from './components/Timer';
-import PlanGenerator from './components/PlanGenerator';
+import PlanManager from './components/PlanManager';
 import History from './components/History';
 import Settings from './components/Settings';
 import { getSettings, saveSettings, getActivePlan, saveActivePlan } from './services/storageService';
 import { attachGlobalButtonHaptics } from './utils/hapticsUtils';
 import { 
   Timer as TimerIcon, 
-  Sparkles, 
+  ClipboardList, 
   History as HistoryIcon, 
   Settings as SettingsIcon 
 } from 'lucide-react';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('timer'); // 'timer', 'ai_coach', 'history', 'settings'
+  const [activeTab, setActiveTab] = useState('timer'); // 'timer', 'plans', 'history', 'settings'
   const [settings, setSettingsState] = useState(getSettings());
   const [currentPlan, setCurrentPlan] = useState(getActivePlan());
 
@@ -61,17 +61,17 @@ function App() {
       />
 
       {/* 2. Phần Thân Scroll Được Chứa 4 Tab Tính Năng */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative pb-20">
         {activeTab === 'timer' && (
           <Timer 
             plan={currentPlan} 
             voiceEnabled={settings.voiceEnabled}
-            onOpenAIPlan={() => setActiveTab('ai_coach')}
+            onOpenAIPlan={() => setActiveTab('plans')}
           />
         )}
 
-        {activeTab === 'ai_coach' && (
-          <PlanGenerator 
+        {activeTab === 'plans' && (
+          <PlanManager 
             apiKey={settings.apiKey}
             onSelectPlan={handleSelectPlan}
             onOpenSettings={() => setActiveTab('settings')}
@@ -88,7 +88,7 @@ function App() {
           <Settings 
             settings={settings}
             onUpdateSettings={handleUpdateSettings}
-            onNavigateToAI={() => setActiveTab('ai_coach')}
+            onNavigateToAI={() => setActiveTab('plans')}
           />
         )}
       </main>
@@ -101,7 +101,7 @@ function App() {
             onClick={() => setActiveTab('timer')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
               activeTab === 'timer'
-                ? 'text-emerald-600 dark:text-neon scale-105 font-extrabold'
+                ? 'text-emerald-600 dark:text-emerald-400 scale-105 font-extrabold'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
@@ -109,17 +109,17 @@ function App() {
             <span className="text-[10px] tracking-tight mt-1">Đồng Hồ</span>
           </button>
 
-          {/* Tab 2: AI Coach */}
+          {/* Tab 2: Giáo Án (Workout Plans Hub) */}
           <button
-            onClick={() => setActiveTab('ai_coach')}
+            onClick={() => setActiveTab('plans')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
-              activeTab === 'ai_coach'
-                ? 'text-cyan-600 dark:text-cyan-neon scale-105 font-extrabold'
+              activeTab === 'plans'
+                ? 'text-emerald-600 dark:text-emerald-400 scale-105 font-extrabold'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
           >
-            <Sparkles size={24} />
-            <span className="text-[10px] tracking-tight mt-1">AI Coach</span>
+            <ClipboardList size={24} />
+            <span className="text-[10px] tracking-tight mt-1">Giáo Án</span>
           </button>
 
           {/* Tab 3: History */}

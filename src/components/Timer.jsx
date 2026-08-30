@@ -21,20 +21,25 @@ import {
   Pause, 
   RotateCcw, 
   SkipForward, 
+  Flame, 
+  Volume2, 
+  VolumeX, 
+  Moon, 
+  Sun, 
   Trophy, 
-  Plus, 
-  Minus, 
-  Sparkles, 
-  Info,
+  Award,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Zap,
+  Info,
   X,
   ShieldCheck,
-  Flame,
   Activity,
-  Award,
-  Zap,
-  Infinity as InfinityIcon
+  Infinity as InfinityIcon,
+  Plus,
+  Minus,
+  ClipboardList
 } from 'lucide-react';
 
 const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
@@ -88,16 +93,24 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   }, [voiceEnabled]);
 
   useEffect(() => {
-    if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
-      setIsMaxChallenge(false);
-      const exs = plan.days[0].exercises;
-      setExercises(exs);
-      setCurrentSetIndex(0);
-      setIsActive(false);
-      setIsResting(false);
-      setTimeLeft(exs[0].holdTime);
-      setTotalSetDuration(exs[0].holdTime);
-      setSessionTotalHoldSeconds(0);
+    if (plan) {
+      let exs = [];
+      if (plan.exercises && plan.exercises.length > 0) {
+        exs = plan.exercises;
+      } else if (plan.days && plan.days[0]?.exercises?.length > 0) {
+        exs = plan.days[0].exercises;
+      }
+
+      if (exs.length > 0) {
+        setIsMaxChallenge(false);
+        setExercises(exs);
+        setCurrentSetIndex(0);
+        setIsActive(false);
+        setIsResting(false);
+        setTimeLeft(exs[0].holdTime);
+        setTotalSetDuration(exs[0].holdTime);
+        setSessionTotalHoldSeconds(0);
+      }
     }
   }, [plan]);
 
@@ -385,9 +398,9 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const progressPercent = totalSetDuration > 0 ? ((totalSetDuration - timeLeft) / totalSetDuration) * 100 : 0;
 
   return (
-    <div className="flex flex-col items-center justify-between p-4 sm:p-6 w-full h-full max-w-lg mx-auto pb-28">
+    <div className="flex flex-col items-center justify-between p-3 sm:p-5 w-full max-w-lg mx-auto pb-36 min-h-[calc(100vh-135px)]">
       {/* 1. Quick Presets & Challenge Bar - Cố định chắc chắn, chỉ cuộn thuần ngang 100% không bị dịch chuyển chéo */}
-      <div className="w-full shrink-0 flex items-center space-x-2 overflow-x-auto overflow-y-hidden py-1.5 px-0.5 mb-2 touch-pan-x overscroll-x-contain select-none">
+      <div className="w-full shrink-0 flex items-center space-x-2 overflow-x-auto overflow-y-hidden py-1.5 px-0.5 mb-1 touch-pan-x overscroll-x-contain select-none">
         {/* Nút Thách Thức Vô Cực Nổi Bật */}
         <button
           onClick={handleSwitchToMaxChallenge}
@@ -439,10 +452,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
         <button
           onClick={onOpenAIPlan}
-          className="shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-neon/15 border border-emerald-300 dark:border-neon/30 text-xs font-bold text-emerald-700 dark:text-neon active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm"
+          className="shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300/60 dark:border-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm"
         >
-          <Sparkles size={14} />
-          <span>Tạo Với AI</span>
+          <ClipboardList size={14} />
+          <span>Thư Viện Giáo Án</span>
         </button>
       </div>
 
@@ -451,7 +464,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="w-full glass-panel p-5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm"
+        className="w-full glass-panel p-4 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm"
       >
         {/* Nút lật hiệp trái/phải khi chưa bắt đầu */}
         {exercises.length > 1 && !isActive && !isMaxChallenge && (

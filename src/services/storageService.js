@@ -225,12 +225,93 @@ export const updatePersonalRecord = (newDuration) => {
 };
 
 // ==================== 4. KẾ HOẠCH & LỊCH SỬ ====================
+export const DEFAULT_PLANS = [
+  {
+    id: 'preset_core_7days',
+    planName: '7 Ngày Bứt Phá Sức Bền Core',
+    goal: 'Tăng cường sức bền, săn chắc cơ bụng và cải thiện thể lực toàn diện',
+    level: 'Trung bình',
+    type: 'preset',
+    isDefault: true,
+    createdAt: '2026-08-30T00:00:00.000Z',
+    days: [
+      {
+        day: 1,
+        title: 'Kích Hoạt Cơ Core Toàn Diện',
+        exercises: [
+          { name: 'Plank Khuỷu Tay Tiêu Chuẩn', holdTime: 45, restTime: 20, tip: 'Siết chặt cơ bụng và cơ mông, giữ lưng thẳng song song mặt sàn.' },
+          { name: 'Side Plank (Nghiêng) Trái', holdTime: 30, restTime: 15, tip: 'Nâng cao hông, giữ thân người tạo thành đường thẳng, mở rộng ngực.' },
+          { name: 'Side Plank (Nghiêng) Phải', holdTime: 30, restTime: 20, tip: 'Đẩy hông cao, siết chặt cơ liên sườn phía dưới.' },
+          { name: 'Plank Cao Căng Tay', holdTime: 45, restTime: 25, tip: 'Cổ tay ngay dưới vai, mắt nhìn xuống sàn, hít thở đều đặn.' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'preset_burn_fat',
+    planName: 'Siết Cơ Bụng & Đốt Mỡ Thần Tốc',
+    goal: 'Đốt mỡ nhanh, thon gọn vòng eo và kích hoạt cơ bụng 6 múi',
+    level: 'Nâng cao',
+    type: 'preset',
+    isDefault: true,
+    createdAt: '2026-08-30T00:00:00.000Z',
+    days: [
+      {
+        day: 1,
+        title: 'Chuỗi Plank Đốt Mỡ Chuyên Sâu',
+        exercises: [
+          { name: 'Plank Tiêu Chuẩn', holdTime: 60, restTime: 20, tip: 'Khóa chặt khớp vai, gồng cứng cơ bụng tối đa.' },
+          { name: 'Plank Co Gối Mountain Climber', holdTime: 40, restTime: 20, tip: 'Co từng gối hướng về phía ngực nhịp nhàng.' },
+          { name: 'Side Plank Nâng Chân', holdTime: 35, restTime: 20, tip: 'Giữ thăng bằng và nâng chân trên lên cao.' },
+          { name: 'Plank Chạm Vai Chéo', holdTime: 40, restTime: 20, tip: 'Hạn chế lắc hông khi tay chạm vai đối diện.' },
+          { name: 'Plank Khóa Khớp Tối Đa', holdTime: 45, restTime: 30, tip: 'Hiệp cuối cùng! Dồn toàn bộ ý chí giữ vững tư thế!' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'preset_beginner_spine',
+    planName: 'Khởi Động Tân Binh & Bảo Vệ Cột Sống',
+    goal: 'Làm quen an toàn, củng cố cơ lưng dưới và phòng tránh đau mỏi',
+    level: 'Mới bắt đầu',
+    type: 'preset',
+    isDefault: true,
+    createdAt: '2026-08-30T00:00:00.000Z',
+    days: [
+      {
+        day: 1,
+        title: 'Nhập Môn Nhẹ Nhàng & Chuẩn Form',
+        exercises: [
+          { name: 'Plank Khuỷu Tay Nhẹ Nhàng', holdTime: 30, restTime: 20, tip: 'Tập trung cảm nhận cơ bụng, không cần gồng quá sức.' },
+          { name: 'Plank Cao Chống Tay', holdTime: 25, restTime: 20, tip: 'Giữ vai thoải mái, hít sâu bằng mũi và thở ra bằng miệng.' },
+          { name: 'Side Plank Chống Gối', holdTime: 25, restTime: 20, tip: 'Gập gối 90 độ để giảm bớt áp lực lên khớp vai.' }
+        ]
+      }
+    ]
+  }
+];
+
+export const getSavedPlans = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.SAVED_PLANS);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const getAllPlans = () => {
+  const customPlans = getSavedPlans();
+  return [...customPlans, ...DEFAULT_PLANS];
+};
+
 export const getActivePlan = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAN);
-    return saved ? JSON.parse(saved) : null;
+    if (saved) return JSON.parse(saved);
+    return DEFAULT_PLANS[0];
   } catch (e) {
-    return null;
+    return DEFAULT_PLANS[0];
   }
 };
 
@@ -242,26 +323,87 @@ export const saveActivePlan = (plan) => {
   }
 };
 
-export const getSavedPlans = () => {
+export const savePlan = (plan) => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.SAVED_PLANS);
-    return saved ? JSON.parse(saved) : [];
+    const plans = getSavedPlans();
+    const isNew = !plan.id || plan.id.startsWith('preset_');
+    const planId = isNew ? `plan_${Date.now()}` : plan.id;
+    const planType = plan.type || (isNew ? 'custom' : 'custom');
+
+    const formattedPlan = {
+      ...plan,
+      id: planId,
+      type: planType,
+      isDefault: false,
+      updatedAt: new Date().toISOString(),
+      createdAt: plan.createdAt || new Date().toISOString()
+    };
+
+    const existingIndex = plans.findIndex(p => p.id === planId);
+    if (existingIndex >= 0) {
+      plans[existingIndex] = formattedPlan;
+    } else {
+      plans.unshift(formattedPlan);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(plans));
+
+    // Nếu giáo án đang chỉnh sửa cũng là giáo án active -> cập nhật active luôn
+    const active = getActivePlan();
+    if (active && (active.id === planId || active.planName === plan.planName)) {
+      saveActivePlan(formattedPlan);
+    }
+
+    return formattedPlan;
   } catch (e) {
+    console.error("Save plan error:", e);
+    return plan;
+  }
+};
+
+export const deletePlan = (planId) => {
+  try {
+    let plans = getSavedPlans();
+    plans = plans.filter(p => p.id !== planId);
+    localStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(plans));
+
+    const active = getActivePlan();
+    if (active && active.id === planId) {
+      saveActivePlan(DEFAULT_PLANS[0]);
+    }
+
+    return plans;
+  } catch (e) {
+    console.error("Delete plan error:", e);
     return [];
   }
 };
 
-export const addSavedPlan = (plan) => {
+export const duplicatePlan = (planId) => {
   try {
-    const plans = getSavedPlans();
-    const newPlan = { ...plan, id: Date.now(), createdAt: new Date().toISOString() };
-    plans.unshift(newPlan);
-    localStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(plans));
-    return newPlan;
+    const all = getAllPlans();
+    const sourcePlan = all.find(p => p.id === planId);
+    if (!sourcePlan) return null;
+
+    const clonedPlan = {
+      ...JSON.parse(JSON.stringify(sourcePlan)),
+      id: `plan_${Date.now()}`,
+      planName: `${sourcePlan.planName} (Bản sao)`,
+      type: 'custom',
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    return savePlan(clonedPlan);
   } catch (e) {
-    console.error("Add saved plan error:", e);
-    return plan;
+    console.error("Duplicate plan error:", e);
+    return null;
   }
+};
+
+export const addSavedPlan = (plan) => {
+  return savePlan(plan);
 };
 
 export const getHistory = () => {

@@ -255,7 +255,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
             className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 active:scale-95 transition-all"
           >
             <Sparkles size={14} />
-            <span>Mở Ngay Trợ Lý AI Để Tạo Giáo Án</span>
+            <span>Mở Ngay Tab Giáo Án Để Thiết Kế Bài Tập</span>
           </button>
         )}
       </div>
