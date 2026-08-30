@@ -330,6 +330,10 @@ export const savePlan = (plan) => {
     const planId = isNew ? `plan_${Date.now()}` : plan.id;
     const planType = plan.type || (isNew ? 'custom' : 'custom');
 
+    // Lưu lại tên cũ trước khi cập nhật (nếu có) để đối soát lịch sử
+    const existingPlan = plans.find(p => p.id === planId);
+    const oldPlanName = existingPlan?.planName;
+
     const formattedPlan = {
       ...plan,
       id: planId,
@@ -350,8 +354,34 @@ export const savePlan = (plan) => {
 
     // Nếu giáo án đang chỉnh sửa cũng là giáo án active -> cập nhật active luôn
     const active = getActivePlan();
-    if (active && (active.id === planId || active.planName === plan.planName)) {
+    if (active && (active.id === planId || active.planName === oldPlanName || active.planName === plan.planName)) {
       saveActivePlan(formattedPlan);
+    }
+
+    // ĐỒNG BỘ TÊN MỚI VÀO TOÀN BỘ LỊCH SỬ TẬP LUYỆN ĐÃ TẬP TRƯỚC ĐÓ
+    try {
+      const history = getHistory();
+      let historyChanged = false;
+      const updatedHistory = history.map(h => {
+        const isMatchById = h.planId && h.planId === planId;
+        const isMatchByName = oldPlanName && h.planName === oldPlanName;
+        
+        if (isMatchById || isMatchByName) {
+          historyChanged = true;
+          return {
+            ...h,
+            planId: planId,
+            planName: formattedPlan.planName
+          };
+        }
+        return h;
+      });
+
+      if (historyChanged) {
+        localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updatedHistory));
+      }
+    } catch (syncErr) {
+      console.warn("Sync history error:", syncErr);
     }
 
     return formattedPlan;
@@ -426,9 +456,10 @@ export const saveHistory = (session) => {
     const newRecord = {
       id: Date.now(),
       date: new Date().toISOString(),
+      planId: session.planId || null,
+      planName: session.planName || "Plank Tự Do",
       duration: session.duration || 0,
       maxSingleHold: maxSingleHold,
-      planName: session.planName || "Plank Tự Do",
       completedSets: session.completedSets || 1,
       totalSets: session.totalSets || 1,
       calories: calories

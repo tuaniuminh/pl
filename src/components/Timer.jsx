@@ -225,12 +225,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
       setTotalSetDuration(nextEx.holdTime);
       if (voiceEnabled) playVoiceClip('prepare_next', `Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
-      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do");
+      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id);
     }
   };
 
   // Hoàn thành buổi tập / dừng Thách thức Vô cực
-  const finishWorkoutSession = (totalHold, completedSetsCount, planTitle) => {
+  const finishWorkoutSession = (totalHold, completedSetsCount, planTitle, planId = null) => {
     setIsActive(false);
     setIsResting(false);
     releaseWakeLock();
@@ -243,6 +243,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
       : Math.max(...exercises.map(e => Number(e.holdTime || 0)));
 
     const sessionResult = {
+      planId: planId || (isMaxChallenge ? 'max_challenge' : plan?.id || null),
       planName: planTitle,
       duration: totalHold,
       maxSingleHold: maxSingleHold,
