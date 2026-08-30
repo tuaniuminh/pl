@@ -1,5 +1,5 @@
 /**
- * Dịch vụ lưu trữ LocalStorage & Xuất dữ liệu CSV
+ * Dịch vụ lưu trữ LocalStorage, Hệ thống Huy hiệu & Screen Wake Lock
  */
 
 const STORAGE_KEYS = {
@@ -7,14 +7,166 @@ const STORAGE_KEYS = {
   HISTORY: 'plank_history_v2',
   ACTIVE_PLAN: 'plank_active_plan_v2',
   SAVED_PLANS: 'plank_saved_plans_v2',
-  USER_PROFILE: 'plank_user_profile_v2'
+  USER_PROFILE: 'plank_user_profile_v2',
+  UNLOCKED_BADGES: 'plank_unlocked_badges_v2'
 };
 
-// Cài đặt chung
+// ==================== 1. SCREEN WAKE LOCK API ====================
+let wakeLockInstance = null;
+
+export const requestWakeLock = async () => {
+  if (typeof window !== 'undefined' && 'wakeLock' in navigator) {
+    try {
+      wakeLockInstance = await navigator.wakeLock.request('screen');
+      console.log('Screen Wake Lock activated');
+    } catch (err) {
+      console.warn('Wake Lock request error:', err);
+    }
+  }
+};
+
+export const releaseWakeLock = async () => {
+  if (wakeLockInstance) {
+    try {
+      await wakeLockInstance.release();
+      wakeLockInstance = null;
+      console.log('Screen Wake Lock released');
+    } catch (err) {
+      console.warn('Wake Lock release error:', err);
+    }
+  }
+};
+
+// ==================== 2. HỆ THỐNG DANH HIỆU & HUY HIỆU ====================
+export const BADGES_LIST = [
+  {
+    id: 'first_step',
+    name: 'Tân Binh Thép',
+    desc: 'Hoàn thành bài tập Plank đầu tiên',
+    icon: '🥉',
+    rarity: 'Cơ bản',
+    color: 'emerald',
+    check: (stats, history) => history.length >= 1
+  },
+  {
+    id: 'hold_60s',
+    name: 'Chiến Binh 1 Phút',
+    desc: 'Giữ Plank liên tục từ 60 giây trở lên',
+    icon: '⚡',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats, history) => history.some(h => (h.duration || 0) >= 60)
+  },
+  {
+    id: 'hold_120s',
+    name: 'Bứt Phá 2 Phút',
+    desc: 'Giữ Plank liên tục từ 120 giây trở lên',
+    icon: '🔥',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats, history) => history.some(h => (h.duration || 0) >= 120)
+  },
+  {
+    id: 'hold_180s',
+    name: 'Kỷ Lục Gia 3 Phút',
+    desc: 'Giữ Plank liên tục từ 180 giây trở lên',
+    icon: '🏆',
+    rarity: 'Huyền thoại',
+    color: 'purple',
+    check: (stats, history) => history.some(h => (h.duration || 0) >= 180)
+  },
+  {
+    id: 'hold_300s',
+    name: 'Bậc Thầy 5 Phút',
+    desc: 'Chinh phục mốc 300 giây (5 phút) huyền thoại',
+    icon: '👑',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats, history) => history.some(h => (h.duration || 0) >= 300)
+  },
+  {
+    id: 'streak_3',
+    name: 'Kiên Trì 3 Ngày',
+    desc: 'Duy trì chuỗi tập 3 ngày liên tiếp',
+    icon: '🌟',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats) => stats.streak >= 3
+  },
+  {
+    id: 'streak_7',
+    name: 'Bản Lĩnh 7 Ngày',
+    desc: 'Duy trì chuỗi tập 7 ngày liên tiếp',
+    icon: '💎',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats) => stats.streak >= 7
+  },
+  {
+    id: 'total_30m',
+    name: 'Chúa Tể Cơ Core',
+    desc: 'Tổng thời gian tích lũy đạt 30 phút Plank',
+    icon: '🛡️',
+    rarity: 'Huyền thoại',
+    color: 'purple',
+    check: (stats) => stats.totalSeconds >= 1800
+  },
+  {
+    id: 'max_challenge',
+    name: 'Vô Cực Vượt Ngưỡng',
+    desc: 'Chinh phục 1 buổi Thách Thức Vô Cực (Max-Out)',
+    icon: '🌌',
+    rarity: 'Đặc biệt',
+    color: 'cyan',
+    check: (stats, history) => history.some(h => h.planName?.includes('Thách Thức Vô Cực'))
+  }
+];
+
+export const getUnlockedBadges = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.UNLOCKED_BADGES);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveUnlockedBadges = (badgeIds) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.UNLOCKED_BADGES, JSON.stringify(badgeIds));
+  } catch (e) {
+    console.error("Save badges error:", e);
+  }
+};
+
+// Kiểm tra và mở khóa huy hiệu mới
+export const checkAndUnlockBadges = () => {
+  const currentUnlocked = getUnlockedBadges();
+  const stats = getHistoryStats();
+  const history = getHistory();
+  const newlyUnlocked = [];
+
+  BADGES_LIST.forEach(badge => {
+    if (!currentUnlocked.includes(badge.id)) {
+      if (badge.check(stats, history)) {
+        newlyUnlocked.push(badge);
+        currentUnlocked.push(badge.id);
+      }
+    }
+  });
+
+  if (newlyUnlocked.length > 0) {
+    saveUnlockedBadges(currentUnlocked);
+  }
+
+  return newlyUnlocked;
+};
+
+// ==================== 3. CÀI ĐẶT & HỒ SƠ ====================
 export const getSettings = () => {
   const defaultSettings = {
     apiKey: '',
-    theme: 'dark', // Mặc định Dark Mode OLED
+    theme: 'dark',
     voiceEnabled: true,
     countdownAudio: true,
     soundVolume: 1.0,
@@ -36,7 +188,6 @@ export const saveSettings = (settings) => {
   }
 };
 
-// Hồ sơ người dùng
 export const getUserProfile = () => {
   const defaultProfile = {
     record: 60,
@@ -61,7 +212,18 @@ export const saveUserProfile = (profile) => {
   }
 };
 
-// Kế hoạch đang tập
+// Cập nhật kỷ lục cá nhân nếu vượt qua kỷ lục cũ
+export const updatePersonalRecord = (newDuration) => {
+  const profile = getUserProfile();
+  if (newDuration > (profile.record || 0)) {
+    profile.record = newDuration;
+    saveUserProfile(profile);
+    return true; // Có kỷ lục mới
+  }
+  return false;
+};
+
+// ==================== 4. KẾ HOẠCH & LỊCH SỬ ====================
 export const getActivePlan = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAN);
@@ -79,7 +241,6 @@ export const saveActivePlan = (plan) => {
   }
 };
 
-// Danh sách các giáo án đã tạo
 export const getSavedPlans = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SAVED_PLANS);
@@ -102,7 +263,6 @@ export const addSavedPlan = (plan) => {
   }
 };
 
-// Lịch sử tập luyện
 export const getHistory = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.HISTORY);
@@ -115,7 +275,7 @@ export const getHistory = () => {
 export const saveHistory = (session) => {
   try {
     const history = getHistory();
-    const calories = Math.round((session.duration / 60) * 4.5); // Ước tính 4.5 kcal / phút plank
+    const calories = Math.round((session.duration / 60) * 4.5);
     const newRecord = {
       id: Date.now(),
       date: new Date().toISOString(),
@@ -127,6 +287,10 @@ export const saveHistory = (session) => {
     };
     history.unshift(newRecord);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+    
+    // Cập nhật kỷ lục cá nhân nếu có
+    updatePersonalRecord(session.duration || 0);
+
     return newRecord;
   } catch (e) {
     console.error("Save history error:", e);
@@ -141,18 +305,16 @@ export const clearHistory = () => {
   }
 };
 
-// Thống kê tổng hợp
 export const getHistoryStats = () => {
   const history = getHistory();
   const totalSeconds = history.reduce((acc, curr) => acc + (curr.duration || 0), 0);
   const totalCalories = history.reduce((acc, curr) => acc + (curr.calories || 0), 0);
   const totalWorkouts = history.length;
   
-  // Tính chuỗi ngày (Streak)
   let streak = 0;
   if (history.length > 0) {
     const dates = [...new Set(history.map(h => new Date(h.date).toDateString()))];
-    streak = dates.length; // Đếm số ngày tập độc lập
+    streak = dates.length;
   }
 
   return {
@@ -164,7 +326,6 @@ export const getHistoryStats = () => {
   };
 };
 
-// Xuất file CSV chuẩn định dạng
 export const exportCSV = () => {
   const history = getHistory();
   if (history.length === 0) {
@@ -187,7 +348,6 @@ export const exportCSV = () => {
     ...rows.map(e => e.join(","))
   ].join("\r\n");
 
-  // UTF-8 BOM \uFEFF giúp Excel hiển thị đúng tiếng Việt có dấu
   const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

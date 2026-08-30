@@ -5,27 +5,38 @@ const CircularProgress = ({
   timeLeft = 0, 
   totalTime = 60,
   isResting = false,
+  isMaxChallenge = false,
+  personalRecord = 60,
   exerciseName = "Plank Cơ Bản"
 }) => {
   const size = 260;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const strokeDashoffset = isMaxChallenge 
+    ? circumference - ((timeLeft % 60) / 60) * circumference
+    : circumference - (progress / 100) * circumference;
 
-  const strokeGradientId = isResting ? "cyanGradient" : "neonGradient";
+  let strokeGradientId = "neonGradient";
+  if (isMaxChallenge) {
+    strokeGradientId = "cosmicGradient";
+  } else if (isResting) {
+    strokeGradientId = "cyanGradient";
+  }
 
   return (
     <div className="relative flex items-center justify-center my-4">
       {/* Background radial glow */}
       <div 
-        className="absolute w-56 h-56 rounded-full blur-3xl opacity-20 dark:opacity-30 transition-all duration-700 pointer-events-none"
-        style={{ backgroundColor: isResting ? '#00f2fe' : '#10b981' }}
+        className="absolute w-56 h-56 rounded-full blur-3xl opacity-20 dark:opacity-35 transition-all duration-700 pointer-events-none"
+        style={{ 
+          backgroundColor: isMaxChallenge ? '#8b5cf6' : (isResting ? '#00f2fe' : '#10b981') 
+        }}
       />
 
       <svg width={size} height={size} className="transform -rotate-90 drop-shadow-lg dark:drop-shadow-2xl">
         <defs>
-          {/* Gradient cho chế độ Luyện tập */}
+          {/* Gradient cho chế độ Luyện tập chuẩn */}
           <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#10b981" />
             <stop offset="100%" stopColor="#06b6d4" />
@@ -35,6 +46,13 @@ const CircularProgress = ({
           <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#06b6d4" />
             <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+
+          {/* Gradient cho chế độ Thách Thức Vô Cực */}
+          <linearGradient id="cosmicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#a855f7" />
+            <stop offset="50%" stopColor="#ec4899" />
+            <stop offset="100%" stopColor="#00f2fe" />
           </linearGradient>
 
           {/* Filter tạo hiệu ứng Glow bóng bẩy */}
@@ -75,23 +93,37 @@ const CircularProgress = ({
       <div className="absolute flex flex-col items-center justify-center text-center px-4">
         {/* Status Badge */}
         <div className={`px-3 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase mb-1 transition-all ${
-          isResting 
+          isMaxChallenge
+            ? 'bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40 shadow-sm'
+            : isResting 
             ? 'bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-neon/15 dark:text-cyan-neon dark:border-cyan-neon/30 dark:shadow-cyan-glow' 
             : 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-neon/15 dark:text-neon dark:border-neon/30 dark:shadow-neon'
         }`}>
-          {isResting ? "❄️ HỒI SỨC" : "🔥 ĐANG GIỮ CORE"}
+          {isMaxChallenge ? "🌌 THÁCH THỨC VÔ CỰC" : (isResting ? "❄️ HỒI SỨC" : "🔥 ĐANG GIỮ CORE")}
         </div>
 
-        {/* Big Digital Timer Display (Đã bỏ chữ 's' nhỏ) */}
+        {/* Big Digital Timer Display */}
         <div className="flex items-center justify-center">
-          <span className="font-mono text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
+          <span className={`font-mono text-7xl font-extrabold tracking-tight drop-shadow-sm ${
+            isMaxChallenge 
+              ? 'text-purple-600 dark:text-purple-300' 
+              : 'text-slate-900 dark:text-white'
+          }`}>
             {timeLeft}
           </span>
         </div>
 
-        {/* Total Set Time / Progress Percentage */}
+        {/* Total Set Time / Progress Percentage / Challenge Milestone */}
         <div className="text-xs font-medium text-slate-600 dark:text-gray-400 mt-1">
-          Mục tiêu: <span className="text-slate-900 dark:text-white font-semibold">{totalTime}s</span> ({Math.round(progress)}%)
+          {isMaxChallenge ? (
+            <span>
+              Kỷ lục: <strong className="text-purple-600 dark:text-purple-400">{personalRecord}s</strong> {timeLeft > personalRecord && "🔥 KỶ LỤC MỚI!"}
+            </span>
+          ) : (
+            <span>
+              Mục tiêu: <span className="text-slate-900 dark:text-white font-semibold">{totalTime}s</span> ({Math.round(progress)}%)
+            </span>
+          )}
         </div>
       </div>
     </div>
