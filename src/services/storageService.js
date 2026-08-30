@@ -168,6 +168,7 @@ export const getSettings = () => {
     apiKey: '',
     theme: 'dark',
     voiceEnabled: true,
+    selectedVoice: 'female', // 'female' (Hoài My) | 'male' (Nam Minh)
     countdownAudio: true,
     soundVolume: 1.0,
     autoNextSet: true

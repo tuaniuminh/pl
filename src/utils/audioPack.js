@@ -1,52 +1,58 @@
 /**
- * Hệ thống Phát Âm Thanh Huấn Luyện Viên Thể Hình Studio AI (Audio Pack)
- * Tự động tải trước (Preload) vào bộ nhớ để phát tức thì 0ms, hoạt động offline 100%.
+ * Hệ thống Phát Âm Thanh Huấn Luyện Viên Thể Hình Studio AI Đa Giọng Đọc (Audio Pack)
+ * Hỗ trợ chọn Giọng Nữ (Hoài My) & Giọng Nam (Nam Minh), phát tức thì 0ms, offline 100%.
  */
 
 import { getSettings } from '../services/storageService';
 import { speakText } from './speechUtils';
 
-const AUDIO_CLIPS = {
-  start_workout: '/audio/start_workout.mp3',
-  start_challenge: '/audio/start_challenge.mp3',
-  count_5: '/audio/count_5.mp3',
-  count_4: '/audio/count_4.mp3',
-  count_3: '/audio/count_3.mp3',
-  count_2: '/audio/count_2.mp3',
-  count_1: '/audio/count_1.mp3',
-  rest_start: '/audio/rest_start.mp3',
-  prepare_next: '/audio/prepare_next.mp3',
-  workout_complete: '/audio/workout_complete.mp3',
-  badge_unlocked: '/audio/badge_unlocked.mp3',
-  milestone_30s: '/audio/milestone_30s.mp3',
-  milestone_60s: '/audio/milestone_60s.mp3',
-  milestone_90s: '/audio/milestone_90s.mp3',
-  milestone_120s: '/audio/milestone_120s.mp3',
-  milestone_180s: '/audio/milestone_180s.mp3',
-  milestone_240s: '/audio/milestone_240s.mp3',
-  milestone_300s: '/audio/milestone_300s.mp3'
+const CLIP_NAMES = [
+  'start_workout',
+  'start_challenge',
+  'count_5',
+  'count_4',
+  'count_3',
+  'count_2',
+  'count_1',
+  'rest_start',
+  'prepare_next',
+  'workout_complete',
+  'badge_unlocked',
+  'milestone_30s',
+  'milestone_60s',
+  'milestone_90s',
+  'milestone_120s',
+  'milestone_180s',
+  'milestone_240s',
+  'milestone_300s'
+];
+
+const audioCache = {
+  female: {},
+  male: {}
 };
 
-const audioCache = {};
 let currentPlayingAudio = null;
 
-// Tải trước toàn bộ âm thanh vào RAM
+// Tải trước toàn bộ âm thanh của cả 2 giọng vào RAM
 export const preloadAudioPack = () => {
   if (typeof window === 'undefined') return;
 
-  Object.entries(AUDIO_CLIPS).forEach(([key, src]) => {
-    try {
-      const audio = new Audio();
-      audio.preload = 'auto';
-      audio.src = src;
-      audioCache[key] = audio;
-    } catch (e) {
-      console.warn(`Could not preload audio: ${key}`, e);
-    }
+  ['female', 'male'].forEach((voice) => {
+    CLIP_NAMES.forEach((clipName) => {
+      try {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.src = `/audio/${voice}/${clipName}.mp3`;
+        audioCache[voice][clipName] = audio;
+      } catch (e) {
+        console.warn(`Could not preload audio ${voice}/${clipName}:`, e);
+      }
+    });
   });
 };
 
-// Khởi tạo preload ngay khi module được nạp
+// Khởi tạo preload ngay khi app chạy
 preloadAudioPack();
 
 // Dừng toàn bộ âm thanh đang phát
@@ -67,10 +73,27 @@ export const stopAllVoice = () => {
 };
 
 /**
- * Phát câu lệnh giọng đọc Studio AI chất lượng cao
- * @param {string} clipKey - Tên mã câu lệnh trong AUDIO_CLIPS
- * @param {string} [fallbackText] - Văn bản dự phòng nếu không có file âm thanh
- * @param {object} [options] - Tuỳ chọn { enabled, volume }
+ * Nghe thử giọng đọc trong cài đặt
+ * @param {'female' | 'male'} voiceKey
+ */
+export const previewVoice = (voiceKey = 'female') => {
+  stopAllVoice();
+  try {
+    const audio = audioCache[voiceKey]?.['start_workout'] || new Audio(`/audio/${voiceKey}/start_workout.mp3`);
+    audio.currentTime = 0;
+    audio.volume = 1.0;
+    currentPlayingAudio = audio;
+    audio.play().catch(e => console.warn('Preview voice error:', e));
+  } catch (err) {
+    console.error('Preview error:', err);
+  }
+};
+
+/**
+ * Phát câu lệnh giọng đọc Studio AI chất lượng cao theo giọng người dùng đã chọn
+ * @param {string} clipKey - Tên mã câu lệnh
+ * @param {string} [fallbackText] - Văn bản dự phòng
+ * @param {object} [options] - Tuỳ chọn { enabled, volume, voice }
  */
 export const playVoiceClip = (clipKey, fallbackText = '', options = {}) => {
   try {
@@ -82,10 +105,13 @@ export const playVoiceClip = (clipKey, fallbackText = '', options = {}) => {
 
     stopAllVoice();
 
-    let audio = audioCache[clipKey];
-    if (!audio && AUDIO_CLIPS[clipKey]) {
-      audio = new Audio(AUDIO_CLIPS[clipKey]);
-      audioCache[clipKey] = audio;
+    const selectedVoice = options.voice || settings.selectedVoice || 'female';
+    let audio = audioCache[selectedVoice]?.[clipKey];
+
+    if (!audio) {
+      audio = new Audio(`/audio/${selectedVoice}/${clipKey}.mp3`);
+      if (!audioCache[selectedVoice]) audioCache[selectedVoice] = {};
+      audioCache[selectedVoice][clipKey] = audio;
     }
 
     if (audio) {
@@ -96,7 +122,7 @@ export const playVoiceClip = (clipKey, fallbackText = '', options = {}) => {
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
-          console.warn(`Audio play failed for ${clipKey}, falling back to speech synthesis:`, err);
+          console.warn(`Audio play failed for ${selectedVoice}/${clipKey}, falling back to TTS:`, err);
           if (fallbackText) {
             speakText(fallbackText, options);
           }
