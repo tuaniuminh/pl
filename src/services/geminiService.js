@@ -80,60 +80,60 @@ const extractJsonFromText = (text) => {
 };
 
 // Tạo giáo án thông minh có cơ chế Fallback tự động khi model quá tải
-export const generatePlankPlan = async (apiKey, userProfile) => {
+export const generatePlankPlan = async (apiKey, userProfile, historySummary) => {
   if (!apiKey || !apiKey.trim()) {
     throw new Error("Vui lòng nhập Google Gemini API Key trong phần Cài đặt.");
   }
 
   const promptText = `
-Bạn là Huấn luyện viên Fitness chuyên nghiệp cấp cao thế giới, chuyên sâu về Plank và tăng cường nhóm cơ Core.
-Hãy thiết kế một giáo án luyện tập Plank cá nhân hóa xuất sắc dựa trên thông tin người tập sau:
-- Kỷ lục giữ Plank hiện tại: ${userProfile.record || 45} giây
-- Tần suất tập mong muốn: ${userProfile.frequency || "3 buổi/tuần"}
-- Mục tiêu chính: ${userProfile.goal || "Tăng sức bền & Giảm mỡ bụng"}
+Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp cao quốc tế.
+Dưới đây là BÁO CÁO TOÀN DIỆN VỀ LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
+
+📊 THỐNG KÊ LỊCH SỬ:
+- Kỷ lục giữ Plank cao nhất: ${userProfile.record || 45} giây
+- Tổng số buổi tập đã hoàn thành: ${historySummary?.totalWorkouts || 0} buổi
+- Tổng thời gian Plank tích lũy: ${historySummary?.totalMinutes || 0} phút
+- Chuỗi ngày tập liên tục: ${historySummary?.streak || 0} ngày
 - Trình độ thể lực: ${userProfile.level || "Trung bình"}
-- Ghi chú thêm: ${userProfile.notes || "Không có"}
+- Mục tiêu chính: ${userProfile.goal || "Tăng sức bền & Giảm mỡ bụng"}
+
+🗓️ CHI TIẾT CÁC BUỔI TẬP GẦN NHẤT:
+${historySummary?.recentSessionsText || "Chưa có lịch sử buổi tập trước đó."}
+
+NHIỆM VỤ CỦA HUẤN LUYỆN VIÊN:
+1. Đánh giá phong độ (evaluation): Phân tích chi tiết sự tiến bộ, điểm mạnh và điểm cần cải thiện dựa trên lịch sử tập luyện thực tế trên.
+2. Lời khuyên chiến lược (advice): Đưa ra chỉ dẫn cụ thể về kỹ thuật siết cơ Core, nhịp thở và cách phân bổ sức bền để vượt ngưỡng kỷ lục.
+3. Thiết kế chuỗi bài tập mới (exercises): Tạo từ 4 đến 6 hiệp bài tập Plank khoa học nhất phù hợp với phong độ hiện tại.
 
 YÊU CẦU ĐẦU RA BẮT BUỘC:
 Chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ tuân theo cấu trúc sau, KHÔNG có văn bản giới thiệu hay markdown giải thích nào:
 {
+  "evaluation": "Nhận xét đánh giá phong độ dựa trên lịch sử tập...",
+  "advice": "Lời khuyên chiến lược nâng cao sức bền...",
   "planName": "Tên giáo án hấp dẫn (vd: 7 Ngày Kiến Tạo Cơ Core Vững Chắc)",
-  "description": "Mô tả ngắn gọn lộ trình và lợi ích đạt được trong 1-2 câu",
-  "level": "Mới bắt đầu | Trung bình | Nâng cao",
-  "totalDays": 7,
-  "days": [
+  "goal": "${userProfile.goal || 'Tăng sức bền'}",
+  "level": "${userProfile.level || 'Trung bình'}",
+  "exercises": [
     {
-      "day": 1,
-      "title": "Khởi động & Đánh thức cơ Core",
-      "focus": "Sức bền cơ bản",
-      "exercises": [
-        {
-          "name": "Plank khuỷu tay chuẩn",
-          "holdTime": 45,
-          "restTime": 25,
-          "tip": "Siết chặt cơ mông và cơ bụng, giữ thẳng từ đầu đến gót chân"
-        },
-        {
-          "name": "Plank nghiêng (Side Plank)",
-          "holdTime": 30,
-          "restTime": 20,
-          "tip": "Nâng hông cao, không để võng hông xuống sàn"
-        },
-        {
-          "name": "Plank cao tay duỗi thẳng",
-          "holdTime": 45,
-          "restTime": 30,
-          "tip": "Cổ tay thẳng hàng dưới vai, mắt nhìn xuống sàn"
-        }
-      ]
+      "name": "Plank khuỷu tay chuẩn",
+      "holdTime": 45,
+      "restTime": 25,
+      "tip": "Siết chặt cơ mông và cơ bụng, giữ thẳng từ đầu đến gót chân"
+    },
+    {
+      "name": "Plank nghiêng (Side Plank)",
+      "holdTime": 30,
+      "restTime": 20,
+      "tip": "Nâng hông cao, không để võng hông xuống sàn"
+    },
+    {
+      "name": "Plank cao tay duỗi thẳng",
+      "holdTime": 45,
+      "restTime": 30,
+      "tip": "Cổ tay thẳng hàng dưới vai, mắt nhìn xuống sàn"
     }
   ]
 }
-
-Lưu ý:
-- Phải tạo ít nhất 3-5 ngày tập đa dạng.
-- Mỗi ngày có từ 3 đến 5 bài tập biến thể phong phú (Plank khuỷu tay, Side Plank, Plank Superman, Plank giơ chân, Plank leo núi, Plank Up-Down...).
-- Thời gian holdTime và restTime tính bằng giây, thiết kế khoa học phù hợp kỷ lục ${userProfile.record || 45}s.
 `;
 
   const requestBody = {

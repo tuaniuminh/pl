@@ -652,6 +652,33 @@ export const getHistoryStats = () => {
   };
 };
 
+export const getWorkoutHistorySummaryForAI = () => {
+  const history = getHistory();
+  const stats = getHistoryStats();
+  const profile = getUserProfile();
+
+  const recentSessions = history.slice(0, 5).map((h, i) => {
+    const dateStr = new Date(h.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const holdTime = h.maxSingleHold || (h.completedSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)));
+    return `- Buổi ${i + 1} (${dateStr}): Bài "${h.planName || 'Plank'}", giữ tổng ${h.duration || 0}s (${Math.round((h.duration || 0) / 60)}p), kỷ lục đơn hiệp: ${holdTime}s, hoàn thành ${h.completedSets || 1} hiệp, đốt ${h.calories || 0} kcal.`;
+  });
+
+  return {
+    totalWorkouts: stats.totalWorkouts,
+    totalSeconds: stats.totalSeconds,
+    totalMinutes: stats.totalMinutes,
+    totalCalories: stats.totalCalories,
+    totalSets: stats.totalSets,
+    streak: stats.streak,
+    personalRecord: profile.record || 60,
+    goal: profile.goal || "Tăng sức bền & Giảm mỡ bụng",
+    level: profile.level || "Trung bình",
+    recentSessionsText: recentSessions.length > 0 
+      ? recentSessions.join('\n') 
+      : "Chưa có lịch sử buổi tập trước đó (đây là học viên mới bắt đầu)."
+  };
+};
+
 export const exportCSV = () => {
   const history = getHistory();
   if (history.length === 0) {

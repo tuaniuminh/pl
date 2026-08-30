@@ -33,7 +33,10 @@ import {
   Crown,
   ClipboardPaste,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Trophy,
+  Activity,
+  TrendingUp
 } from 'lucide-react';
 import { generatePlankPlan } from '../services/geminiService';
 import { 
@@ -44,7 +47,9 @@ import {
   getAllPlans, 
   savePlan, 
   deletePlan, 
-  duplicatePlan 
+  duplicatePlan,
+  getHistoryStats,
+  getWorkoutHistorySummaryForAI
 } from '../services/storageService';
 
 const EXERCISE_SUGGESTIONS = [
@@ -71,41 +76,59 @@ export const formatDurationNice = (totalSeconds) => {
   return `${secs}s`;
 };
 
-// Hàm tạo Prompt chuyên sâu tối ưu cho tài khoản Gemini Pro / Advanced
-export const buildGeminiProPrompt = (userProfile) => {
+// Hàm tạo Prompt chuyên sâu tối ưu cho tài khoản Gemini Pro kèm toàn bộ Lịch Sử Tập Luyện
+export const buildGeminiProPrompt = (userProfile, historySummary) => {
   const record = userProfile.record || 60;
   const goal = userProfile.goal || "Tăng sức bền & Giảm mỡ bụng";
   const level = userProfile.level || "Trung bình";
+  const totalWorkouts = historySummary?.totalWorkouts || 0;
+  const totalMinutes = historySummary?.totalMinutes || 0;
+  const streak = historySummary?.streak || 0;
+  const recentSessionsText = historySummary?.recentSessionsText || "Chưa có lịch sử buổi tập trước đó.";
 
-  return `Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp cao thế giới. Dựa trên thể trạng của tôi:
-- Kỷ lục giữ Plank hiện tại: ${record} giây
-- Cấp độ thể lực: ${level}
+  return `Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp cao quốc tế.
+Dưới đây là BÁO CÁO TOÀN DIỆN VỀ LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
+
+📊 THỐNG KÊ LỊCH SỬ TẬP LUYỆN:
+- Kỷ lục giữ Plank cao nhất: ${record} giây
+- Tổng số buổi tập đã hoàn thành: ${totalWorkouts} buổi
+- Tổng thời gian Plank tích lũy: ${totalMinutes} phút
+- Chuỗi ngày tập liên tục: ${streak} ngày
+- Trình độ thể lực: ${level}
 - Mục tiêu chính: ${goal}
 
-Hãy thiết kế cho tôi 1 bài tập Plank cá nhân hóa xuất sắc nhất gồm từ 4 đến 6 hiệp bài tập khoa học.
+🗓️ CHI TIẾT CÁC BUỔI TẬP GẦN NHẤT:
+${recentSessionsText}
 
-YÊU CẦU BẮT BUỘC:
-Chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đúng cấu trúc mẫu sau (KHÔNG kèm lời chào hay văn bản giải thích ngoài JSON) để tôi dán trực tiếp vào ứng dụng PlankAI:
+NHIỆM VỤ CỦA HUẤN LUYỆN VIÊN:
+1. Đánh giá phong độ (evaluation): Phân tích chi tiết sự tiến bộ, điểm mạnh và điểm cần cải thiện dựa trên lịch sử tập luyện thực tế trên.
+2. Lời khuyên chiến lược (advice): Đưa ra chỉ dẫn cụ thể về kỹ thuật siết cơ Core, nhịp thở và cách phân bổ sức bền để vượt ngưỡng kỷ lục.
+3. Thiết kế chuỗi bài tập mới (exercises): Tạo từ 4 đến 6 hiệp bài tập Plank khoa học nhất phù hợp với phong độ hiện tại.
+
+YÊU CẦU ĐẦU RA BẮT BUỘC:
+Chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đúng cấu trúc mẫu sau (KHÔNG kèm lời chào hay giải thích ngoài JSON) để ứng dụng PlankAI tự động nạp dữ liệu:
 {
-  "planName": "Tên bài tập hấp dẫn (vd: 5 Phút Kiến Tạo Cơ Core Vững Chắc)",
+  "evaluation": "Nhận xét phân tích phong độ dựa trên lịch sử tập thực tế...",
+  "advice": "Lời khuyên chiến lược cải thiện và phát triển cơ Core...",
+  "planName": "Tên giáo án cá nhân hóa mới (vd: 7 Ngày Kiến Tạo Cơ Core Vững Chắc)",
   "goal": "${goal}",
   "level": "${level}",
   "exercises": [
     {
       "name": "Plank khuỷu tay chuẩn",
-      "holdTime": 45,
+      "holdTime": 50,
       "restTime": 20,
-      "tip": "Siết chặt cơ bụng và cơ mông, giữ thẳng lưng"
+      "tip": "Siết chặt cơ mông và cơ bụng, giữ thẳng từ đầu đến gót chân"
     },
     {
       "name": "Plank nghiêng bên trái",
-      "holdTime": 30,
+      "holdTime": 35,
       "restTime": 15,
       "tip": "Nâng cao hông siết chặt cơ liên sườn"
     },
     {
       "name": "Plank nghiêng bên phải",
-      "holdTime": 30,
+      "holdTime": 35,
       "restTime": 20,
       "tip": "Giữ thẳng trục cơ thể từ đầu đến gót chân"
     },
@@ -113,7 +136,7 @@ Chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đúng cấu trú
       "name": "Plank cao tay duỗi thẳng",
       "holdTime": 45,
       "restTime": 30,
-      "tip": "Cổ tay thẳng dưới vai, mắt nhìn xuống sàn"
+      "tip": "Cổ tay thẳng hàng dưới vai, mắt nhìn xuống sàn"
     }
   ]
 }`;
@@ -135,6 +158,8 @@ export const parsePastedWorkoutText = (text) => {
           planName: parsed.planName || 'Giáo Án Gemini Pro',
           goal: parsed.goal || 'Cá nhân hóa từ Gemini Pro',
           level: parsed.level || 'Trung bình',
+          evaluation: parsed.evaluation || 'AI đã phân tích phong độ và tối ưu giáo án theo tiến độ của bạn.',
+          advice: parsed.advice || 'Tập trung siết chặt cơ bụng và hít thở đều đặn trong từng hiệp tập.',
           exercises: parsed.exercises.map(e => ({
             name: e.name || 'Plank Biến Thể',
             holdTime: Number(e.holdTime) || 45,
@@ -148,6 +173,8 @@ export const parsePastedWorkoutText = (text) => {
           planName: parsed.planName || 'Giáo Án Gemini Pro',
           goal: parsed.goal || 'Cá nhân hóa từ Gemini Pro',
           level: parsed.level || 'Trung bình',
+          evaluation: parsed.evaluation || 'AI đã phân tích phong độ và tối ưu giáo án theo tiến độ của bạn.',
+          advice: parsed.advice || 'Tập trung siết chặt cơ bụng và hít thở đều đặn trong từng hiệp tập.',
           exercises: parsed.days[0].exercises.map(e => ({
             name: e.name || 'Plank Biến Thể',
             holdTime: Number(e.holdTime) || 45,
@@ -164,9 +191,20 @@ export const parsePastedWorkoutText = (text) => {
   // 2. Bóc tách văn bản tự do theo dòng
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   let planName = 'Giáo Án Từ Gemini Pro';
+  let evaluation = '';
+  let advice = '';
   const extractedExercises = [];
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.toLowerCase().includes('đánh giá:') || line.toLowerCase().includes('nhận xét:')) {
+      evaluation = line.split(/[:\-–]/)[1]?.trim() || lines[i+1] || '';
+      continue;
+    }
+    if (line.toLowerCase().includes('lời khuyên:') || line.toLowerCase().includes('chiến lược:')) {
+      advice = line.split(/[:\-–]/)[1]?.trim() || lines[i+1] || '';
+      continue;
+    }
     if (line.toLowerCase().includes('tên bài') || line.toLowerCase().includes('giáo án:') || line.startsWith('# ')) {
       planName = line.replace(/^[#*\-:\s]+/, '').replace(/^tên bài[^\w\s]*/i, '').replace(/^giáo án[^\w\s]*/i, '').trim();
       continue;
@@ -204,6 +242,8 @@ export const parsePastedWorkoutText = (text) => {
       planName: planName || 'Giáo Án Gemini Pro',
       goal: 'Thiết kế bởi Gemini Pro',
       level: 'Trung bình',
+      evaluation: evaluation || 'Huấn luyện viên AI đã phân tích lịch sử tập luyện và thiết kế bài tập phù hợp nhất.',
+      advice: advice || 'Hãy hít thở đều đặn và duy trì nhịp tập luyện kiên trì để đạt hiệu quả tối đa.',
       exercises: extractedExercises
     };
   }
@@ -232,6 +272,8 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
   // State cho AI Coach Generator (Gemini Pro Bridge & API)
   const [aiMode, setAiMode] = useState('pro_import'); // 'pro_import' (Khuyên dùng cho gói Pro) | 'api'
   const [profile, setProfile] = useState(getUserProfile());
+  const [historySummary, setHistorySummary] = useState(getWorkoutHistorySummaryForAI());
+  const [isPromptCopied, setIsPromptCopied] = useState(false);
   const [pasteInputText, setPasteInputText] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
@@ -291,6 +333,12 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
       { name: 'Side Plank (Nghiêng) Phải', holdTime: 30, restTime: 20, tip: 'Đẩy hông cao, siết chặt cơ liên sườn' }
     ]);
     setView('builder');
+  };
+
+  const handleOpenAiView = () => {
+    setHistorySummary(getWorkoutHistorySummaryForAI());
+    setProfile(getUserProfile());
+    setView('ai');
   };
 
   const handleOpenEditBuilder = (plan) => {
@@ -420,14 +468,20 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     saveUserProfile(updated);
   };
 
-  // 4.1. Sao chép Prompt cho tài khoản Gemini Pro / Advanced
+  // 4.1. Sao chép Prompt cho tài khoản Gemini Pro / Advanced (Kèm dữ liệu lịch sử)
   const handleCopyGeminiProPrompt = () => {
     try {
-      const prompt = buildGeminiProPrompt(profile);
+      const summary = getWorkoutHistorySummaryForAI();
+      setHistorySummary(summary);
+      const prompt = buildGeminiProPrompt(profile, summary);
       navigator.clipboard.writeText(prompt).then(() => {
-        showToast("Đã sao chép Prompt cho Gemini Pro! Hãy mở Web/App Gemini dán vào và gửi.");
+        setIsPromptCopied(true);
+        showToast("✓ Đã sao chép Prompt & Báo cáo lịch sử tập luyện!");
+        setTimeout(() => setIsPromptCopied(false), 2800);
       }).catch(() => {
-        showToast("Đã sao chép Prompt vào bộ nhớ tạm!");
+        setIsPromptCopied(true);
+        showToast("✓ Đã sao chép vào bộ nhớ tạm!");
+        setTimeout(() => setIsPromptCopied(false), 2800);
       });
     } catch (e) {
       console.error(e);
@@ -495,7 +549,9 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     setAiError(null);
 
     try {
-      const generated = await generatePlankPlan(apiKey, profile);
+      const summary = getWorkoutHistorySummaryForAI();
+      setHistorySummary(summary);
+      const generated = await generatePlankPlan(apiKey, profile, summary);
       setAiGeneratedPlan(generated);
     } catch (err) {
       console.error(err);
@@ -595,10 +651,10 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
         </button>
 
         <button
-          onClick={() => setView('ai')}
+          onClick={handleOpenAiView}
           className={`flex-1 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition-all ${
             view === 'ai'
-              ? 'bg-white dark:bg-oled text-cyan-600 dark:text-cyan-neon shadow-sm'
+              ? 'bg-white dark:bg-oled text-purple-600 dark:text-purple-400 shadow-sm'
               : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
@@ -1180,11 +1236,66 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                 <span>GEMINI PRO / ADVANCED COACH</span>
               </div>
               <h2 className="text-xl font-black text-white">
-                Tư Vấn Giáo Án Cá Nhân Hóa
+                Huấn Luyện Viên AI Đánh Giá & Tư Vấn
               </h2>
               <p className="text-xs text-gray-300 mt-1">
-                Tận dụng trí tuệ tối thượng của Gemini để thiết kế chuỗi bài tập Plank tối ưu nhất cho bạn.
+                AI tự động phân tích toàn bộ lịch sử tập luyện thực tế của bạn để đưa ra nhận xét, lời khuyên và thiết kế lộ trình bài tập tối ưu nhất.
               </p>
+            </div>
+          </div>
+
+          {/* 📊 BÁO CÁO THỂ LỰC & LỊCH SỬ TẬP THỰC TẾ (AI FITNESS AUDIT) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-gray-300 flex items-center space-x-1.5">
+                <Activity size={14} className="text-cyan-500" />
+                <span>Báo Cáo Lịch Sử Thể Lực Của Bạn</span>
+              </label>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400">
+                Tự động gửi cho AI
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-center">
+                <div className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400 flex items-center justify-center space-x-1 mb-1">
+                  <Trophy size={12} className="text-amber-500" />
+                  <span>Kỷ Lục Max</span>
+                </div>
+                <div className="font-mono text-base font-black text-amber-500">
+                  {profile.record || 60}s
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-center">
+                <div className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400 flex items-center justify-center space-x-1 mb-1">
+                  <TrendingUp size={12} className="text-emerald-500" />
+                  <span>Đã Tập</span>
+                </div>
+                <div className="font-mono text-base font-black text-emerald-500">
+                  {historySummary.totalWorkouts || 0} Buổi
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-center">
+                <div className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400 flex items-center justify-center space-x-1 mb-1">
+                  <Clock size={12} className="text-cyan-500" />
+                  <span>Tích Lũy</span>
+                </div>
+                <div className="font-mono text-base font-black text-cyan-500">
+                  {historySummary.totalMinutes || 0} Phút
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-center">
+                <div className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400 flex items-center justify-center space-x-1 mb-1">
+                  <Flame size={12} className="text-red-500" />
+                  <span>Chuỗi Ngày</span>
+                </div>
+                <div className="font-mono text-base font-black text-red-500">
+                  {historySummary.streak || 0} Ngày
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1295,19 +1406,23 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     1
                   </span>
                   <h4 className="text-xs font-black text-slate-900 dark:text-white">
-                    Sao Chép Prompt Cho Gemini Pro
+                    Sao Chép Prompt Kèm Lịch Sử Tập Luyện
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-600 dark:text-gray-300">
-                  Ứng dụng tự động chuẩn hóa mục tiêu <strong className="text-purple-600 dark:text-purple-400">"{profile.goal}"</strong> và kỷ lục <strong className="text-purple-600 dark:text-purple-400">{profile.record || 60}s</strong> thành câu lệnh Huấn luyện viên thể hình thế giới.
+                  Ứng dụng tự động đóng gói toàn bộ thống kê <strong>{historySummary.totalWorkouts || 0} buổi tập</strong>, kỷ lục <strong>{profile.record || 60}s</strong> và mục tiêu của bạn để Gemini Pro đánh giá chuyên sâu.
                 </p>
                 <div className="flex space-x-2">
                   <button
                     onClick={handleCopyGeminiProPrompt}
-                    className="flex-1 py-3 px-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-purple-600/20 active:scale-95 transition-all"
+                    className={`flex-1 py-3 px-3 rounded-2xl font-extrabold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-all ${
+                      isPromptCopied 
+                        ? 'bg-emerald-600 text-white shadow-emerald-600/30' 
+                        : 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20'
+                    }`}
                   >
-                    <Copy size={14} />
-                    <span>Sao Chép Prompt</span>
+                    {isPromptCopied ? <Check size={15} className="animate-bounce" /> : <Copy size={14} />}
+                    <span>{isPromptCopied ? "✓ Đã Sao Chép Prompt & Lịch Sử!" : "1. Sao Chép Prompt & Lịch Sử"}</span>
                   </button>
                   <button
                     onClick={handleOpenGeminiApp}
@@ -1315,7 +1430,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     title="Mở ứng dụng Gemini trên điện thoại"
                   >
                     <ExternalLink size={13} />
-                    <span>Mở App Gemini</span>
+                    <span>2. Mở App Gemini</span>
                   </button>
                 </div>
               </div>
@@ -1327,11 +1442,11 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     2
                   </span>
                   <h4 className="text-xs font-black text-slate-900 dark:text-white">
-                    Dán Kết Quả Từ Gemini Pro Vào App
+                    Dán Đánh Giá & Giáo Án Từ Gemini Pro
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-600 dark:text-gray-300">
-                  Sau khi Gemini Pro trả lời, bạn bấm sao chép và dán vào đây để App tự động phân tích thành giáo án:
+                  Sau khi Gemini Pro trả lời, bạn sao chép và dán vào đây để App tự động hiển thị nhận xét và nạp bài tập:
                 </p>
 
                 <textarea
@@ -1355,7 +1470,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     className="flex-1 py-2.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-400 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md shadow-cyan-500/20 active:scale-95 transition-all"
                   >
                     <Sparkles size={14} />
-                    <span>Nhập Giáo Án</span>
+                    <span>3. Nhập & Xem Đánh Giá AI</span>
                   </button>
                 </div>
               </div>
@@ -1375,7 +1490,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                 ) : (
                   <Sparkles size={16} />
                 )}
-                <span>{aiLoading ? "Gemini AI Đang Phân Tích & Thiết Kế..." : "Tạo Giáo Án Trực Tiếp Bằng API Key"}</span>
+                <span>{aiLoading ? "AI Đang Phân Tích Lịch Sử & Thiết Kế..." : "Phân Tích & Tạo Giáo Án Qua API Key"}</span>
               </button>
             </div>
           )}
@@ -1387,19 +1502,48 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                 <div>
                   <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-300/40 flex items-center space-x-1 w-fit">
                     <Crown size={11} className="text-amber-500" />
-                    <span>GIÁO ÁN TỪ GEMINI PRO</span>
+                    <span>ĐÁNH GIÁ & GIÁO ÁN TỪ GEMINI AI</span>
                   </span>
                   <h3 className="text-base font-black text-slate-900 dark:text-white mt-1.5">
                     {aiGeneratedPlan.planName}
                   </h3>
                   <p className="text-xs text-slate-600 dark:text-gray-300 mt-0.5">
-                    {aiGeneratedPlan.goal}
+                    Mục tiêu: {aiGeneratedPlan.goal} • Trình độ: {aiGeneratedPlan.level}
                   </p>
                 </div>
               </div>
 
+              {/* 🌟 AI Evaluation Section */}
+              {aiGeneratedPlan.evaluation && (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-400/30 space-y-1">
+                  <div className="text-[11px] font-black text-purple-700 dark:text-purple-300 flex items-center space-x-1">
+                    <Activity size={13} />
+                    <span>Đánh Giá Phong Độ Từ Huấn Luyện Viên AI:</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-gray-200 leading-relaxed italic">
+                    "{aiGeneratedPlan.evaluation}"
+                  </p>
+                </div>
+              )}
+
+              {/* 💡 AI Strategic Advice Section */}
+              {aiGeneratedPlan.advice && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 space-y-1">
+                  <div className="text-[11px] font-black text-amber-700 dark:text-amber-300 flex items-center space-x-1">
+                    <Sparkles size={13} />
+                    <span>Lời Khuyên Chiến Lược & Kỹ Thuật:</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-gray-200 leading-relaxed">
+                    {aiGeneratedPlan.advice}
+                  </p>
+                </div>
+              )}
+
               {/* Exercises in AI Plan */}
-              <div className="space-y-2">
+              <div className="space-y-2 pt-1">
+                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                  Chuỗi Hiệp Bài Tập Được Cá Nhân Hóa ({((aiGeneratedPlan.exercises || aiGeneratedPlan.days?.[0]?.exercises) || []).length} Hiệp)
+                </div>
                 {(aiGeneratedPlan.exercises || aiGeneratedPlan.days?.[0]?.exercises || []).map((ex, idx) => (
                   <div key={idx} className="p-3 rounded-2xl bg-white/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 flex items-center justify-between text-xs">
                     <div>
