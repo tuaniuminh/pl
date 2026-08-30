@@ -5,23 +5,18 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout mã nguồn
-        uses: actions/checkout@v4
+        uses: actions/checkout@main
 
-      - name: Thiết lập Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+      - name: Kiểm tra môi trường Node.js
+        run: |
+          node -v
+          npm -v
 
       - name: Cài đặt Dependencies
         run: npm install
@@ -80,7 +75,7 @@ jobs:
           echo "IPA_NAME=$IPA_NAME" >> $GITHUB_ENV
 
       - name: Tải file IPA lên GitHub Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@main
         with:
           name: PlankAI-v${{ env.APP_VERSION }}
           path: ${{ env.IPA_NAME }}
