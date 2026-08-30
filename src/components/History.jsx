@@ -60,9 +60,11 @@ const History = ({ onStartWorkout }) => {
   };
 
   const handleDeleteSession = (id) => {
-    deleteHistoryItem(id);
-    refreshData();
-    setSelectedDayDetail(null);
+    if (window.confirm("Bạn có chắc chắn muốn xóa buổi tập này khỏi lịch sử không?")) {
+      deleteHistoryItem(id);
+      refreshData();
+      setSelectedDayDetail(null);
+    }
   };
 
   const handleClear = () => {
@@ -273,32 +275,32 @@ const History = ({ onStartWorkout }) => {
 
           {/* NHẬT KÝ HOẠT ĐỘNG THÁNG (MONTHLY ACTIVITY TRACKER) */}
           <div className="glass-panel p-5 rounded-3xl space-y-4 border border-amber-300/40 dark:border-amber-500/20">
-            {/* Header: Title + Navigation */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm">
+            {/* Header: Title + Navigation (1 dòng ngang gọn gàng, không bị rớt dòng) */}
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center space-x-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm shrink-0">
                   <Flame size={16} />
                 </div>
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                <div className="min-w-0">
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                     Nhật Ký Hoạt Động Tháng
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-gray-400">
-                    {activeDaysThisMonth} ngày hoạt động • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-gray-400 whitespace-nowrap truncate">
+                    {activeDaysThisMonth} ngày tập • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
                   </p>
                 </div>
               </div>
 
               {/* Month Switcher Controls */}
-              <div className="flex items-center space-x-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
+              <div className="flex items-center space-x-0.5 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
                 <button
                   onClick={handlePrevMonth}
                   className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
                   title="Tháng trước"
                 >
-                  <ChevronLeft size={14} />
+                  <ChevronLeft size={13} />
                 </button>
-                <span className="text-[11px] font-extrabold px-1.5 text-slate-900 dark:text-white min-w-[76px] text-center">
+                <span className="text-[11px] font-extrabold px-1 text-slate-900 dark:text-white min-w-[62px] text-center">
                   Th{viewMonth + 1}/{viewYear}
                 </span>
                 <button
@@ -306,7 +308,7 @@ const History = ({ onStartWorkout }) => {
                   className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
                   title="Tháng sau"
                 >
-                  <ChevronRight size={14} />
+                  <ChevronRight size={13} />
                 </button>
                 {!isCurrentMonthView && (
                   <button

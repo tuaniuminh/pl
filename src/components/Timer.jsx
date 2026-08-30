@@ -614,7 +614,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
               className="flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-400 hover:to-teal-500 text-slate-950 shadow-lg shadow-cyan-500/30"
             >
               <Trophy size={26} />
-              <span>DỪNG & LƯU KỶ LỤC ({timeLeft}s)</span>
+              <span>KẾT THÚC</span>
             </button>
           ) : (
             <button
