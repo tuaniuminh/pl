@@ -472,6 +472,19 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     }
   };
 
+  // 4.4. Mở trực tiếp ứng dụng Gemini trên điện thoại
+  const handleOpenGeminiApp = () => {
+    try {
+      // Thử mở ứng dụng Gemini trên iOS trước, nếu máy chưa cài app sẽ mở qua trình duyệt
+      window.location.href = 'google-gemini://';
+      setTimeout(() => {
+        window.location.href = 'https://gemini.google.com';
+      }, 500);
+    } catch (e) {
+      window.location.href = 'https://gemini.google.com';
+    }
+  };
+
   const handleGenerateAIPlan = async () => {
     if (!apiKey || !apiKey.trim()) {
       setAiError("Bạn chưa cài đặt Google Gemini API Key. Vui lòng vào Cài đặt để nhập Key miễn phí.");
@@ -1296,15 +1309,14 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     <Copy size={14} />
                     <span>Sao Chép Prompt</span>
                   </button>
-                  <a
-                    href="https://gemini.google.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="py-3 px-3 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-gray-300 font-bold text-xs flex items-center justify-center space-x-1 active:scale-95 transition-all"
+                  <button
+                    onClick={handleOpenGeminiApp}
+                    className="py-3 px-3.5 rounded-2xl bg-purple-100 hover:bg-purple-200 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-extrabold text-xs flex items-center justify-center space-x-1.5 active:scale-95 transition-all border border-purple-300/40 dark:border-purple-500/30"
+                    title="Mở ứng dụng Gemini trên điện thoại"
                   >
-                    <span>Mở Gemini</span>
-                    <ExternalLink size={12} />
-                  </a>
+                    <ExternalLink size={13} />
+                    <span>Mở App Gemini</span>
+                  </button>
                 </div>
               </div>
 
