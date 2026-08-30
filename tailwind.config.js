@@ -17,26 +17,27 @@ export default {
         darkCardHover: '#14171d',
         darkBorder: '#1e232d',
         neon: {
-          DEFAULT: '#39ff14',
-          glow: 'rgba(57, 255, 20, 0.35)',
-          dark: '#2cc90e'
+          DEFAULT: '#10b981', // Xanh Ngọc Lục Bảo dịu mắt
+          mint: '#34d399',    // Xanh Bạc Hà tươi mát
+          glow: 'rgba(16, 185, 129, 0.22)',
+          dark: '#059669'
         },
         cyan: {
-          neon: '#00f2fe',
-          glow: 'rgba(0, 242, 254, 0.35)',
-          deep: '#4facfe'
+          neon: '#06b6d4',
+          glow: 'rgba(6, 182, 212, 0.22)',
+          deep: '#0891b2'
         },
         amber: {
-          neon: '#ffb300',
-          glow: 'rgba(255, 179, 0, 0.35)'
+          neon: '#f59e0b',
+          glow: 'rgba(245, 158, 11, 0.22)'
         }
       },
       boxShadow: {
-        'neon': '0 0 25px rgba(57, 255, 20, 0.45)',
-        'neon-lg': '0 0 45px rgba(57, 255, 20, 0.65)',
-        'cyan-glow': '0 0 25px rgba(0, 242, 254, 0.45)',
-        'amber-glow': '0 0 25px rgba(255, 179, 0, 0.45)',
-        'card-glow': '0 8px 32px 0 rgba(0, 0, 0, 0.5)'
+        'neon': '0 4px 16px rgba(16, 185, 129, 0.25)',
+        'neon-lg': '0 6px 24px rgba(16, 185, 129, 0.35)',
+        'cyan-glow': '0 4px 16px rgba(6, 182, 212, 0.25)',
+        'amber-glow': '0 4px 16px rgba(245, 158, 11, 0.25)',
+        'card-glow': '0 8px 32px 0 rgba(0, 0, 0, 0.4)'
       },
       animation: {
         'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -45,7 +46,7 @@ export default {
       keyframes: {
         pulseGlow: {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%': { opacity: '.85', transform: 'scale(1.02)' },
+          '50%': { opacity: '.88', transform: 'scale(1.01)' },
         }
       }
     },

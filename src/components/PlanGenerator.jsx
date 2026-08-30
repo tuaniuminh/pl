@@ -301,7 +301,7 @@ const PlanGenerator = ({ apiKey, onSelectPlan, onOpenSettings }) => {
             className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center space-x-2 transition-all active:scale-95 shadow-md dark:shadow-neon-lg ${
               loading
                 ? 'bg-slate-300 text-slate-500 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed'
-                : 'bg-emerald-500 hover:bg-emerald-600 text-white dark:bg-neon dark:hover:bg-neon-dark dark:text-black'
+                : 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20'
             }`}
           >
             {loading ? (
@@ -397,7 +397,7 @@ const PlanGenerator = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     {/* Nút Bắt Đầu Tập Ngay */}
                     <button
                       onClick={() => handleStartWorkout(generatedPlan, selectedDay - 1)}
-                      className="w-full mt-3 py-3.5 rounded-2xl bg-emerald-500 text-white dark:bg-neon dark:text-black font-extrabold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-md dark:shadow-neon active:scale-95 transition-all"
+                      className="w-full mt-3 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
                     >
                       <Play size={16} fill="currentColor" />
                       <span>Nạp Vào Đồng Hồ & Tập Ngày Này Ngay</span>

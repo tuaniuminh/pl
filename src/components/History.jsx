@@ -215,7 +215,7 @@ const History = ({ onStartWorkout }) => {
                 </p>
                 <button
                   onClick={onStartWorkout}
-                  className="mt-2 px-5 py-2.5 rounded-2xl bg-emerald-500 text-white dark:bg-neon dark:text-black font-bold text-xs uppercase tracking-wider shadow-sm dark:shadow-neon active:scale-95 transition-all"
+                  className="mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
                 >
                   Bắt Đầu Tập Ngay
                 </button>

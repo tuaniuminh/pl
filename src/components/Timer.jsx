@@ -580,12 +580,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           ) : (
             <button
               onClick={handleToggleTimer}
-              className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-md dark:shadow-neon-lg ${
+              className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-md ${
                 isActive
-                  ? 'bg-amber-500 hover:bg-amber-400 text-white dark:text-black dark:shadow-amber-glow'
+                  ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'
                   : isMaxChallenge
                   ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/20'
-                  : 'bg-emerald-500 hover:bg-emerald-600 text-white dark:bg-neon dark:hover:bg-neon-dark dark:text-black dark:shadow-neon'
+                  : 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
               }`}
             >
               {isActive ? (
@@ -734,7 +734,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
                 setNewlyUnlockedBadges([]);
                 handleResetTimer();
               }}
-              className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white dark:bg-neon dark:text-black font-extrabold text-sm uppercase tracking-wider shadow-md dark:shadow-neon active:scale-95 transition-all"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-sm uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
             >
               Tiếp Tục Luyện Tập
             </button>

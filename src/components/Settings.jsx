@@ -150,7 +150,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
         {testResult?.success && (
           <button
             onClick={onNavigateToAI}
-            className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white dark:bg-neon dark:text-black font-extrabold text-xs uppercase tracking-wider shadow-sm dark:shadow-neon flex items-center justify-center space-x-2 active:scale-95 transition-all"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 active:scale-95 transition-all"
           >
             <Sparkles size={14} />
             <span>Mở Ngay Trợ Lý AI Để Tạo Giáo Án</span>
@@ -176,10 +176,10 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           <button
             onClick={() => onUpdateSettings({ ...settings, theme: settings.theme === 'dark' ? 'light' : 'dark' })}
             className={`w-12 h-7 rounded-full p-1 transition-all ${
-              settings.theme === 'dark' ? 'bg-neon shadow-neon' : 'bg-slate-300'
+              settings.theme === 'dark' ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300'
             }`}
           >
-            <div className={`bg-white dark:bg-black w-5 h-5 rounded-full shadow-md transform transition-transform ${
+            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
               settings.theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
             }`} />
           </button>
@@ -189,7 +189,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
         <div className="flex items-center justify-between py-1 border-t border-slate-200 dark:border-white/5 pt-3">
           <div>
             <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Volume2 size={14} className="text-emerald-600 dark:text-neon" />
+              <Volume2 size={14} className="text-emerald-600 dark:text-emerald-400" />
               <span>Trợ Lý Giọng Nói Tiếng Việt</span>
             </div>
             <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">Đọc khẩu lệnh Bắt đầu, Nghỉ và đếm 5s cuối</div>
@@ -197,10 +197,10 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           <button
             onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled })}
             className={`w-12 h-7 rounded-full p-1 transition-all ${
-              settings.voiceEnabled ? 'bg-emerald-500 dark:bg-neon dark:shadow-neon' : 'bg-slate-300'
+              settings.voiceEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300'
             }`}
           >
-            <div className={`bg-white dark:bg-black w-5 h-5 rounded-full shadow-md transform transition-transform ${
+            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
               settings.voiceEnabled ? 'translate-x-5' : 'translate-x-0'
             }`} />
           </button>
