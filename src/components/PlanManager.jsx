@@ -70,6 +70,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     { name: 'Plank Khuỷu Tay Tiêu Chuẩn', holdTime: 45, restTime: 20, tip: 'Siết chặt cơ bụng và cơ mông' }
   ]);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [duplicateConfirmPlan, setDuplicateConfirmPlan] = useState(null);
 
   // State cho AI Coach Generator
   const [profile, setProfile] = useState(getUserProfile());
@@ -84,7 +85,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
-    }, 2600);
+    }, 2800);
   };
 
   useEffect(() => {
@@ -441,7 +442,13 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
             {filteredPlans.map((plan) => {
               const isActive = activePlan?.id === plan.id || activePlan?.planName === plan.planName;
               const exercises = plan.exercises || plan.days?.[0]?.exercises || [];
-              const totalHoldTime = exercises.reduce((acc, curr) => acc + (curr.holdTime || 0), 0);
+              const totalHoldSec = exercises.reduce((acc, curr) => acc + (Number(curr.holdTime) || 0), 0);
+              const totalHoldMin = (totalHoldSec / 60).toFixed(1).replace('.0', '');
+              const totalRestSec = exercises.slice(0, -1).reduce((acc, curr) => acc + (Number(curr.restTime) || 20), 0);
+              const totalWorkoutSec = totalHoldSec + totalRestSec;
+              const totalWorkoutMin = Math.floor(totalWorkoutSec / 60);
+              const totalWorkoutSecRemain = totalWorkoutSec % 60;
+              const totalWorkoutFormatted = `${totalWorkoutMin > 0 ? `${totalWorkoutMin}p ` : ''}${totalWorkoutSecRemain > 0 ? `${totalWorkoutSecRemain}s` : (totalWorkoutMin > 0 ? '' : '0s')}`;
               const isExpanded = expandedPlanId === plan.id;
 
               return (
@@ -490,11 +497,32 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                     {/* Level / Total Sets badge */}
                     <div className="text-right shrink-0">
                       <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                        {exercises.length} Hiệp ({totalHoldTime}s)
+                        {exercises.length} Hiệp
                       </div>
                       <div className="text-[10px] text-slate-400 dark:text-gray-500">
                         {plan.level || 'Cơ bản'}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Comprehensive Time Metrics Badges (Thời gian Plank & Tổng bài tập) */}
+                  <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200/80 dark:border-white/5">
+                    <div className="p-2 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/40 dark:border-emerald-500/20 text-center">
+                      <span className="text-[10px] uppercase font-extrabold text-slate-500 dark:text-gray-400 block">
+                        🔥 Thời Gian Plank
+                      </span>
+                      <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
+                        {totalHoldMin} phút ({totalHoldSec}s)
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 text-center">
+                      <span className="text-[10px] uppercase font-extrabold text-slate-500 dark:text-gray-400 block">
+                        ⏱️ Tổng Bài Tập
+                      </span>
+                      <span className="font-mono text-xs font-black text-cyan-600 dark:text-cyan-neon">
+                        {totalWorkoutFormatted} ({totalWorkoutSec}s)
+                      </span>
                     </div>
                   </div>
 
@@ -564,7 +592,7 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
 
                     {/* Duplicate (Nhân bản tạo bản sao) Button */}
                     <button
-                      onClick={() => handleDuplicatePlan(plan.id)}
+                      onClick={() => setDuplicateConfirmPlan(plan)}
                       className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-gray-300 active:scale-95 transition-all"
                       title="Nhân bản (Tạo 1 bản sao trong thư viện)"
                     >
@@ -627,11 +655,45 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
             </div>
           )}
 
-          {/* Toast Notification Banner */}
+          {/* Duplicate Confirmation Modal */}
+          {duplicateConfirmPlan && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+              <div className="glass-panel p-6 rounded-3xl max-w-xs w-full text-center space-y-4 shadow-2xl">
+                <div className="w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon mx-auto flex items-center justify-center">
+                  <CopyPlus size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white">Nhân Bản Giáo Án?</h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+                    Hệ thống sẽ tạo 1 bản sao của giáo án <strong className="text-slate-800 dark:text-gray-200">"{duplicateConfirmPlan.planName}"</strong> vào thư viện để bạn tùy chỉnh.
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setDuplicateConfirmPlan(null)}
+                    className="flex-1 py-2.5 rounded-2xl bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleDuplicatePlan(duplicateConfirmPlan.id);
+                      setDuplicateConfirmPlan(null);
+                    }}
+                    className="flex-1 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs active:scale-95 shadow-md shadow-cyan-600/20"
+                  >
+                    Nhân Bản Ngay
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Toast Notification Banner - Placed with ample clearance below header */}
           {toastMessage && (
-            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-extrabold shadow-2xl backdrop-blur-md border border-white/20 dark:border-black/10 flex items-center space-x-2 animate-fade-in max-w-xs text-center pointer-events-none">
-              <CheckCircle2 size={16} className="text-emerald-400 dark:text-emerald-600 shrink-0" />
-              <span className="line-clamp-2">{toastMessage}</span>
+            <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-black shadow-2xl backdrop-blur-xl border border-white/20 dark:border-black/10 flex items-center space-x-2.5 animate-fade-in w-[90%] max-w-sm text-center pointer-events-none">
+              <CheckCircle2 size={18} className="text-emerald-400 dark:text-emerald-600 shrink-0" />
+              <span className="leading-snug">{toastMessage}</span>
             </div>
           )}
         </div>

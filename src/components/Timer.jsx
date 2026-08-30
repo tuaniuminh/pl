@@ -426,28 +426,6 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         onTouchEnd={handleTouchEnd}
         className="w-full glass-panel p-3.5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0 overflow-hidden"
       >
-        {/* Nút lật hiệp trái/phải khi chưa bắt đầu */}
-        {exercises.length > 1 && !isActive && !isMaxChallenge && (
-          <>
-            <button
-              onClick={() => handleSelectSet(currentSetIndex - 1)}
-              disabled={currentSetIndex === 0}
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-0 active:scale-90 transition-all z-20"
-              title="Hiệp trước"
-            >
-              <ChevronLeft size={22} />
-            </button>
-            <button
-              onClick={() => handleSelectSet(currentSetIndex + 1)}
-              disabled={currentSetIndex === exercises.length - 1}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white disabled:opacity-0 active:scale-90 transition-all z-20"
-              title="Hiệp tiếp theo"
-            >
-              <ChevronRight size={22} />
-            </button>
-          </>
-        )}
-
         {/* Carousel Sliding Track */}
         <div 
           className="flex w-full will-change-transform"
