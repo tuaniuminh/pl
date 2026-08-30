@@ -513,24 +513,25 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           exerciseName={currentExercise.name}
         />
 
-        {/* Quick Time Adjuster (Được đặt tách biệt bên dưới, có khoảng cách rõ ràng, không đè lên đồng hồ) */}
+        {/* Quick Time Adjuster (2 Nút khung viền tròn với màu sắc nổi bật) */}
         {!isMaxChallenge && (
-          <div className="flex justify-center items-center space-x-3 mt-3.5">
+          <div className="flex justify-center items-center space-x-6 mt-3">
+            {/* Nút -15s: Viền tròn Vàng Hổ Phách */}
             <button
               onClick={() => handleAdjustTime(-15)}
-              className="px-3.5 py-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full text-xs font-bold text-slate-700 dark:text-gray-300 flex items-center space-x-1 active:scale-90 transition-all shadow-sm"
+              className="w-11 h-11 rounded-full bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-400/70 dark:border-amber-500/50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
               title="Giảm 15 giây"
             >
-              <Minus size={12} />
-              <span>15s</span>
+              <span>-15s</span>
             </button>
+
+            {/* Nút +15s: Viền tròn Xanh Lục Bảo */}
             <button
               onClick={() => handleAdjustTime(15)}
-              className="px-3.5 py-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full text-xs font-bold text-slate-700 dark:text-gray-300 flex items-center space-x-1 active:scale-90 transition-all shadow-sm"
+              className="w-11 h-11 rounded-full bg-emerald-500/10 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
               title="Tăng 15 giây"
             >
-              <Plus size={12} />
-              <span>15s</span>
+              <span>+15s</span>
             </button>
           </div>
         )}
