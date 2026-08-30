@@ -62,8 +62,8 @@ jobs:
           mkdir -p Payload
           cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           
-          # Đặt tên file IPA có số phiên bản chuẩn
-          IPA_NAME="PlankAI-v${{ env.APP_VERSION }}-TrollStore.ipa"
+          # Đặt tên file IPA chuẩn (Ví dụ: PlankAI-v1.4.1.ipa)
+          IPA_NAME="PlankAI-v${{ env.APP_VERSION }}.ipa"
           zip -r "$IPA_NAME" Payload
           rm -rf Payload
           
@@ -72,6 +72,6 @@ jobs:
       - name: Tải file IPA lên GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PlankAI-v${{ env.APP_VERSION }}-TrollStore
+          name: PlankAI-v${{ env.APP_VERSION }}
           path: ${{ env.IPA_NAME }}
           retention-days: 14
