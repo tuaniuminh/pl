@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   History as HistoryIcon, 
-  Download, 
   Trash2, 
   Flame, 
   Clock, 
@@ -18,7 +17,6 @@ import {
 import { 
   getHistory, 
   getHistoryStats, 
-  exportCSV, 
   clearHistory, 
   BADGES_LIST, 
   getUnlockedBadges, 
@@ -32,7 +30,6 @@ const History = ({ onStartWorkout }) => {
   const [stats, setStats] = useState(getHistoryStats());
   const [unlockedBadges, setUnlockedBadges] = useState(getUnlockedBadges());
   const [userProfile, setUserProfile] = useState(getUserProfile());
-  const [copied, setCopied] = useState(false);
   const [synced, setSynced] = useState(false);
 
   const refreshData = () => {
@@ -51,14 +48,6 @@ const History = ({ onStartWorkout }) => {
     refreshData();
     setSynced(true);
     setTimeout(() => setSynced(false), 2000);
-  };
-
-  const handleExport = () => {
-    const success = exportCSV();
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
   };
 
   const handleClear = () => {
@@ -93,16 +82,6 @@ const History = ({ onStartWorkout }) => {
           >
             <RotateCcw size={15} className={synced ? "animate-spin text-emerald-500" : ""} />
           </button>
-
-          {activeTab === 'history' && historyList.length > 0 && (
-            <button
-              onClick={handleExport}
-              className="px-3.5 py-2 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-neon/15 dark:border-neon/30 dark:text-neon font-bold text-xs flex items-center space-x-1.5 shadow-sm active:scale-95 transition-all hover:bg-emerald-500 hover:text-white dark:hover:bg-neon dark:hover:text-black"
-            >
-              <Download size={14} />
-              <span>{copied ? "Đã Xuất File!" : "Xuất CSV"}</span>
-            </button>
-          )}
         </div>
       </div>
 

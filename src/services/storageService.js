@@ -679,43 +679,6 @@ export const getWorkoutHistorySummaryForAI = () => {
   };
 };
 
-export const exportCSV = () => {
-  const history = getHistory();
-  if (history.length === 0) {
-    alert("Chưa có dữ liệu tập luyện nào để xuất.");
-    return false;
-  }
-
-  const headers = ["STT", "Thời Gian", "Giáo Án", "Thời Lượng Giữ (Giây)", "Số Hiệp", "Calo Ước Tính (kcal)"];
-  const rows = history.map((h, index) => [
-    index + 1,
-    `"${new Date(h.date).toLocaleString('vi-VN')}"`,
-    `"${(h.planName || "Plank Tự Do").replace(/"/g, '""')}"`,
-    h.duration || 0,
-    `"${h.completedSets || 1}/${h.totalSets || 1}"`,
-    h.calories || 0
-  ]);
-
-  const csvContent = [
-    headers.join(","),
-    ...rows.map(e => e.join(","))
-  ].join("\r\n");
-
-  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  const filename = `PlankAI_LichSuTap_${new Date().toISOString().slice(0, 10)}.csv`;
-  
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  return true;
-};
-
 // ==================== 5. BỘ CÂN CHỈNH & TỰ ĐỘNG ĐỒNG BỘ DỮ LIỆU CŨ ====================
 export const recalibrateAndSyncAllData = () => {
   try {

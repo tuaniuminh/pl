@@ -7,15 +7,10 @@ import {
   AlertCircle, 
   Sparkles, 
   Volume2, 
-  Moon, 
-  ShieldCheck, 
-  ExternalLink, 
-  Github,
   Play
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
-import packageJson from '../../package.json';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
@@ -70,7 +65,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           Cài Đặt Hệ Thống
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-          Tùy chọn phong cách Huấn Luyện Viên AI, API Key và giao diện hiển thị
+          Tùy chọn phong cách Huấn Luyện Viên AI và Google Gemini API Key
         </p>
       </div>
 
@@ -148,51 +143,45 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
         </div>
 
         {/* Master Voice Assistant Toggle */}
-        <div className="flex items-center justify-between py-1 border-t border-slate-200 dark:border-white/5 pt-3">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5">
           <div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white">
-              Bật / Tắt Trợ Lý Giọng Nói
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">Phát khẩu lệnh Bắt đầu, Nghỉ và đếm ngược</div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">Bật Trợ Lý Giọng Nói Đếm Giờ</div>
+            <div className="text-[11px] text-slate-500 dark:text-gray-400">Đếm nhịp 3, 2, 1 và hướng dẫn tư thế</div>
           </div>
           <button
-            onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled })}
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
             className={`w-12 h-7 rounded-full p-1 transition-all ${
-              settings.voiceEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300'
+              settings.soundEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
             }`}
           >
             <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
-              settings.voiceEnabled ? 'translate-x-5' : 'translate-x-0'
+              settings.soundEnabled ? 'translate-x-5' : 'translate-x-0'
             }`} />
           </button>
         </div>
       </div>
 
-      {/* SECTION 2: GOOGLE GEMINI API KEY */}
-      <div className="glass-panel p-5 rounded-3xl border border-emerald-300/40 dark:border-emerald-500/20 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Key size={16} />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Google Gemini API Key</h3>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">Kết nối trực tiếp Gemini 3.7 Flash</p>
-            </div>
+      {/* SECTION 2: CẤU HÌNH GOOGLE GEMINI API KEY */}
+      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-neon flex items-center justify-center">
+            <Key size={16} />
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-500/30">
-            {settings.apiKey ? "Đã Thiết Lập" : "Chưa Nhập"}
-          </span>
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Google Gemini API Key</h3>
+            <p className="text-[11px] text-slate-500 dark:text-gray-400">Kết nối trực tiếp trí tuệ nhân tạo Gemini</p>
+          </div>
         </div>
 
-        {/* Input Field */}
+        {/* Input Key */}
         <div className="relative">
           <input
             type={showKey ? "text" : "password"}
             value={settings.apiKey || ''}
             onChange={(e) => handleKeyChange(e.target.value)}
-            placeholder="Dán API Key (AIzaSy...)"
-            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3.5 pr-12 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition-all font-mono"
+            placeholder="Dán mã API Key (AIzaSy...)"
+            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3.5 pr-11 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-400"
           />
           <button
             type="button"
@@ -258,77 +247,6 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
             <span>Mở Ngay Tab Giáo Án Để Thiết Kế Bài Tập</span>
           </button>
         )}
-      </div>
-
-      {/* SECTION 3: GIAO DIỆN HIỂN THỊ */}
-      <div className="glass-panel p-5 rounded-3xl space-y-4">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-gray-300">
-          Giao Diện Hiển Thị
-        </h3>
-
-        {/* Dark Mode Toggle */}
-        <div className="flex items-center justify-between py-1">
-          <div>
-            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Moon size={14} className="text-cyan-600 dark:text-cyan-neon" />
-              <span>Chế Độ OLED Dark Mode</span>
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">Nền đen sâu #000000 tiết kiệm pin iPhone</div>
-          </div>
-          <button
-            onClick={() => onUpdateSettings({ ...settings, theme: settings.theme === 'dark' ? 'light' : 'dark' })}
-            className={`w-12 h-7 rounded-full p-1 transition-all ${
-              settings.theme === 'dark' ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300'
-            }`}
-          >
-            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
-              settings.theme === 'dark' ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
-        </div>
-      </div>
-
-      {/* SECTION 4: THÔNG TIN HỆ THỐNG */}
-      <div className="glass-panel p-5 rounded-3xl space-y-3 text-xs">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-gray-300">
-          Thông Tin Phiên Bản
-        </h3>
-
-        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
-          <span className="text-slate-500 dark:text-gray-400">Phiên Bản Ứng Dụng</span>
-          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">v{packageJson.version}</span>
-        </div>
-
-        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
-          <span className="text-slate-500 dark:text-gray-400">Mô Hình Trí Tuệ Nhân Tạo</span>
-          <span className="text-slate-900 dark:text-white font-medium">Google Gemini 3.7 Flash</span>
-        </div>
-
-        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
-          <span className="text-slate-500 dark:text-gray-400">Hỗ Trợ Màn Hình</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">120Hz ProMotion Ready</span>
-        </div>
-
-        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
-          <span className="text-slate-500 dark:text-gray-400">Cài Đặt TrollStore</span>
-          <span className="text-cyan-600 dark:text-cyan-neon font-semibold flex items-center space-x-1">
-            <ShieldCheck size={13} />
-            <span>Bypass Dev Mode (get-task-allow=false)</span>
-          </span>
-        </div>
-
-        <div className="flex justify-between py-1">
-          <span className="text-slate-500 dark:text-gray-400">Kho Lưu Trữ GitHub</span>
-          <a 
-            href="https://github.com/tuaniuminh/pl" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white flex items-center space-x-1"
-          >
-            <Github size={12} />
-            <span>tuaniuminh/pl</span>
-          </a>
-        </div>
       </div>
     </div>
   );
