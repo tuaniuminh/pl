@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   ACTIVE_PLAN: 'plank_active_plan_v2',
   SAVED_PLANS: 'plank_saved_plans_v2',
   USER_PROFILE: 'plank_user_profile_v2',
-  UNLOCKED_BADGES: 'plank_unlocked_badges_v2'
+  UNLOCKED_BADGES: 'plank_unlocked_badges_v2',
+  DELETED_DEFAULT_PLANS: 'plank_deleted_default_plans_v2'
 };
 
 // ==================== 1. SCREEN WAKE LOCK API ====================
@@ -445,16 +446,37 @@ export const getSavedPlans = () => {
   }
 };
 
+export const getDeletedDefaultPlanIds = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.DELETED_DEFAULT_PLANS);
+    return saved ? JSON.parse(saved) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const restoreDefaultPlans = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.DELETED_DEFAULT_PLANS);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const getAllPlans = () => {
   const customPlans = getSavedPlans();
-  return [...customPlans, ...DEFAULT_PLANS];
+  const deletedIds = getDeletedDefaultPlanIds();
+  const visibleDefaults = DEFAULT_PLANS.filter(p => !deletedIds.includes(p.id));
+  return [...customPlans, ...visibleDefaults];
 };
 
 export const getActivePlan = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAN);
     if (saved) return JSON.parse(saved);
-    return DEFAULT_PLANS[0];
+    const all = getAllPlans();
+    return all[0] || DEFAULT_PLANS[0];
   } catch (e) {
     return DEFAULT_PLANS[0];
   }
@@ -538,16 +560,28 @@ export const savePlan = (plan) => {
 
 export const deletePlan = (planId) => {
   try {
-    let plans = getSavedPlans();
-    plans = plans.filter(p => p.id !== planId);
-    localStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(plans));
+    let customPlans = getSavedPlans();
+    const isCustom = customPlans.some(p => p.id === planId);
 
-    const active = getActivePlan();
-    if (active && active.id === planId) {
-      saveActivePlan(DEFAULT_PLANS[0]);
+    if (isCustom) {
+      customPlans = customPlans.filter(p => p.id !== planId);
+      localStorage.setItem(STORAGE_KEYS.SAVED_PLANS, JSON.stringify(customPlans));
+    } else {
+      // Nếu là mẫu chuẩn (preset) -> thêm ID vào danh sách mẫu chuẩn đã xóa
+      const deletedIds = getDeletedDefaultPlanIds();
+      if (!deletedIds.includes(planId)) {
+        deletedIds.push(planId);
+        localStorage.setItem(STORAGE_KEYS.DELETED_DEFAULT_PLANS, JSON.stringify(deletedIds));
+      }
     }
 
-    return plans;
+    const remaining = getAllPlans();
+    const active = getActivePlan();
+    if (active && active.id === planId) {
+      saveActivePlan(remaining[0] || DEFAULT_PLANS[0]);
+    }
+
+    return remaining;
   } catch (e) {
     console.error("Delete plan error:", e);
     return [];

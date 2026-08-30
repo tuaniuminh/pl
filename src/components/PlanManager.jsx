@@ -48,6 +48,8 @@ import {
   savePlan, 
   deletePlan, 
   duplicatePlan,
+  restoreDefaultPlans,
+  getDeletedDefaultPlanIds,
   getHistoryStats,
   getWorkoutHistorySummaryForAI
 } from '../services/storageService';
@@ -881,21 +883,36 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                       <Edit3 size={15} />
                     </button>
 
-                    {/* Delete Button (Chỉ cho phép xóa giáo án tự tạo / AI, không xóa preset mặc định) */}
-                    {!plan.isDefault && (
-                      <button
-                        onClick={() => setDeleteConfirmId(plan.id)}
-                        className="p-2.5 rounded-2xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 active:scale-95 transition-all"
-                        title="Xóa giáo án"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
+                    {/* Delete Button (Cho phép xóa tất cả giáo án, kể cả mẫu chuẩn) */}
+                    <button
+                      onClick={() => setDeleteConfirmId(plan.id)}
+                      className="p-2.5 rounded-2xl bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 active:scale-95 transition-all"
+                      title="Xóa giáo án"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Nút khôi phục mẫu chuẩn nếu có mẫu mặc định đã bị xóa */}
+          {getDeletedDefaultPlanIds().length > 0 && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => {
+                  restoreDefaultPlans();
+                  refreshPlans();
+                  showToast("Đã khôi phục lại toàn bộ các mẫu giáo án chuẩn!");
+                }}
+                className="text-[11px] font-bold text-slate-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-neon underline decoration-dotted flex items-center justify-center space-x-1.5 mx-auto active:scale-95 transition-all"
+              >
+                <RotateCcw size={12} />
+                <span>Khôi phục lại các mẫu giáo án chuẩn gốc</span>
+              </button>
+            </div>
+          )}
 
           {/* Delete Confirmation Modal */}
           {deleteConfirmId && (
