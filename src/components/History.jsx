@@ -4,7 +4,7 @@ import {
   Trash2, 
   Flame, 
   Clock, 
-  Calendar as CalendarIcon, 
+  Calendar, 
   Trophy, 
   Zap, 
   CheckCircle2,
