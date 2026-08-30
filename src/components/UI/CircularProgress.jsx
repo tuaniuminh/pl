@@ -6,6 +6,7 @@ const CircularProgress = ({
   totalTime = 60,
   isResting = false,
   isMaxChallenge = false,
+  isActive = false,
   personalRecord = 60,
   exerciseName = "Plank Cơ Bản"
 }) => {
@@ -18,10 +19,14 @@ const CircularProgress = ({
     : circumference - (progress / 100) * circumference;
 
   let strokeGradientId = "neonGradient";
+  let glowColor = "rgba(16, 185, 129, 0.5)";
+
   if (isMaxChallenge) {
     strokeGradientId = "cosmicGradient";
+    glowColor = "rgba(168, 85, 247, 0.6)";
   } else if (isResting) {
     strokeGradientId = "cyanGradient";
+    glowColor = "rgba(6, 182, 212, 0.5)";
   }
 
   return (
@@ -34,7 +39,7 @@ const CircularProgress = ({
         }}
       />
 
-      <svg width={size} height={size} className="transform -rotate-90 drop-shadow-lg dark:drop-shadow-2xl">
+      <svg width={size} height={size} className="transform -rotate-90">
         <defs>
           {/* Gradient cho chế độ Luyện tập chuẩn */}
           <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -54,12 +59,6 @@ const CircularProgress = ({
             <stop offset="50%" stopColor="#ec4899" />
             <stop offset="100%" stopColor="#00f2fe" />
           </linearGradient>
-
-          {/* Filter tạo hiệu ứng Glow bóng bẩy */}
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
         </defs>
 
         {/* Track Background */}
@@ -73,15 +72,18 @@ const CircularProgress = ({
           cy={size / 2}
         />
 
-        {/* Dynamic Progress Stroke */}
+        {/* Dynamic Progress Stroke (Siêu mượt 60 FPS, chuyển động quét liên tục 1s linear) */}
         <circle
-          className="transition-all duration-500 ease-out"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
-          style={{ strokeDashoffset }}
+          style={{ 
+            strokeDashoffset,
+            transition: isActive ? 'stroke-dashoffset 1000ms linear' : 'stroke-dashoffset 300ms ease-out',
+            filter: `drop-shadow(0 0 6px ${glowColor})`,
+            willChange: 'stroke-dashoffset'
+          }}
           strokeLinecap="round"
           stroke={`url(#${strokeGradientId})`}
-          filter="url(#glow)"
           fill="transparent"
           r={radius}
           cx={size / 2}

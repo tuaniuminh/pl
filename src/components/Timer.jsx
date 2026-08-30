@@ -528,6 +528,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           totalTime={totalSetDuration}
           isResting={isResting}
           isMaxChallenge={isMaxChallenge}
+          isActive={isActive}
           personalRecord={userProfile.record || 60}
           exerciseName={currentExercise.name}
         />
