@@ -12,12 +12,15 @@
 
   html, body {
     @apply h-full w-full overflow-hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
     @apply bg-slate-100 text-slate-900 dark:bg-oled dark:text-white transition-colors duration-300 antialiased select-none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -35,6 +38,7 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  transform: translateZ(0); /* Kích hoạt tăng tốc phần cứng GPU 120Hz */
 }
 
 .dark .glass-panel {
@@ -43,6 +47,7 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  transform: translateZ(0); /* Kích hoạt tăng tốc phần cứng GPU 120Hz */
 }
 
 /* Ẩn hoàn toàn thanh cuộn trên toàn bộ ứng dụng */

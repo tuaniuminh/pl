@@ -29,6 +29,11 @@ jobs:
           npx cap add ios || true
           npx cap sync ios
 
+      - name: Kích hoạt hỗ trợ màn hình 120Hz ProMotion trên iPhone / iPad
+        run: |
+          echo "Bật cờ CADisableMinimumFrameDurationOnPhone để mở khóa 120Hz ProMotion"
+          /usr/libexec/PlistBuddy -c "Add :CADisableMinimumFrameDurationOnPhone bool true" ios/App/App/Info.plist || /usr/libexec/PlistBuddy -c "Set :CADisableMinimumFrameDurationOnPhone true" ios/App/App/Info.plist || true
+
       - name: Tạo Icon tự động từ Logo mới
         run: npm run generate-icons || true
 
@@ -62,7 +67,7 @@ jobs:
           mkdir -p Payload
           cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           
-          # Đặt tên file IPA chuẩn (Ví dụ: PlankAI-v1.4.1.ipa)
+          # Đặt tên file IPA chuẩn (Ví dụ: PlankAI-v1.4.4.ipa)
           IPA_NAME="PlankAI-v${{ env.APP_VERSION }}.ipa"
           zip -r "$IPA_NAME" Payload
           rm -rf Payload
