@@ -12,23 +12,54 @@ import {
   History as HistoryIcon, 
   Settings as SettingsIcon 
 } from 'lucide-react';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 function App() {
   const [activeTab, setActiveTab] = useState('timer'); // 'timer', 'plans', 'history', 'settings'
   const [settings, setSettingsState] = useState(getSettings());
   const [currentPlan, setCurrentPlan] = useState(getActivePlan());
 
-  // Kích hoạt cân chỉnh dữ liệu, phản hồi rung và Dark Mode
+  // Kích hoạt cân chỉnh dữ liệu, phản hồi rung và Dark Mode / Status Bar
   useEffect(() => {
     recalibrateAndSyncAllData();
     attachGlobalButtonHaptics();
 
     const root = document.documentElement;
-    if (settings.theme === 'dark') {
+    const isDark = settings.theme === 'dark';
+
+    if (isDark) {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
     }
+
+    // Đồng bộ màu thanh trạng thái (Status Bar) trên iPhone
+    const syncStatusBar = async () => {
+      // 1. Cập nhật thẻ meta iOS Safari / WebKit
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeColorMeta) {
+        themeColorMeta.setAttribute('content', isDark ? '#000000' : '#ffffff');
+      }
+
+      const statusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+      if (statusBarMeta) {
+        // default = chữ đen (cho nền sáng), black-translucent = chữ trắng (cho nền tối)
+        statusBarMeta.setAttribute('content', isDark ? 'black-translucent' : 'default');
+      }
+
+      // 2. Cập nhật qua Native Capacitor StatusBar API trên iOS
+      try {
+        if (StatusBar) {
+          await StatusBar.setStyle({
+            style: isDark ? Style.Dark : Style.Light
+          });
+        }
+      } catch (e) {
+        // Fallback an toàn khi chạy web
+      }
+    };
+
+    syncStatusBar();
   }, [settings.theme]);
 
   const handleUpdateSettings = (newSettings) => {
