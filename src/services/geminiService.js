@@ -4,10 +4,11 @@
  */
 
 const CANDIDATE_MODELS = [
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash'
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro'
 ];
 
 // Hàm dịch thông báo lỗi sang tiếng Việt thân thiện
