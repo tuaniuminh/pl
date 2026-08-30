@@ -12,7 +12,8 @@ import {
   Award,
   Lock,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 import { 
   getHistory, 
@@ -21,7 +22,8 @@ import {
   clearHistory, 
   BADGES_LIST, 
   getUnlockedBadges, 
-  getUserProfile 
+  getUserProfile,
+  recalibrateAndSyncAllData
 } from '../services/storageService';
 
 const History = ({ onStartWorkout }) => {
@@ -31,8 +33,10 @@ const History = ({ onStartWorkout }) => {
   const [unlockedBadges, setUnlockedBadges] = useState(getUnlockedBadges());
   const [userProfile, setUserProfile] = useState(getUserProfile());
   const [copied, setCopied] = useState(false);
+  const [synced, setSynced] = useState(false);
 
   const refreshData = () => {
+    recalibrateAndSyncAllData();
     setHistoryList(getHistory());
     setStats(getHistoryStats());
     setUnlockedBadges(getUnlockedBadges());
@@ -42,6 +46,12 @@ const History = ({ onStartWorkout }) => {
   useEffect(() => {
     refreshData();
   }, []);
+
+  const handleManualSync = () => {
+    refreshData();
+    setSynced(true);
+    setTimeout(() => setSynced(false), 2000);
+  };
 
   const handleExport = () => {
     const success = exportCSV();
@@ -75,15 +85,25 @@ const History = ({ onStartWorkout }) => {
           </p>
         </div>
 
-        {activeTab === 'history' && historyList.length > 0 && (
+        <div className="flex items-center space-x-1.5">
           <button
-            onClick={handleExport}
-            className="px-3.5 py-2 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-neon/15 dark:border-neon/30 dark:text-neon font-bold text-xs flex items-center space-x-1.5 shadow-sm active:scale-95 transition-all hover:bg-emerald-500 hover:text-white dark:hover:bg-neon dark:hover:text-black"
+            onClick={handleManualSync}
+            className="p-2 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 active:scale-95 transition-all"
+            title="Đồng bộ lại tên giáo án & danh hiệu chuẩn xác"
           >
-            <Download size={14} />
-            <span>{copied ? "Đã Xuất File!" : "Xuất CSV"}</span>
+            <RotateCcw size={15} className={synced ? "animate-spin text-emerald-500" : ""} />
           </button>
-        )}
+
+          {activeTab === 'history' && historyList.length > 0 && (
+            <button
+              onClick={handleExport}
+              className="px-3.5 py-2 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-neon/15 dark:border-neon/30 dark:text-neon font-bold text-xs flex items-center space-x-1.5 shadow-sm active:scale-95 transition-all hover:bg-emerald-500 hover:text-white dark:hover:bg-neon dark:hover:text-black"
+            >
+              <Download size={14} />
+              <span>{copied ? "Đã Xuất File!" : "Xuất CSV"}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Sub-Tab Navigation Bar (Nhật Ký Tập vs Tủ Huy Hiệu) */}

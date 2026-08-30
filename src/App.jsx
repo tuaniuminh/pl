@@ -4,7 +4,7 @@ import Timer from './components/Timer';
 import PlanManager from './components/PlanManager';
 import History from './components/History';
 import Settings from './components/Settings';
-import { getSettings, saveSettings, getActivePlan, saveActivePlan } from './services/storageService';
+import { getSettings, saveSettings, getActivePlan, saveActivePlan, recalibrateAndSyncAllData } from './services/storageService';
 import { attachGlobalButtonHaptics } from './utils/hapticsUtils';
 import { 
   Timer as TimerIcon, 
@@ -18,8 +18,9 @@ function App() {
   const [settings, setSettingsState] = useState(getSettings());
   const [currentPlan, setCurrentPlan] = useState(getActivePlan());
 
-  // Kích hoạt phản hồi rung toàn cục cho tất cả nút bấm và Dark Mode
+  // Kích hoạt cân chỉnh dữ liệu, phản hồi rung và Dark Mode
   useEffect(() => {
+    recalibrateAndSyncAllData();
     attachGlobalButtonHaptics();
 
     const root = document.documentElement;

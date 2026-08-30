@@ -543,3 +543,95 @@ export const exportCSV = () => {
   URL.revokeObjectURL(url);
   return true;
 };
+
+// ==================== 5. BỘ CÂN CHỈNH & TỰ ĐỘNG ĐỒNG BỘ DỮ LIỆU CŨ ====================
+export const recalibrateAndSyncAllData = () => {
+  try {
+    const history = getHistory();
+    const customPlans = getSavedPlans();
+    let historyChanged = false;
+
+    // 1. Cân chỉnh và sửa các bản ghi lịch sử cũ (sửa 660s -> 600s, gán maxSingleHold, cập nhật tên giáo án)
+    const updatedHistory = history.map(h => {
+      let item = { ...h };
+
+      // Sửa lỗi nhân đôi thời gian ở bản cũ (ví dụ 10 hiệp x 60s thành 660s)
+      if (item.duration === 660 && (item.completedSets === 10 || item.totalSets === 10)) {
+        item.duration = 600;
+        item.maxSingleHold = 60;
+        historyChanged = true;
+      }
+
+      // Đảm bảo có maxSingleHold chính xác
+      if (item.maxSingleHold === undefined || item.maxSingleHold === null) {
+        if (item.completedSets > 1) {
+          item.maxSingleHold = Math.round(item.duration / item.completedSets);
+        } else {
+          item.maxSingleHold = item.duration || 0;
+        }
+        historyChanged = true;
+      }
+
+      // Đồng bộ tên giáo án nếu người dùng đã đổi tên giáo án
+      if (customPlans.length > 0) {
+        let matchedPlan = customPlans.find(p => p.id === item.planId);
+        if (!matchedPlan) {
+          // Nếu item này mang tên mặc định cũ như 'Giáo Án Tự Thiết Kế'
+          if (item.planName?.includes('Giáo Án Tự Thiết Kế') || item.planName === 'Plank Tự Do') {
+            matchedPlan = customPlans[0];
+          }
+        }
+
+        if (matchedPlan && item.planName !== matchedPlan.planName) {
+          item.planId = matchedPlan.id;
+          item.planName = matchedPlan.planName;
+          historyChanged = true;
+        }
+      }
+
+      return item;
+    });
+
+    if (historyChanged) {
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updatedHistory));
+    }
+
+    // 2. Cân chỉnh lại Kỷ Lục Cá Nhân (Personal Record)
+    const validHistory = getHistory();
+    let trueMaxContinuous = 60;
+    if (validHistory.length > 0) {
+      trueMaxContinuous = validHistory.reduce((max, h) => {
+        const single = h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round(h.duration / (h.completedSets || 1))) || 0;
+        return Math.max(max, single);
+      }, 60);
+    }
+
+    const userProfile = getUserProfile();
+    if (userProfile.record > trueMaxContinuous || !userProfile.record) {
+      userProfile.record = trueMaxContinuous;
+      saveUserProfile(userProfile);
+    }
+
+    // 3. Quét và Cân Chỉnh Lại Toàn Bộ Danh Hiệu / Huy Hiệu Hợp Lệ
+    const stats = getHistoryStats();
+    const legitimateBadgeIds = [];
+
+    BADGES_LIST.forEach(badge => {
+      if (badge.check(stats, validHistory)) {
+        legitimateBadgeIds.push(badge.id);
+      }
+    });
+
+    // Ghi đè lại chính xác danh sách huy hiệu thực sự đạt được
+    saveUnlockedBadges(legitimateBadgeIds);
+
+    return {
+      history: validHistory,
+      badges: legitimateBadgeIds,
+      userProfile
+    };
+  } catch (err) {
+    console.error("Recalibration error:", err);
+    return null;
+  }
+};
