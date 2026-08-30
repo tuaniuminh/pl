@@ -15,12 +15,15 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
-  Info
+  Info,
+  Edit2,
+  Check
 } from 'lucide-react';
 import { 
   getHistory, 
   getHistoryStats, 
   clearHistory, 
+  deleteHistoryItem,
   BADGES_LIST, 
   getUnlockedBadges, 
   getUserProfile,
@@ -34,6 +37,7 @@ const History = ({ onStartWorkout }) => {
   const [unlockedBadges, setUnlockedBadges] = useState(getUnlockedBadges());
   const [userProfile, setUserProfile] = useState(getUserProfile());
   const [synced, setSynced] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [currentViewDate, setCurrentViewDate] = useState(new Date());
   const [selectedDayDetail, setSelectedDayDetail] = useState(null);
 
@@ -55,11 +59,18 @@ const History = ({ onStartWorkout }) => {
     setTimeout(() => setSynced(false), 2000);
   };
 
+  const handleDeleteSession = (id) => {
+    deleteHistoryItem(id);
+    refreshData();
+    setSelectedDayDetail(null);
+  };
+
   const handleClear = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử luyện tập không?")) {
       clearHistory();
       refreshData();
       setSelectedDayDetail(null);
+      setIsEditing(false);
     }
   };
 
@@ -260,7 +271,7 @@ const History = ({ onStartWorkout }) => {
             </div>
           </div>
 
-          {/* LỊCH VẾT LỬA CHUỖI TẬP (STREAK HEATMAP CALENDAR) */}
+          {/* NHẬT KÝ HOẠT ĐỘNG THÁNG (MONTHLY ACTIVITY TRACKER) */}
           <div className="glass-panel p-5 rounded-3xl space-y-4 border border-amber-300/40 dark:border-amber-500/20">
             {/* Header: Title + Navigation */}
             <div className="flex items-center justify-between">
@@ -270,10 +281,10 @@ const History = ({ onStartWorkout }) => {
                 </div>
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                    Lịch Vết Lửa Chuỗi Tập
+                    Nhật Ký Hoạt Động Tháng
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-gray-400">
-                    {activeDaysThisMonth} ngày rực lửa • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
+                    {activeDaysThisMonth} ngày hoạt động • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
                   </p>
                 </div>
               </div>
@@ -410,7 +421,7 @@ const History = ({ onStartWorkout }) => {
                 <span>Hôm nay</span>
               </span>
               <div className="flex items-center space-x-1.5">
-                <span>Cường độ:</span>
+                <span>Mức độ hoạt động:</span>
                 <span className="w-2.5 h-2.5 rounded-md bg-slate-200 dark:bg-white/10 inline-block" title="0s" />
                 <span className="w-2.5 h-2.5 rounded-md bg-amber-200 dark:bg-amber-950 inline-block" title="< 1p" />
                 <span className="w-2.5 h-2.5 rounded-md bg-amber-400 inline-block" title="1-3p" />
@@ -426,13 +437,29 @@ const History = ({ onStartWorkout }) => {
                 Chi Tiết Các Buổi Tập ({historyList.length})
               </h3>
               {historyList.length > 0 && (
-                <button
-                  onClick={handleClear}
-                  className="text-[11px] text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center space-x-1"
-                >
-                  <Trash2 size={12} />
-                  <span>Xóa tất cả</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className={`text-[11px] font-bold px-3 py-1 rounded-xl transition-all active:scale-95 flex items-center space-x-1 shadow-sm ${
+                      isEditing 
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/20 font-extrabold' 
+                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {isEditing ? <Check size={13} /> : <Edit2 size={13} />}
+                    <span>{isEditing ? "Xong" : "Sửa"}</span>
+                  </button>
+
+                  {isEditing && (
+                    <button
+                      onClick={handleClear}
+                      className="text-[11px] text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center space-x-1 px-2 py-1 rounded-lg bg-red-50 dark:bg-red-950/40"
+                    >
+                      <Trash2 size={12} />
+                      <span>Xóa hết</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -460,9 +487,19 @@ const History = ({ onStartWorkout }) => {
                     className="glass-panel p-4 rounded-2xl flex items-center justify-between hover:border-slate-300 dark:hover:border-white/20 transition-all"
                   >
                     <div className="flex items-start space-x-3">
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-neon/10 border border-emerald-300 dark:border-neon/20 flex items-center justify-center text-emerald-600 dark:text-neon shrink-0 mt-0.5">
-                        <CheckCircle2 size={18} />
-                      </div>
+                      {isEditing ? (
+                        <button
+                          onClick={() => handleDeleteSession(item.id)}
+                          className="w-9 h-9 rounded-2xl bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-sm"
+                          title="Xóa buổi tập này"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      ) : (
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-neon/10 border border-emerald-300 dark:border-neon/20 flex items-center justify-center text-emerald-600 dark:text-neon shrink-0 mt-0.5">
+                          <CheckCircle2 size={18} />
+                        </div>
+                      )}
                       <div>
                         <div className="text-xs font-bold text-slate-900 dark:text-white">
                           {item.planName || "Plank Tự Do"}

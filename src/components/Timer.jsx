@@ -464,7 +464,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="w-full glass-panel p-3.5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0 overflow-hidden"
+        className="w-full min-h-[116px] glass-panel p-3.5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0 overflow-hidden flex flex-col justify-between"
       >
         {/* Carousel Sliding Track */}
         <div 
@@ -474,7 +474,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
             transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.25, 1, 0.5, 1)'
           }}
         >
-          {(isMaxChallenge ? [{ name: "Thách Thức Vô Cực (Max-Out)", holdTime: 0, tip: "Giữ form chuẩn, phá vỡ mọi giới hạn bản thân!" }] : exercises).map((ex, idx) => {
+          {(isMaxChallenge ? [{ name: "Plank Tự Do (Đếm Xuôi)", holdTime: 0, tip: "Giữ form chuẩn, giữ plank lâu nhất có thể để phá kỷ lục!" }] : exercises).map((ex, idx) => {
             const isCurrent = idx === currentSetIndex;
             return (
               <div 
@@ -484,10 +484,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
                 <div className="flex items-center justify-center space-x-2">
                   <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
                     isMaxChallenge 
-                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' 
+                      ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border border-cyan-300/40' 
                       : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40'
                   }`}>
-                    {isMaxChallenge ? "🌌 MAX-OUT EFFORT" : `HIỆP ${idx + 1} / ${exercises.length}`}
+                    {isMaxChallenge ? "⚡ CHẾ ĐỘ ĐẾM XUÔI" : `HIỆP ${idx + 1} / ${exercises.length}`}
                   </span>
                   {!isMaxChallenge && (
                     <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-gray-400">
@@ -497,7 +497,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
                 </div>
 
                 <h2 className="text-lg sm:text-xl font-black mt-1.5 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
-                  {isMaxChallenge ? "🌌 Thách Thức Vô Cực" : (isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name)}
+                  {isMaxChallenge ? "⚡ Plank Tự Do (Đếm Xuôi)" : (isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name)}
                 </h2>
 
                 {/* Nút bấm (i) Mở Modal Chi Tiết */}
@@ -519,44 +519,39 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         </div>
 
         {/* Multi-set progress indicator dots (iPhone pagination style) */}
-        {exercises.length > 1 && !isMaxChallenge && (
-          <div className="flex justify-center items-center space-x-1.5 mt-2.5">
-            {exercises.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSelectSet(idx)}
-                disabled={isActive}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  idx === currentSetIndex
-                    ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm'
-                    : idx < currentSetIndex
-                    ? 'w-1.5 bg-slate-400 dark:bg-gray-500'
-                    : 'w-1.5 bg-slate-200 dark:bg-white/10'
-                }`}
-                title={`Chuyển tới Hiệp ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex justify-center items-center space-x-1.5 mt-2 h-2">
+          {exercises.length > 1 && !isMaxChallenge && exercises.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleSelectSet(idx)}
+              disabled={isActive}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                idx === currentSetIndex
+                  ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm'
+                  : idx < currentSetIndex
+                  ? 'w-1.5 bg-slate-400 dark:bg-gray-500'
+                  : 'w-1.5 bg-slate-200 dark:bg-white/10'
+              }`}
+              title={`Chuyển tới Hiệp ${idx + 1}`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* 2. Main HUD Circular Timer */}
       <div className="flex flex-col items-center justify-center my-auto w-full relative">
-        {/* Nút Chuyển Đổi Chế Độ Đếm Xuôi (Max Plank) ở Góc Phải Phía Trên Đồng Hồ */}
-        <div className="w-full flex justify-end px-2 sm:px-6 mb-1">
-          <button
-            onClick={handleToggleCountMode}
-            className={`py-1.5 px-3 rounded-2xl text-[11px] font-extrabold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm border ${
-              isMaxChallenge
-                ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-purple-600/30 ring-1 ring-purple-400'
-                : 'bg-white dark:bg-white/5 text-purple-700 dark:text-purple-300 border-purple-300/60 dark:border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-950/40'
-            }`}
-            title={isMaxChallenge ? "Đang ở Chế độ Đếm Xuôi (Bấm để về Đếm Ngược)" : "Bấm để chuyển sang Chế độ Đếm Xuôi (Giữ Plank lâu nhất có thể)"}
-          >
-            <InfinityIcon size={14} className={isMaxChallenge ? "animate-pulse" : ""} />
-            <span>{isMaxChallenge ? "🌌 Đang Đếm Xuôi" : "⚡ Đếm Xuôi"}</span>
-          </button>
-        </div>
+        {/* Nút Vô Cực Chuyển Đổi Đếm Xuôi ở Góc Phải Phía Trên Đồng Hồ */}
+        <button
+          onClick={handleToggleCountMode}
+          className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-sm border absolute -top-3 right-3 sm:right-8 z-20 ${
+            isMaxChallenge
+              ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border-cyan-300 shadow-md shadow-cyan-500/30 ring-2 ring-cyan-400'
+              : 'bg-white dark:bg-white/5 text-cyan-600 dark:text-cyan-neon border-cyan-300/60 dark:border-cyan-500/30 hover:bg-cyan-50 dark:hover:bg-cyan-950/40'
+          }`}
+          title={isMaxChallenge ? "Chế độ Đếm Xuôi (Bấm để về Đếm Ngược)" : "Bấm để chuyển sang Chế độ Đếm Xuôi (Giữ lâu nhất có thể)"}
+        >
+          <InfinityIcon size={20} className={isMaxChallenge ? "animate-pulse" : ""} />
+        </button>
 
         <CircularProgress
           progress={progressPercent}
@@ -569,28 +564,35 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           exerciseName={currentExercise.name}
         />
 
-        {/* Quick Time Adjuster (2 Nút khung viền tròn với màu sắc nổi bật) */}
-        {!isMaxChallenge && (
-          <div className="flex justify-center items-center space-x-6 mt-3">
-            {/* Nút -15s: Viền tròn Vàng Hổ Phách */}
-            <button
-              onClick={() => handleAdjustTime(-15)}
-              className="w-11 h-11 rounded-full bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-400/70 dark:border-amber-500/50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
-              title="Giảm 15 giây"
-            >
-              <span>-15s</span>
-            </button>
+        {/* Quick Time Adjuster / Status Bar (Cố định chiều cao h-11 mt-3 để đồng hồ không bao giờ bị nhảy) */}
+        <div className="h-11 mt-3 flex items-center justify-center">
+          {!isMaxChallenge ? (
+            <div className="flex justify-center items-center space-x-6">
+              {/* Nút -15s: Viền tròn Vàng Hổ Phách */}
+              <button
+                onClick={() => handleAdjustTime(-15)}
+                className="w-11 h-11 rounded-full bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-400/70 dark:border-amber-500/50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
+                title="Giảm 15 giây"
+              >
+                <span>-15s</span>
+              </button>
 
-            {/* Nút +15s: Viền tròn Xanh Lục Bảo */}
-            <button
-              onClick={() => handleAdjustTime(15)}
-              className="w-11 h-11 rounded-full bg-emerald-500/10 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
-              title="Tăng 15 giây"
-            >
-              <span>+15s</span>
-            </button>
-          </div>
-        )}
+              {/* Nút +15s: Viền tròn Xanh Lục Bảo */}
+              <button
+                onClick={() => handleAdjustTime(15)}
+                className="w-11 h-11 rounded-full bg-emerald-500/10 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
+                title="Tăng 15 giây"
+              >
+                <span>+15s</span>
+              </button>
+            </div>
+          ) : (
+            <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-3.5 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
+              <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
+              <span>Gồng giữ tự do không giới hạn</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 4. Giant Tactical Control Buttons (Được nâng cao lên thoáng đãng cách xa navbar) */}
@@ -609,7 +611,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
           {isMaxChallenge && isActive ? (
             <button
               onClick={handleStopMaxChallenge}
-              className="flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-600/30"
+              className="flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-400 hover:to-teal-500 text-slate-950 shadow-lg shadow-cyan-500/30"
             >
               <Trophy size={26} />
               <span>DỪNG & LƯU KỶ LỤC ({timeLeft}s)</span>
@@ -620,8 +622,6 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
               className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-md ${
                 isActive
                   ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'
-                  : isMaxChallenge
-                  ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/20'
                   : 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
               }`}
             >
@@ -633,7 +633,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
               ) : (
                 <>
                   <Play size={28} fill="currentColor" />
-                  <span>{isMaxChallenge ? "BẮT ĐẦU THÁCH THỨC" : (timeLeft < totalSetDuration ? "TIẾP TỤC" : "BẮT ĐẦU TẬP")}</span>
+                  <span>{timeLeft < totalSetDuration && !isMaxChallenge ? "TIẾP TỤC" : (isMaxChallenge && timeLeft > 0 ? "TIẾP TỤC" : "BẮT ĐẦU TẬP")}</span>
                 </>
               )}
             </button>

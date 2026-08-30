@@ -23,7 +23,7 @@ const CircularProgress = ({
 
   if (isMaxChallenge) {
     strokeGradientId = "cosmicGradient";
-    glowColor = "rgba(168, 85, 247, 0.6)";
+    glowColor = "rgba(6, 182, 212, 0.6)";
   } else if (isResting) {
     strokeGradientId = "cyanGradient";
     glowColor = "rgba(6, 182, 212, 0.5)";
@@ -35,7 +35,7 @@ const CircularProgress = ({
       <div 
         className="absolute w-48 h-48 rounded-full blur-3xl opacity-20 dark:opacity-35 transition-all duration-700 pointer-events-none"
         style={{ 
-          backgroundColor: isMaxChallenge ? '#8b5cf6' : (isResting ? '#00f2fe' : '#10b981') 
+          backgroundColor: isMaxChallenge ? '#06b6d4' : (isResting ? '#00f2fe' : '#10b981') 
         }}
       />
 
@@ -53,11 +53,11 @@ const CircularProgress = ({
             <stop offset="100%" stopColor="#3b82f6" />
           </linearGradient>
 
-          {/* Gradient cho chế độ Thách Thức Vô Cực */}
+          {/* Gradient cho chế độ Đếm Xuôi Vô Cực */}
           <linearGradient id="cosmicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a855f7" />
-            <stop offset="50%" stopColor="#ec4899" />
-            <stop offset="100%" stopColor="#00f2fe" />
+            <stop offset="0%" stopColor="#06b6d4" />
+            <stop offset="50%" stopColor="#00f2fe" />
+            <stop offset="100%" stopColor="#10b981" />
           </linearGradient>
         </defs>
 
@@ -95,12 +95,12 @@ const CircularProgress = ({
         {/* Status Badge */}
         <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full mb-1 tracking-wider border shadow-sm ${
           isMaxChallenge
-            ? 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/80 dark:border-purple-500/40 dark:text-purple-300'
+            ? 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/80 dark:border-cyan-500/40 dark:text-cyan-neon'
             : isResting 
             ? 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/80 dark:border-cyan-500/40 dark:text-cyan-neon'
             : 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:border-emerald-500/40 dark:text-emerald-400'
         }`}>
-          {isMaxChallenge ? "🌌 KHÔNG GIỚI HẠN" : (isResting ? "❄️ HỒI SỨC" : "🔥 ĐANG GIỮ CORE")}
+          {isMaxChallenge ? "⚡ ĐẾM XUÔI" : (isResting ? "❄️ HỒI SỨC" : "🔥 ĐANG GIỮ CORE")}
         </span>
 
         {/* Main Big Digit Timer */}
@@ -111,7 +111,7 @@ const CircularProgress = ({
         {/* Secondary Info / Target */}
         <div className="text-[11px] font-medium text-slate-500 dark:text-gray-400 mt-1">
           {isMaxChallenge ? (
-            <span>Kỷ lục: <strong className="text-purple-600 dark:text-purple-400 font-bold">{personalRecord}s</strong></span>
+            <span>Kỷ lục: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{personalRecord}s</strong></span>
           ) : isResting ? (
             <span>Mục tiêu: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{totalTime}s</strong></span>
           ) : (

@@ -631,6 +631,18 @@ export const clearHistory = () => {
   }
 };
 
+export const deleteHistoryItem = (id) => {
+  try {
+    const history = getHistory();
+    const filtered = history.filter(item => item.id !== id);
+    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(filtered));
+    return true;
+  } catch (e) {
+    console.error("Delete history item error:", e);
+    return false;
+  }
+};
+
 export const getHistoryStats = () => {
   const history = getHistory();
   const totalSeconds = history.reduce((acc, curr) => acc + (curr.duration || 0), 0);
