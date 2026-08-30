@@ -7,6 +7,7 @@ import {
   triggerHapticHeavy, 
   triggerHapticSuccess, 
   triggerHapticMedium,
+  triggerHapticWarning,
   triggerHapticHeartbeat
 } from '../utils/hapticsUtils';
 import { 
@@ -304,14 +305,14 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     setIsActive(!isActive);
   };
 
+  // Trạng thái kiểm tra xem có đang trong quá trình tập luyện dở dang không
+  const isWorkoutInProgress = isActive || (isMaxChallenge && timeLeft > 0) || (!isMaxChallenge && (timeLeft < totalSetDuration || currentSetIndex > 0));
+
   const handleToggleCountMode = () => {
-    if (isActive) {
-      if (!window.confirm("Bạn đang trong buổi tập, có chắc chắn muốn chuyển đổi chế độ đếm không?")) {
-        return;
-      }
-      setIsActive(false);
-      releaseWakeLock();
-      stopAllVoice();
+    // Khi đang trong bài tập, nút bấm hoàn toàn không có tác dụng (phải bấm kết thúc/đặt lại bài tập mới được đổi)
+    if (isWorkoutInProgress) {
+      triggerHapticWarning();
+      return;
     }
 
     triggerHapticMedium();
@@ -321,7 +322,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     setCurrentSetIndex(0);
 
     if (nextMode) {
-      // Chuyển sang Đếm Xuôi (Max Hold Plank)
+      // Chuyển sang Đếm Xuôi (Plank Tự Do)
       setTimeLeft(0);
       setTotalSetDuration(0);
       setSessionTotalHoldSeconds(0);
@@ -543,14 +544,23 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
         {/* Nút Vô Cực Chuyển Đổi Đếm Xuôi ở Góc Phải Phía Trên Đồng Hồ */}
         <button
           onClick={handleToggleCountMode}
-          className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 shadow-sm border absolute -top-3 right-3 sm:right-8 z-20 ${
-            isMaxChallenge
-              ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border-cyan-300 shadow-md shadow-cyan-500/30 ring-2 ring-cyan-400'
-              : 'bg-white dark:bg-white/5 text-cyan-600 dark:text-cyan-neon border-cyan-300/60 dark:border-cyan-500/30 hover:bg-cyan-50 dark:hover:bg-cyan-950/40'
+          disabled={isWorkoutInProgress}
+          className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all shadow-sm border absolute -top-3 right-3 sm:right-8 z-20 ${
+            isWorkoutInProgress 
+              ? 'opacity-30 cursor-not-allowed border-slate-300 dark:border-white/10 text-slate-400 dark:text-gray-600 bg-slate-100 dark:bg-white/5' 
+              : isMaxChallenge
+              ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border-cyan-300 shadow-md shadow-cyan-500/30 ring-2 ring-cyan-400 active:scale-90'
+              : 'bg-white dark:bg-white/5 text-cyan-600 dark:text-cyan-neon border-cyan-300/60 dark:border-cyan-500/30 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 active:scale-90'
           }`}
-          title={isMaxChallenge ? "Chế độ Đếm Xuôi (Bấm để về Đếm Ngược)" : "Bấm để chuyển sang Chế độ Đếm Xuôi (Giữ lâu nhất có thể)"}
+          title={
+            isWorkoutInProgress
+              ? "Hãy bấm kết thúc hoặc đặt lại bài tập trước khi đổi chế độ đếm"
+              : isMaxChallenge
+              ? "Chế độ Đếm Xuôi (Bấm để về Đếm Ngược)"
+              : "Bấm để chuyển sang Chế độ Đếm Xuôi (Giữ lâu nhất có thể)"
+          }
         >
-          <InfinityIcon size={20} className={isMaxChallenge ? "animate-pulse" : ""} />
+          <InfinityIcon size={20} className={isMaxChallenge && !isWorkoutInProgress ? "animate-pulse" : ""} />
         </button>
 
         <CircularProgress
