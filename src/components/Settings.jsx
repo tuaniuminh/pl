@@ -161,6 +161,28 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
             }`} />
           </button>
         </div>
+
+        {/* Heartbeat FX Sound Toggle */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5">
+          <div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+              <span>❤️ Âm Thanh Nhịp Tim Gồng Cơ</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">15s Cuối</span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">Tiếng tim đập dồn dập và rung kích thích bứt phá giới hạn</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, heartbeatEnabled: settings.heartbeatEnabled !== false ? false : true })}
+            className={`w-12 h-7 rounded-full p-1 transition-all ${
+              settings.heartbeatEnabled !== false ? 'bg-red-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
+            }`}
+          >
+            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
+              settings.heartbeatEnabled !== false ? 'translate-x-5' : 'translate-x-0'
+            }`} />
+          </button>
+        </div>
       </div>
 
       {/* SECTION 2: CẤU HÌNH GOOGLE GEMINI API KEY */}

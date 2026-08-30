@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CircularProgress from './UI/CircularProgress';
 import { unlockSpeechAPI, playBeep } from '../utils/speechUtils';
-import { playVoiceClip, stopAllVoice } from '../utils/audioPack';
+import { playVoiceClip, stopAllVoice, playHeartbeatSound } from '../utils/audioPack';
 import { 
   triggerHapticCount, 
   triggerHapticHeavy, 
   triggerHapticSuccess, 
-  triggerHapticMedium 
+  triggerHapticMedium,
+  triggerHapticHeartbeat
 } from '../utils/hapticsUtils';
 import { 
   saveHistory, 
@@ -176,7 +177,13 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
                 setSessionTotalHoldSeconds(s => s + 1);
               }
 
-              // Rung phản hồi đếm ngược 5 giây cuối
+              // 1. Âm thanh & Rung nhịp tim đập kép dồn dập ở 15 giây cuối hiệp (Focus Heartbeat Rhythm)
+              if (!isResting && prev <= 16 && prev >= 7) {
+                playHeartbeatSound({ enabled: voiceEnabled });
+                triggerHapticHeartbeat();
+              }
+
+              // 2. Rung phản hồi đếm ngược 5 giây cuối
               if (prev <= 6 && prev >= 2) {
                 triggerHapticCount();
               }

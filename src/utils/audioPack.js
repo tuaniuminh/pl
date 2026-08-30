@@ -199,3 +199,98 @@ export const playVoiceClip = (clipKey, fallbackText = '', options = {}) => {
     }
   }
 };
+
+let audioCtx = null;
+const getAudioContext = () => {
+  if (typeof window === 'undefined') return null;
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  return audioCtx;
+};
+
+/**
+ * Phát âm thanh tiếng Beep ngắn chuẩn nhịp đếm
+ */
+export const playBeep = (freq = 600, duration = 120, options = {}) => {
+  try {
+    const settings = getSettings();
+    if (options.enabled === false || (options.enabled === undefined && settings.soundEnabled === false)) return;
+
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+    const volume = options.volume !== undefined ? options.volume : 0.4;
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration / 1000);
+  } catch (e) {
+    console.warn('Beep error:', e);
+  }
+};
+
+/**
+ * Phát âm thanh nhịp tim đập kép (Double Thump: Lub-Dub Heartbeat FX)
+ * Thump 1: Tần số ~70Hz decay 38Hz (LUB)
+ * Thump 2: Tần số ~58Hz decay 32Hz (DUB, sau 120ms)
+ */
+export const playHeartbeatSound = (options = {}) => {
+  try {
+    const settings = getSettings();
+    if (options.enabled === false || (options.enabled === undefined && (settings.heartbeatEnabled === false || settings.soundEnabled === false))) return;
+
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const volume = options.volume !== undefined ? options.volume : 0.85;
+
+    const createThump = (time, startFreq, endFreq, gainVal, dur) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(140, time);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(startFreq, time);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, time + dur);
+
+      gain.gain.setValueAtTime(0.001, time);
+      gain.gain.linearRampToValueAtTime(gainVal * volume, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(time);
+      osc.stop(time + dur);
+    };
+
+    // Nhịp 1: LUB
+    createThump(now, 75, 40, 0.9, 0.15);
+    // Nhịp 2: DUB (sau 120ms)
+    createThump(now + 0.12, 60, 32, 0.75, 0.13);
+  } catch (e) {
+    console.warn('Heartbeat audio error:', e);
+  }
+};

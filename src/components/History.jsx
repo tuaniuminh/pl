@@ -4,7 +4,7 @@ import {
   Trash2, 
   Flame, 
   Clock, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Trophy, 
   Zap, 
   CheckCircle2,
@@ -12,7 +12,10 @@ import {
   Lock,
   Sparkles,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { 
   getHistory, 
@@ -31,6 +34,8 @@ const History = ({ onStartWorkout }) => {
   const [unlockedBadges, setUnlockedBadges] = useState(getUnlockedBadges());
   const [userProfile, setUserProfile] = useState(getUserProfile());
   const [synced, setSynced] = useState(false);
+  const [currentViewDate, setCurrentViewDate] = useState(new Date());
+  const [selectedDayDetail, setSelectedDayDetail] = useState(null);
 
   const refreshData = () => {
     recalibrateAndSyncAllData();
@@ -54,12 +59,81 @@ const History = ({ onStartWorkout }) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử luyện tập không?")) {
       clearHistory();
       refreshData();
+      setSelectedDayDetail(null);
     }
   };
 
   const unlockedCount = unlockedBadges.length;
   const totalBadgesCount = BADGES_LIST.length;
   const badgeProgress = Math.round((unlockedCount / totalBadgesCount) * 100);
+
+  // ==================== TÍNH TOÁN LỊCH VẾT LỬA (STREAK HEATMAP) ====================
+  const viewYear = currentViewDate.getFullYear();
+  const viewMonth = currentViewDate.getMonth(); // 0-11
+  const today = new Date();
+  const isCurrentMonthView = today.getFullYear() === viewYear && today.getMonth() === viewMonth;
+
+  // Gom nhóm lịch sử theo ngày YYYY-MM-DD
+  const workoutsMap = {};
+  historyList.forEach((item) => {
+    if (!item.date) return;
+    const d = new Date(item.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (!workoutsMap[key]) {
+      workoutsMap[key] = { count: 0, totalDuration: 0, totalCalories: 0, sessions: [] };
+    }
+    workoutsMap[key].count += 1;
+    workoutsMap[key].totalDuration += (item.duration || 0);
+    workoutsMap[key].totalCalories += (item.calories || 0);
+    workoutsMap[key].sessions.push(item);
+  });
+
+  // Tính số ngày và offset cho tháng đang xem
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const startDayOfWeek = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // T2 là 0, CN là 6
+
+  // Thống kê riêng trong tháng đang xem
+  let activeDaysThisMonth = 0;
+  let totalDurationThisMonth = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (workoutsMap[key] && workoutsMap[key].count > 0) {
+      activeDaysThisMonth += 1;
+      totalDurationThisMonth += workoutsMap[key].totalDuration;
+    }
+  }
+
+  const handlePrevMonth = () => {
+    setCurrentViewDate(new Date(viewYear, viewMonth - 1, 1));
+    setSelectedDayDetail(null);
+  };
+
+  const handleNextMonth = () => {
+    setCurrentViewDate(new Date(viewYear, viewMonth + 1, 1));
+    setSelectedDayDetail(null);
+  };
+
+  const handleGoToday = () => {
+    setCurrentViewDate(new Date());
+    setSelectedDayDetail(null);
+  };
+
+  const handleSelectDay = (dayNum, dayData) => {
+    if (!dayData || dayData.count === 0) {
+      setSelectedDayDetail({
+        dateStr: `${String(dayNum).padStart(2, '0')}/${String(viewMonth + 1).padStart(2, '0')}/${viewYear}`,
+        count: 0,
+        totalDuration: 0,
+        totalCalories: 0,
+        sessions: []
+      });
+    } else {
+      setSelectedDayDetail({
+        dateStr: `${String(dayNum).padStart(2, '0')}/${String(viewMonth + 1).padStart(2, '0')}/${viewYear}`,
+        ...dayData
+      });
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-6 pb-28 max-w-lg mx-auto">
@@ -182,6 +256,165 @@ const History = ({ onStartWorkout }) => {
               </div>
               <div className="text-[10px] text-slate-400 dark:text-gray-500 mt-1">
                 Chuỗi kiên trì
+              </div>
+            </div>
+          </div>
+
+          {/* LỊCH VẾT LỬA CHUỖI TẬP (STREAK HEATMAP CALENDAR) */}
+          <div className="glass-panel p-5 rounded-3xl space-y-4 border border-amber-300/40 dark:border-amber-500/20">
+            {/* Header: Title + Navigation */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm">
+                  <Flame size={16} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Lịch Vết Lửa Chuỗi Tập
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400">
+                    {activeDaysThisMonth} ngày rực lửa • {Math.round(totalDurationThisMonth / 60)} phút giữ Core
+                  </p>
+                </div>
+              </div>
+
+              {/* Month Switcher Controls */}
+              <div className="flex items-center space-x-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
+                  title="Tháng trước"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="text-[11px] font-extrabold px-1.5 text-slate-900 dark:text-white min-w-[76px] text-center">
+                  Th{viewMonth + 1}/{viewYear}
+                </span>
+                <button
+                  onClick={handleNextMonth}
+                  className="p-1 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 transition-all active:scale-95"
+                  title="Tháng sau"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                {!isCurrentMonthView && (
+                  <button
+                    onClick={handleGoToday}
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-lg bg-amber-500 text-white active:scale-95 transition-all"
+                  >
+                    Nay
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Days of Week Header */}
+            <div className="grid grid-cols-7 gap-1.5 text-center">
+              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((d, i) => (
+                <div key={d} className={`text-[10px] font-bold ${i >= 5 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-gray-500'}`}>
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Days Matrix */}
+            <div className="grid grid-cols-7 gap-1.5">
+              {/* Offset slots */}
+              {Array.from({ length: startDayOfWeek }).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square rounded-xl bg-transparent" />
+              ))}
+
+              {/* Day Cells */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const dateKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                const dayData = workoutsMap[dateKey];
+                const hasWorkouts = dayData && dayData.count > 0;
+                const dur = dayData ? dayData.totalDuration : 0;
+                const isToday = isCurrentMonthView && today.getDate() === dayNum;
+                const isSelected = selectedDayDetail?.dateStr === `${String(dayNum).padStart(2, '0')}/${String(viewMonth + 1).padStart(2, '0')}/${viewYear}`;
+
+                // Tính toán màu ngọn lửa theo cường độ
+                let heatClass = 'bg-slate-100/80 dark:bg-white/5 text-slate-500 dark:text-gray-400 border-slate-200/60 dark:border-white/5 hover:border-slate-300';
+                if (hasWorkouts) {
+                  if (dur >= 180) {
+                    // Cấp 3 (>= 3 phút): Ngọn lửa rực sáng
+                    heatClass = 'bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 text-white font-black shadow-md shadow-orange-500/30 border-amber-300';
+                  } else if (dur >= 60) {
+                    // Cấp 2 (1 - 3 phút): Lửa vàng hổ phách
+                    heatClass = 'bg-amber-400/30 dark:bg-amber-500/30 border-amber-500/60 text-amber-900 dark:text-amber-200 font-bold';
+                  } else {
+                    // Cấp 1 (< 1 phút): Lửa nhẹ
+                    heatClass = 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300';
+                  }
+                }
+
+                return (
+                  <button
+                    key={dateKey}
+                    type="button"
+                    onClick={() => handleSelectDay(dayNum, dayData)}
+                    className={`aspect-square rounded-2xl border flex flex-col items-center justify-center relative transition-all active:scale-90 ${heatClass} ${
+                      isToday ? 'ring-2 ring-emerald-500 dark:ring-neon font-black' : ''
+                    } ${isSelected ? 'ring-2 ring-amber-500 scale-105 shadow-md' : ''}`}
+                  >
+                    <span className="text-[11px] leading-none">{dayNum}</span>
+                    {hasWorkouts && (
+                      <span className="text-[8px] leading-none mt-0.5">
+                        {dur >= 180 ? '🔥' : '•'}
+                      </span>
+                    )}
+                    {isToday && !hasWorkouts && (
+                      <span className="w-1 h-1 rounded-full bg-emerald-500 dark:bg-neon absolute bottom-1" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected Day Detail Popover / Summary Bar */}
+            {selectedDayDetail && (
+              <div className="p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-300/60 dark:border-amber-500/30 flex items-center justify-between animate-fade-in text-xs">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base">{selectedDayDetail.count > 0 ? '🔥' : '💤'}</span>
+                  <div>
+                    <div className="font-extrabold text-slate-900 dark:text-white">
+                      Ngày {selectedDayDetail.dateStr}
+                    </div>
+                    <div className="text-[11px] text-slate-600 dark:text-gray-300">
+                      {selectedDayDetail.count > 0 ? (
+                        <>
+                          <strong>{selectedDayDetail.count}</strong> buổi tập • Giữ <strong>{Math.floor(selectedDayDetail.totalDuration / 60)}p {selectedDayDetail.totalDuration % 60}s</strong> • ~{selectedDayDetail.totalCalories} kcal
+                        </>
+                      ) : (
+                        "Ngày nghỉ ngơi hồi phục cơ Core"
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {selectedDayDetail.count === 0 && (
+                  <button
+                    onClick={onStartWorkout}
+                    className="px-2.5 py-1 rounded-xl bg-amber-500 text-white font-bold text-[10px] active:scale-95"
+                  >
+                    Tập Bù
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Legend */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-white/5 text-[10px] text-slate-500 dark:text-gray-400">
+              <span className="flex items-center space-x-1">
+                <span className="w-2.5 h-2.5 rounded-md bg-emerald-500 dark:bg-neon inline-block" />
+                <span>Hôm nay</span>
+              </span>
+              <div className="flex items-center space-x-1.5">
+                <span>Cường độ:</span>
+                <span className="w-2.5 h-2.5 rounded-md bg-slate-200 dark:bg-white/10 inline-block" title="0s" />
+                <span className="w-2.5 h-2.5 rounded-md bg-amber-200 dark:bg-amber-950 inline-block" title="< 1p" />
+                <span className="w-2.5 h-2.5 rounded-md bg-amber-400 inline-block" title="1-3p" />
+                <span className="w-2.5 h-2.5 rounded-md bg-gradient-to-tr from-amber-500 to-red-500 inline-block" title="> 3p" />
               </div>
             </div>
           </div>

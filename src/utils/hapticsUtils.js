@@ -98,6 +98,24 @@ export const triggerHapticCount = async () => {
   }
 };
 
+// 7. Rung nhịp tim đập kép (Lub-Dub Heartbeat)
+export const triggerHapticHeartbeat = async () => {
+  try {
+    if (CapacitorHaptics) {
+      await CapacitorHaptics.impact({ style: 'HEAVY' });
+      setTimeout(async () => {
+        try {
+          if (CapacitorHaptics) await CapacitorHaptics.impact({ style: 'MEDIUM' });
+        } catch (e) {}
+      }, 120);
+    } else if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([25, 40, 20]);
+    }
+  } catch (e) {
+    // Ignore
+  }
+};
+
 // ==================== TỰ ĐỘNG GẮN PHẢN HỒI RUNG CHO TẤT CẢ NÚT BẤM ====================
 export const attachGlobalButtonHaptics = () => {
   if (typeof window === 'undefined') return;

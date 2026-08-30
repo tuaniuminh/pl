@@ -311,6 +311,8 @@ export const getSettings = () => {
     apiKey: '',
     theme: 'dark',
     voiceEnabled: true,
+    soundEnabled: true,
+    heartbeatEnabled: true, // Âm thanh nhịp tim dồn dập ở 15 giây cuối
     selectedVoice: 'female', // 'female' (Hoài My) | 'male' (Nam Minh)
     countdownAudio: true,
     soundVolume: 1.0,
