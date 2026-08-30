@@ -476,16 +476,13 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
       const prompt = buildGeminiProPrompt(profile, summary);
       navigator.clipboard.writeText(prompt).then(() => {
         setIsPromptCopied(true);
-        showToast("✓ Đã sao chép Prompt & Báo cáo lịch sử tập luyện!");
         setTimeout(() => setIsPromptCopied(false), 2800);
       }).catch(() => {
         setIsPromptCopied(true);
-        showToast("✓ Đã sao chép vào bộ nhớ tạm!");
         setTimeout(() => setIsPromptCopied(false), 2800);
       });
     } catch (e) {
       console.error(e);
-      showToast("Lỗi sao chép prompt.");
     }
   };
 
