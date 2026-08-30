@@ -8,6 +8,7 @@ import { speakText } from './speechUtils';
 
 const CLIP_NAMES = [
   'start_workout',
+  'resume_workout',
   'start_challenge',
   'count_5',
   'count_4',

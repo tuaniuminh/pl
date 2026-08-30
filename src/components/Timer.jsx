@@ -255,11 +255,21 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     if (!isActive) {
       if (voiceEnabled) {
         if (isMaxChallenge) {
-          playVoiceClip('start_challenge', 'Bắt đầu Thách Thức Vô Cực! Hãy giữ vững đến giây cuối cùng!', { enabled: voiceEnabled });
+          if (timeLeft === 0) {
+            playVoiceClip('start_challenge', 'Bắt đầu Thách Thức Vô Cực! Hãy giữ vững đến giây cuối cùng!', { enabled: voiceEnabled });
+          } else {
+            playVoiceClip('resume_workout', 'Tiếp tục nào! Giữ vững tư thế!', { enabled: voiceEnabled });
+          }
         } else if (isResting) {
           playVoiceClip('rest_start', 'Tiếp tục nghỉ ngơi hồi sức', { enabled: voiceEnabled });
         } else {
-          playVoiceClip('start_workout', `Bắt đầu. ${currentExercise.name}`, { enabled: voiceEnabled });
+          if (timeLeft < totalSetDuration) {
+            // Đang tạm dừng và bấm tiếp tục -> Phát khẩu lệnh tiếp tục dứt khoát
+            playVoiceClip('resume_workout', 'Tiếp tục nào! Giữ vững tư thế!', { enabled: voiceEnabled });
+          } else {
+            // Bắt đầu hiệp mới từ đầu -> Phát câu lệnh bắt đầu bài tập
+            playVoiceClip('start_workout', `Bắt đầu. ${currentExercise.name}`, { enabled: voiceEnabled });
+          }
         }
       }
     }
@@ -376,12 +386,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
   return (
     <div className="flex flex-col items-center justify-between p-4 sm:p-6 w-full h-full max-w-lg mx-auto pb-28">
-      {/* 1. Quick Presets & Challenge Bar */}
-      <div className="w-full flex items-center space-x-2 overflow-x-auto py-2 px-1 mb-2">
+      {/* 1. Quick Presets & Challenge Bar - Cố định chắc chắn, chỉ cuộn thuần ngang 100% không bị dịch chuyển chéo */}
+      <div className="w-full shrink-0 flex items-center space-x-2 overflow-x-auto overflow-y-hidden py-1.5 px-0.5 mb-2 touch-pan-x overscroll-x-contain select-none">
         {/* Nút Thách Thức Vô Cực Nổi Bật */}
         <button
           onClick={handleSwitchToMaxChallenge}
-          className={`shrink-0 px-4 py-2 rounded-2xl border text-xs font-black active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-black active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm ${
             isMaxChallenge 
               ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-500/20' 
               : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/30 dark:border-purple-500/30 dark:text-purple-300'
@@ -393,7 +403,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
         <button
           onClick={() => handleSelectQuickPreset("Plank Cơ Bản 30s", 30, 15)}
-          className={`shrink-0 px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
             !isMaxChallenge && totalSetDuration === 30
               ? 'bg-emerald-500 text-white border-emerald-400'
               : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
@@ -405,7 +415,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
         <button
           onClick={() => handleSelectQuickPreset("Plank Chuẩn 60s", 60, 25)}
-          className={`shrink-0 px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
             !isMaxChallenge && totalSetDuration === 60
               ? 'bg-emerald-500 text-white border-emerald-400'
               : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
@@ -417,7 +427,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
         <button
           onClick={() => handleSelectQuickPreset("Plank Thử Thách 2 Phút", 120, 30)}
-          className={`shrink-0 px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl border text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center space-x-1.5 ${
             !isMaxChallenge && totalSetDuration === 120
               ? 'bg-emerald-500 text-white border-emerald-400'
               : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white'
@@ -429,7 +439,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
 
         <button
           onClick={onOpenAIPlan}
-          className="shrink-0 px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-neon/15 border border-emerald-300 dark:border-neon/30 text-xs font-bold text-emerald-700 dark:text-neon active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm"
+          className="shrink-0 whitespace-nowrap px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-neon/15 border border-emerald-300 dark:border-neon/30 text-xs font-bold text-emerald-700 dark:text-neon active:scale-95 transition-all flex items-center space-x-1.5 shadow-sm"
         >
           <Sparkles size={14} />
           <span>Tạo Với AI</span>
