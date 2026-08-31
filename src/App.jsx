@@ -5,7 +5,7 @@ import PlanManager from './components/PlanManager';
 import History from './components/History';
 import Settings from './components/Settings';
 import { getSettings, saveSettings, getActivePlan, saveActivePlan, recalibrateAndSyncAllData } from './services/storageService';
-import { attachGlobalButtonHaptics } from './utils/hapticsUtils';
+import { attachGlobalButtonHaptics, triggerHapticWarning } from './utils/hapticsUtils';
 import { 
   Timer as TimerIcon, 
   ClipboardList, 
@@ -18,6 +18,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('timer'); // 'timer', 'plans', 'history', 'settings'
   const [settings, setSettingsState] = useState(getSettings());
   const [currentPlan, setCurrentPlan] = useState(getActivePlan());
+  const [isWorkoutActive, setIsWorkoutActive] = useState(false);
 
   // Kích hoạt cân chỉnh dữ liệu, phản hồi rung và Dark Mode / Status Bar
   useEffect(() => {
@@ -82,6 +83,14 @@ function App() {
     setActiveTab('timer'); // Chuyển thẳng sang Tab Timer để bắt đầu tập
   };
 
+  const handleTabChange = (tabId) => {
+    if (isWorkoutActive && tabId !== 'timer') {
+      triggerHapticWarning();
+      return;
+    }
+    setActiveTab(tabId);
+  };
+
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-100 dark:bg-oled text-slate-900 dark:text-white overflow-hidden font-sans transition-colors duration-300">
       {/* 1. Header Cố Định Ở Trên Cùng Có Safe Area Cho iPhone */}
@@ -99,6 +108,7 @@ function App() {
             plan={currentPlan} 
             voiceEnabled={settings.voiceEnabled}
             onOpenAIPlan={() => setActiveTab('plans')}
+            onWorkoutStateChange={setIsWorkoutActive}
           />
         )}
 
@@ -130,7 +140,7 @@ function App() {
         <div className="flex items-center justify-around max-w-md mx-auto">
           {/* Tab 1: Tập Luyện (Xanh Lá Neon / Emerald) */}
           <button
-            onClick={() => setActiveTab('timer')}
+            onClick={() => handleTabChange('timer')}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
               activeTab === 'timer'
                 ? 'text-emerald-500 dark:text-emerald-400 scale-105 font-black'
@@ -143,12 +153,16 @@ function App() {
 
           {/* Tab 2: Giáo Án (Xanh Cyan / Electric Blue) */}
           <button
-            onClick={() => setActiveTab('plans')}
+            onClick={() => handleTabChange('plans')}
+            disabled={isWorkoutActive}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
-              activeTab === 'plans'
+              isWorkoutActive
+                ? 'opacity-25 cursor-not-allowed text-slate-400 dark:text-gray-600'
+                : activeTab === 'plans'
                 ? 'text-cyan-500 dark:text-cyan-neon scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
+            title={isWorkoutActive ? "Hãy kết thúc hoặc đặt lại bài tập trước khi chuyển tab" : "Giáo Án"}
           >
             <ClipboardList size={24} />
             <span className="text-[10px] tracking-tight mt-1 font-bold">Giáo Án</span>
@@ -156,12 +170,16 @@ function App() {
 
           {/* Tab 3: Thành Tích (Vàng Hổ Phách / Amber Gold) */}
           <button
-            onClick={() => setActiveTab('history')}
+            onClick={() => handleTabChange('history')}
+            disabled={isWorkoutActive}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
-              activeTab === 'history'
+              isWorkoutActive
+                ? 'opacity-25 cursor-not-allowed text-slate-400 dark:text-gray-600'
+                : activeTab === 'history'
                 ? 'text-amber-500 dark:text-amber-400 scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
+            title={isWorkoutActive ? "Hãy kết thúc hoặc đặt lại bài tập trước khi chuyển tab" : "Thành Tích"}
           >
             <HistoryIcon size={24} />
             <span className="text-[10px] tracking-tight mt-1 font-bold">Thành Tích</span>
@@ -169,12 +187,16 @@ function App() {
 
           {/* Tab 4: Cài Đặt (Tím Điện Tử / Electric Purple) */}
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleTabChange('settings')}
+            disabled={isWorkoutActive}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
-              activeTab === 'settings'
+              isWorkoutActive
+                ? 'opacity-25 cursor-not-allowed text-slate-400 dark:text-gray-600'
+                : activeTab === 'settings'
                 ? 'text-purple-600 dark:text-purple-400 scale-105 font-black'
                 : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
             }`}
+            title={isWorkoutActive ? "Hãy kết thúc hoặc đặt lại bài tập trước khi chuyển tab" : "Cài Đặt"}
           >
             <SettingsIcon size={24} />
             <span className="text-[10px] tracking-tight mt-1 font-bold">Cài Đặt</span>

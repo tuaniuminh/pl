@@ -44,7 +44,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 
-const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
+const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }) => {
   const [exercises, setExercises] = useState(() => {
     if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
       return plan.days[0].exercises;
@@ -66,6 +66,14 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState([]);
   const [userProfile, setUserProfile] = useState(getUserProfile());
+
+  // Trạng thái kiểm tra xem có đang trong quá trình tập luyện dở dang không
+  const isWorkoutInProgress = isActive || (isMaxChallenge && timeLeft > 0) || (!isMaxChallenge && (timeLeft < totalSetDuration || currentSetIndex > 0));
+
+  // Thông báo trạng thái đang tập lên component App để khóa chuyển Tab
+  useEffect(() => {
+    onWorkoutStateChange?.(isWorkoutInProgress);
+  }, [isWorkoutInProgress, onWorkoutStateChange]);
 
   // Touch drag swipe state for iOS Photo-style carousel
   const [dragOffset, setDragOffset] = useState(0);
@@ -304,9 +312,6 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true }) => {
     }
     setIsActive(!isActive);
   };
-
-  // Trạng thái kiểm tra xem có đang trong quá trình tập luyện dở dang không
-  const isWorkoutInProgress = isActive || (isMaxChallenge && timeLeft > 0) || (!isMaxChallenge && (timeLeft < totalSetDuration || currentSetIndex > 0));
 
   const handleToggleCountMode = () => {
     // Khi đang trong bài tập, nút bấm hoàn toàn không có tác dụng (phải bấm kết thúc/đặt lại bài tập mới được đổi)
