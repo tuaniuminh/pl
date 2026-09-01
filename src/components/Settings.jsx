@@ -22,7 +22,7 @@ import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
 import { checkForUpdate, downloadIPAInApp } from '../services/updateService';
 
-const APP_VERSION = '2.1.3';
+const APP_VERSION = '2.1.4';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
@@ -211,38 +211,38 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           })}
         </div>
 
-        {/* Master Voice Assistant Toggle */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5">
-          <div>
+        {/* Master Voice Assistant Toggle (Đồng bộ trực tiếp với nút âm thanh trên Header) */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5 gap-3">
+          <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-slate-900 dark:text-white">Bật Trợ Lý Giọng Nói Đếm Giờ</div>
             <div className="text-[11px] text-slate-500 dark:text-gray-400">Đếm nhịp 3, 2, 1 và hướng dẫn tư thế</div>
           </div>
           <button
             type="button"
-            onClick={() => onUpdateSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
-            className={`w-12 h-7 rounded-full p-1 transition-all ${
-              settings.soundEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
+            onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled, soundEnabled: !settings.voiceEnabled })}
+            className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
+              settings.voiceEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
             }`}
           >
             <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
-              settings.soundEnabled ? 'translate-x-5' : 'translate-x-0'
+              settings.voiceEnabled ? 'translate-x-5' : 'translate-x-0'
             }`} />
           </button>
         </div>
 
         {/* Heartbeat FX Sound Toggle */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5">
-          <div>
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5 gap-3">
+          <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
               <span>❤️ Âm Thanh Nhịp Tim Gồng Cơ</span>
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">15s Cuối</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 shrink-0">15s Cuối</span>
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">Tiếng tim đập dồn dập và rung kích thích bứt phá giới hạn</div>
+            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 leading-snug">Tiếng tim đập dồn dập và rung kích thích bứt phá giới hạn</div>
           </div>
           <button
             type="button"
             onClick={() => onUpdateSettings({ ...settings, heartbeatEnabled: settings.heartbeatEnabled !== false ? false : true })}
-            className={`w-12 h-7 rounded-full p-1 transition-all ${
+            className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
               settings.heartbeatEnabled !== false ? 'bg-red-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
             }`}
           >
