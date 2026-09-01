@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Key, 
   Eye, 
@@ -22,9 +22,9 @@ import {
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
-import { checkForUpdate, downloadIPAInApp } from '../services/updateService';
+import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
 
-const APP_VERSION = '2.1.9';
+const APP_VERSION = '2.2.0';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
@@ -42,6 +42,9 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [downloadProgress, setDownloadProgress] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
   const [downloadFinished, setDownloadFinished] = useState(false);
+
+  // Cờ hủy tiến trình tải ngầm
+  const downloadCanceledRef = useRef(false);
 
   const handleKeyChange = (val) => {
     onUpdateSettings({ ...settings, apiKey: val });
@@ -106,6 +109,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const handleStartDownloadIPA = async () => {
     if (!updateInfo?.ipaDownloadUrl) return;
 
+    downloadCanceledRef.current = false;
     setIsDownloading(true);
     setDownloadError(null);
     setDownloadFinished(false);
@@ -118,16 +122,30 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
 
     try {
       const res = await downloadIPAInApp(updateInfo.ipaDownloadUrl, (data) => {
+        if (downloadCanceledRef.current) return;
         setDownloadProgress(data);
       });
-      if (res && res.success) {
+      if (res && res.success && !downloadCanceledRef.current) {
         setDownloadFinished(true);
       }
     } catch (err) {
-      setDownloadError(err.message || "Lỗi tải file IPA. Vui lòng thử lại.");
+      if (!downloadCanceledRef.current) {
+        setDownloadError(err.message || "Lỗi tải file IPA. Vui lòng thử lại.");
+      }
     } finally {
-      setIsDownloading(false);
+      if (!downloadCanceledRef.current) {
+        setIsDownloading(false);
+      }
     }
+  };
+
+  const handleCancelDownload = async () => {
+    downloadCanceledRef.current = true;
+    setIsDownloading(false);
+    setDownloadProgress(null);
+    setDownloadFinished(false);
+    setDownloadError(null);
+    await cancelDownloadIPA();
   };
 
   const currentPersona = VOICE_PERSONAS.find(p => p.id === (settings.selectedVoice || 'female')) || VOICE_PERSONAS[0];
@@ -144,7 +162,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
         </p>
       </div>
 
-      {/* SECTION 1: CẬP NHẬT ỨNG DỤNG (OTA) - ĐƯA LÊN ĐẦU TRANG */}
+      {/* SECTION 1: CẬP NHẬT ỨNG DỤNG (OTA) */}
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -192,29 +210,29 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           </div>
         )}
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <button
-            type="button"
-            onClick={handleCheckUpdate}
-            disabled={checkingUpdate || isDownloading}
-            className="flex-1 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={`text-cyan-600 dark:text-cyan-neon ${checkingUpdate ? 'animate-spin' : ''}`} />
-            <span>{checkingUpdate ? "Đang Kiểm Tra..." : "Kiểm Tra Bản Cập Nhật Mới"}</span>
-          </button>
-
+        {/* Buttons (Nút Tải & Cài Đặt Ngay được ưu tiên đưa lên TRÊN nút Kiểm Tra Cập Nhật khi có bản mới) */}
+        <div className="flex flex-col gap-2 pt-1">
           {updateInfo?.hasUpdate && updateInfo?.ipaDownloadUrl && (
             <button
               type="button"
               onClick={handleStartDownloadIPA}
               disabled={isDownloading}
-              className="py-3 px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 shadow-md shadow-cyan-500/20"
+              className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center space-x-2 transition-all active:scale-95 shadow-md shadow-cyan-500/20"
             >
-              <Download size={14} />
-              <span>Tải & Cài Đặt Ngay</span>
+              <Download size={16} />
+              <span>Tải & Cài Đặt Ngay ({updateInfo.tagName})</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={handleCheckUpdate}
+            disabled={checkingUpdate || isDownloading}
+            className="w-full py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={`text-cyan-600 dark:text-cyan-neon ${checkingUpdate ? 'animate-spin' : ''}`} />
+            <span>{checkingUpdate ? "Đang Kiểm Tra..." : "Kiểm Tra Bản Cập Nhật Mới"}</span>
+          </button>
         </div>
       </div>
 
@@ -500,12 +518,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
             {/* Action Buttons */}
             <div className="pt-2 flex space-x-2">
               <button
-                onClick={() => {
-                  setDownloadProgress(null);
-                  setIsDownloading(false);
-                  setDownloadFinished(false);
-                  setDownloadError(null);
-                }}
+                onClick={handleCancelDownload}
                 className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95 transition-all"
               >
                 {downloadFinished ? "Đóng" : "Hủy"}
@@ -515,9 +528,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
                 <button
                   onClick={() => {
                     window.open(updateInfo.ipaDownloadUrl, '_blank');
-                    setDownloadProgress(null);
-                    setIsDownloading(false);
-                    setDownloadError(null);
+                    handleCancelDownload();
                   }}
                   className="flex-1 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs active:scale-95 transition-all flex items-center justify-center space-x-1"
                 >

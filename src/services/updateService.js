@@ -89,3 +89,13 @@ export const downloadIPAInApp = async (downloadUrl, onProgressCallback) => {
   window.open(downloadUrl, '_blank');
   return { success: true, fallback: true };
 };
+
+export const cancelDownloadIPA = async () => {
+  try {
+    if (LiveActivityPlugin && typeof LiveActivityPlugin.cancelDownload === 'function') {
+      await LiveActivityPlugin.cancelDownload();
+    }
+  } catch (e) {
+    console.warn("Error calling cancelDownload on native plugin:", e);
+  }
+};

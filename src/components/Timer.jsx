@@ -465,89 +465,105 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
 
   return (
     <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-28 sm:pb-32 select-none">
-      {/* 1. Exercise Information Card - iPhone Photos Style Smooth Carousel */}
+      {/* 1. Exercise Information Card - iPhone Photos Style Smooth Carousel (Khóa cứng h-[120px] chống nhảy đồng hồ) */}
       <div 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="w-full min-h-[116px] glass-panel p-3.5 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0 overflow-hidden flex flex-col justify-between"
+        className="w-full h-[120px] glass-panel p-3 rounded-3xl text-center relative select-none transition-colors duration-300 shadow-sm shrink-0 overflow-hidden flex flex-col justify-between"
       >
-        {/* Carousel Sliding Track */}
-        <div 
-          className="flex w-full will-change-transform"
-          style={{
-            transform: `translateX(calc(-${currentSetIndex * 100}% + ${dragOffset}px))`,
-            transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.25, 1, 0.5, 1)'
-          }}
-        >
-          {(isMaxChallenge ? [{ name: "Thách Thức Giới Hạn", holdTime: 0, tip: "Giữ form chuẩn, giữ plank lâu nhất có thể để phá kỷ lục!" }] : exercises).map((ex, idx) => {
-            const isCurrent = idx === currentSetIndex;
-            return (
-              <div 
-                key={idx} 
-                className="w-full shrink-0 px-3 flex flex-col items-center justify-center"
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <span className={`font-black uppercase tracking-wide transition-all ${
-                    isMaxChallenge 
-                      ? 'text-xs sm:text-sm px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-2 border-cyan-400/60 dark:border-cyan-500/40 shadow-sm' 
-                      : 'text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40'
-                  }`}>
-                    {isMaxChallenge ? "⚡ THÁCH THỨC GIỚI HẠN" : `HIỆP ${idx + 1} / ${exercises.length}`}
-                  </span>
-                  {!isMaxChallenge && (
-                    <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-gray-400">
-                      {ex.holdTime}s giữ • {ex.restTime || 20}s nghỉ
-                    </span>
-                  )}
-                </div>
+        {isMaxChallenge ? (
+          <div className="w-full h-full flex flex-col items-center justify-center space-y-2 py-1">
+            <span className="text-xs sm:text-sm font-black uppercase px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-2 border-cyan-400/60 dark:border-cyan-500/40 shadow-sm">
+              ⚡ THÁCH THỨC GIỚI HẠN
+            </span>
 
-                {!isMaxChallenge && (
-                  <h2 className="text-lg sm:text-xl font-black mt-1.5 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
-                    {isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name}
-                  </h2>
-                )}
-
-                {/* Nút bấm (i) Mở Modal Chi Tiết */}
-                <button 
-                  onClick={() => setShowInfoModal(true)}
-                  className={`inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full ${isMaxChallenge ? 'mt-2.5' : 'mt-1.5'}`}
-                >
-                  <div className="w-3.5 h-3.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
-                    <Info size={10} />
-                  </div>
-                  <span className="truncate text-[10px] font-medium">
-                    {isMaxChallenge ? "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới" : (ex.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều")}
-                  </span>
-                  <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
-                </button>
+            {/* Nút bấm (i) Mở Modal Chi Tiết */}
+            <button 
+              onClick={() => setShowInfoModal(true)}
+              className="inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full"
+            >
+              <div className="w-3.5 h-3.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
+                <Info size={10} />
               </div>
-            );
-          })}
-        </div>
+              <span className="truncate text-[10px] font-medium">
+                Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới
+              </span>
+              <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Carousel Sliding Track */}
+            <div 
+              className="flex w-full will-change-transform"
+              style={{
+                transform: `translateX(calc(-${currentSetIndex * 100}% + ${dragOffset}px))`,
+                transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.25, 1, 0.5, 1)'
+              }}
+            >
+              {exercises.map((ex, idx) => {
+                const isCurrent = idx === currentSetIndex;
+                return (
+                  <div 
+                    key={idx} 
+                    className="w-full shrink-0 px-3 flex flex-col items-center justify-center"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40">
+                        HIỆP {idx + 1} / {exercises.length}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-gray-400">
+                        {ex.holdTime}s giữ • {ex.restTime || 20}s nghỉ
+                      </span>
+                    </div>
 
-        {/* Multi-set progress indicator dots (iPhone pagination style) */}
-        <div className="flex justify-center items-center space-x-1.5 mt-2 h-2">
-          {exercises.length > 1 && !isMaxChallenge && exercises.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSelectSet(idx)}
-              disabled={isActive}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                idx === currentSetIndex
-                  ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm'
-                  : idx < currentSetIndex
-                  ? 'w-1.5 bg-slate-400 dark:bg-gray-500'
-                  : 'w-1.5 bg-slate-200 dark:bg-white/10'
-              }`}
-              title={`Chuyển tới Hiệp ${idx + 1}`}
-            />
-          ))}
-        </div>
+                    <h2 className="text-lg sm:text-xl font-black mt-1 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
+                      {isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name}
+                    </h2>
+
+                    {/* Nút bấm (i) Mở Modal Chi Tiết */}
+                    <button 
+                      onClick={() => setShowInfoModal(true)}
+                      className="mt-1 inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full"
+                    >
+                      <div className="w-3.5 h-3.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
+                        <Info size={10} />
+                      </div>
+                      <span className="truncate text-[10px] font-medium">
+                        {ex.tip || "Siết cơ bụng, giữ thẳng lưng, thở đều"}
+                      </span>
+                      <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Multi-set progress indicator dots (iPhone pagination style) */}
+            <div className="flex justify-center items-center space-x-1.5 h-2 shrink-0">
+              {exercises.length > 1 && exercises.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectSet(idx)}
+                  disabled={isActive}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    idx === currentSetIndex
+                      ? 'w-6 bg-emerald-500 dark:bg-neon shadow-sm'
+                      : idx < currentSetIndex
+                      ? 'w-1.5 bg-slate-400 dark:bg-gray-500'
+                      : 'w-1.5 bg-slate-200 dark:bg-white/10'
+                  }`}
+                  title={`Chuyển tới Hiệp ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* 2. Main HUD Circular Timer (Giữ nguyên vị trí vững chắc như bản 2.1.6) */}
-      <div className="flex flex-col items-center justify-center my-auto w-full relative">
+      {/* 2. Main HUD Circular Timer (Khóa cứng vị trí chuẩn 100% trong cả 2 chế độ) */}
+      <div className="flex flex-col items-center justify-center my-auto w-full relative shrink-0">
         {/* Nút Vô Cực Chuyển Đổi Đếm Xuôi ở Góc Phải Phía Trên Đồng Hồ */}
         <button
           onClick={handleToggleCountMode}
@@ -581,10 +597,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
           exerciseName={currentExercise.name}
         />
 
-        {/* Quick Time Adjuster / Status Bar - Cân đều ở giữa khoảng trống từ Đồng Hồ đến Nút Bắt Đầu */}
-        <div className="h-12 mt-4 sm:mt-5 flex items-center justify-center">
+        {/* Quick Time Adjuster / Status Bar (Cố định chiều cao h-12 mt-4 sm:mt-5 trong cả 2 chế độ) */}
+        <div className="h-12 mt-4 sm:mt-5 flex items-center justify-center shrink-0">
           {!isMaxChallenge ? (
-            <div className="flex justify-center items-center space-x-6">
+            <div className="flex justify-center items-center space-x-6 h-12">
               {/* Nút -15s: Viền tròn Vàng Hổ Phách */}
               <button
                 onClick={() => handleAdjustTime(-15)}
@@ -604,16 +620,18 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               </button>
             </div>
           ) : (
-            <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
-              <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
-              <span>Gồng giữ tự do không giới hạn</span>
+            <div className="h-12 flex items-center justify-center">
+              <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
+                <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
+                <span>Gồng giữ tự do không giới hạn</span>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* 4. Giant Tactical Control Buttons (Nằm vững chắc, thoáng đãng trên navbar) */}
-      <div className="w-full space-y-3 mb-3 sm:mb-5 shrink-0">
+      {/* 4. Giant Tactical Control Buttons (Cố định chiều cao h-16 mb-3 sm:mb-5 chống nhảy vị trí) */}
+      <div className="w-full h-16 mb-3 sm:mb-5 shrink-0 flex items-center justify-center">
         <div className={`flex items-center justify-center space-x-3.5 mx-auto w-full ${isMaxChallenge ? 'max-w-[320px]' : 'max-w-md'}`}>
           {/* Reset / Stop Button */}
           <button

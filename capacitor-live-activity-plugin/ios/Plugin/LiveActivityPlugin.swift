@@ -7,7 +7,8 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "LiveActivityPlugin"
     public let jsName = "LiveActivityPlugin"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "downloadAndOpenIPA", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "downloadAndOpenIPA", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelDownload", returnType: CAPPluginReturnPromise)
     ]
 
     private var activeDownloader: IPADownloadManager?
@@ -72,6 +73,12 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
 
         self.activeDownloader?.startDownload(from: url)
     }
+
+    @objc public func cancelDownload(_ call: CAPPluginCall) {
+        self.activeDownloader?.cancel()
+        self.activeDownloader = nil
+        call.resolve(["success": true])
+    }
 }
 
 // MARK: - IPADownloadManager (Tính toán tiến trình % và tốc độ MB/s)
@@ -79,6 +86,7 @@ class IPADownloadManager: NSObject, URLSessionDownloadDelegate {
     var onProgress: ((Double, Int64, Int64, String) -> Void)?
     var onCompletion: ((URL?, Error?) -> Void)?
     private var downloadSession: URLSession?
+    private var downloadTask: URLSessionDownloadTask?
     private var lastSpeedCalculationTime: Date = Date()
     private var lastBytesCount: Int64 = 0
     private var currentSpeedStr: String = "0 KB/s"
@@ -89,8 +97,17 @@ class IPADownloadManager: NSObject, URLSessionDownloadDelegate {
         lastSpeedCalculationTime = Date()
         lastBytesCount = 0
         currentSpeedStr = "0 KB/s"
-        let task = downloadSession?.downloadTask(with: url)
-        task?.resume()
+        downloadTask = downloadSession?.downloadTask(with: url)
+        downloadTask?.resume()
+    }
+
+    func cancel() {
+        onProgress = nil
+        onCompletion = nil
+        downloadTask?.cancel()
+        downloadSession?.invalidateAndCancel()
+        downloadSession = nil
+        downloadTask = nil
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
