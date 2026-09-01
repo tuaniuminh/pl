@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Timer from './components/Timer';
 import PlanManager from './components/PlanManager';
@@ -19,6 +19,14 @@ function App() {
   const [settings, setSettingsState] = useState(getSettings());
   const [currentPlan, setCurrentPlan] = useState(getActivePlan());
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
+  const mainContentRef = useRef(null);
+
+  // Tự động cuộn lên đầu trang mỗi khi chuyển sang tab khác
+  useEffect(() => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   // Kích hoạt cân chỉnh dữ liệu, phản hồi rung và Dark Mode / Status Bar
   useEffect(() => {
@@ -102,7 +110,7 @@ function App() {
       />
 
       {/* 2. Phần Thân Chứa 4 Tab Tính Năng (Tab Tập Luyện khóa cứng không cuộn) */}
-      <main className={`flex-1 relative ${activeTab === 'timer' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
+      <main ref={mainContentRef} className={`flex-1 relative ${activeTab === 'timer' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
         {activeTab === 'timer' && (
           <Timer 
             plan={currentPlan} 

@@ -464,7 +464,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const progressPercent = totalSetDuration > 0 ? ((totalSetDuration - timeLeft) / totalSetDuration) * 100 : 0;
 
   return (
-    <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-24 select-none">
+    <div className="w-full h-full max-w-lg mx-auto flex flex-col justify-between items-center overflow-hidden p-4 sm:p-6 pb-28 sm:pb-32 select-none">
       {/* 1. Exercise Information Card - iPhone Photos Style Smooth Carousel */}
       <div 
         onTouchStart={handleTouchStart}
@@ -546,7 +546,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
         </div>
       </div>
 
-      {/* 2. Main HUD Circular Timer */}
+      {/* 2. Main HUD Circular Timer (Giữ nguyên vị trí vững chắc như bản 2.1.6) */}
       <div className="flex flex-col items-center justify-center my-auto w-full relative">
         {/* Nút Vô Cực Chuyển Đổi Đếm Xuôi ở Góc Phải Phía Trên Đồng Hồ */}
         <button
@@ -580,40 +580,40 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
           personalRecord={userProfile.record || 60}
           exerciseName={currentExercise.name}
         />
+
+        {/* Quick Time Adjuster / Status Bar - Cân đều ở giữa khoảng trống từ Đồng Hồ đến Nút Bắt Đầu */}
+        <div className="h-12 mt-4 sm:mt-5 flex items-center justify-center">
+          {!isMaxChallenge ? (
+            <div className="flex justify-center items-center space-x-6">
+              {/* Nút -15s: Viền tròn Vàng Hổ Phách */}
+              <button
+                onClick={() => handleAdjustTime(-15)}
+                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-400/70 dark:border-amber-500/50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
+                title="Giảm 15 giây"
+              >
+                <span>-15s</span>
+              </button>
+
+              {/* Nút +15s: Viền tròn Xanh Lục Bảo */}
+              <button
+                onClick={() => handleAdjustTime(15)}
+                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-500/10 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
+                title="Tăng 15 giây"
+              >
+                <span>+15s</span>
+              </button>
+            </div>
+          ) : (
+            <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
+              <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
+              <span>Gồng giữ tự do không giới hạn</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 3. Quick Time Adjuster / Status Bar - Cân đều chuẩn xác giữa Đồng Hồ & Nút Bắt Đầu Tập */}
-      <div className="w-full my-auto flex items-center justify-center py-1">
-        {!isMaxChallenge ? (
-          <div className="flex justify-center items-center space-x-6">
-            {/* Nút -15s: Viền tròn Vàng Hổ Phách */}
-            <button
-              onClick={() => handleAdjustTime(-15)}
-              className="w-12 h-12 rounded-full bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-400/70 dark:border-amber-500/50 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
-              title="Giảm 15 giây"
-            >
-              <span>-15s</span>
-            </button>
-
-            {/* Nút +15s: Viền tròn Xanh Lục Bảo */}
-            <button
-              onClick={() => handleAdjustTime(15)}
-              className="w-12 h-12 rounded-full bg-emerald-500/10 dark:bg-emerald-950/30 border-2 border-emerald-400/70 dark:border-emerald-500/50 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-mono font-black text-xs active:scale-90 transition-all shadow-sm"
-              title="Tăng 15 giây"
-            >
-              <span>+15s</span>
-            </button>
-          </div>
-        ) : (
-          <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
-            <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
-            <span>Gồng giữ tự do không giới hạn</span>
-          </div>
-        )}
-      </div>
-
-      {/* 4. Giant Tactical Control Buttons (Căn giữa màn hình, bo viền thanh lịch) */}
-      <div className="w-full space-y-3 mb-2 shrink-0">
+      {/* 4. Giant Tactical Control Buttons (Nằm vững chắc, thoáng đãng trên navbar) */}
+      <div className="w-full space-y-3 mb-3 sm:mb-5 shrink-0">
         <div className={`flex items-center justify-center space-x-3.5 mx-auto w-full ${isMaxChallenge ? 'max-w-[320px]' : 'max-w-md'}`}>
           {/* Reset / Stop Button */}
           <button
