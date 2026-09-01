@@ -255,48 +255,68 @@ export const playBeep = (freq = 600, duration = 120, options = {}) => {
 
 /**
  * Phát âm thanh nhịp tim đập kép (Double Thump: Lub-Dub Heartbeat FX)
- * Thump 1: Tần số ~70Hz decay 38Hz (LUB)
- * Thump 2: Tần số ~58Hz decay 32Hz (DUB, sau 120ms)
+ * Thiết kế âm học tối ưu cho loa ngoài điện thoại iPhone (Harmonic Resonance & Attack Transient)
+ * Thump 1: Tần số 230Hz -> 80Hz với bộ lọc cộng hưởng ngực (LUB - mạnh mẽ)
+ * Thump 2: Tần số 175Hz -> 65Hz (DUB - nhẹ hơn sau 120ms)
  */
 export const playHeartbeatSound = (options = {}) => {
   try {
     const settings = getSettings();
-    if (options.enabled === false || (options.enabled === undefined && (settings.heartbeatEnabled === false || settings.soundEnabled === false))) return;
+    if (options.enabled === false) return;
+    if (settings.heartbeatEnabled === false || settings.soundEnabled === false) return;
 
     const ctx = getAudioContext();
     if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
 
     const now = ctx.currentTime;
-    const volume = options.volume !== undefined ? options.volume : 0.85;
+    const volume = options.volume !== undefined ? options.volume : 0.95;
 
-    const createThump = (time, startFreq, endFreq, gainVal, dur) => {
+    const createHeartThump = (startTime, startFreq, endFreq, maxGain, duration) => {
+      // 1. Bộ tạo dao động chính (Main Thump Oscillator - dạng sóng Triangle giàu hài âm trung cho loa điện thoại)
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(startFreq, startTime);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration);
+
+      // 2. Bộ tạo tiếng trầm sâu (Sub-Bass Sine Oscillator cho tai nghe / loa ngoài)
+      const subOsc = ctx.createOscillator();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(startFreq * 0.75, startTime);
+      subOsc.frequency.exponentialRampToValueAtTime(endFreq * 0.6, startTime + duration);
+
+      // 3. Bộ lọc cộng hưởng âm học lồng ngực (Resonant Chest Cavity Filter)
       const filter = ctx.createBiquadFilter();
-
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(140, time);
+      filter.frequency.setValueAtTime(380, startTime);
+      filter.frequency.exponentialRampToValueAtTime(140, startTime + duration);
+      filter.Q.setValueAtTime(3.2, startTime); // Tăng cộng hưởng để loa iPhone rung phát rõ ràng
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(startFreq, time);
-      osc.frequency.exponentialRampToValueAtTime(endFreq, time + dur);
+      // 4. Đường bao âm lượng (Gain Envelope - Attack cực nhanh 15ms tạo tiếng dập cơ thể)
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(maxGain * volume, startTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-      gain.gain.setValueAtTime(0.001, time);
-      gain.gain.linearRampToValueAtTime(gainVal * volume, time + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
-
+      // Kết nối mạng âm thanh
       osc.connect(filter);
+      subOsc.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
 
-      osc.start(time);
-      osc.stop(time + dur);
+      osc.start(startTime);
+      subOsc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+      subOsc.stop(startTime + duration + 0.05);
     };
 
-    // Nhịp 1: LUB
-    createThump(now, 75, 40, 0.9, 0.15);
-    // Nhịp 2: DUB (sau 120ms)
-    createThump(now + 0.12, 60, 32, 0.75, 0.13);
+    // Nhịp 1: LUB (Mạnh, sâu, đanh - van 2 lá đóng)
+    createHeartThump(now, 230, 80, 0.95, 0.16);
+
+    // Nhịp 2: DUB (Nhẹ hơn, ấm áp sau 120ms - van động mạch chủ đóng)
+    createHeartThump(now + 0.12, 175, 65, 0.75, 0.13);
   } catch (e) {
     console.warn('Heartbeat audio error:', e);
   }

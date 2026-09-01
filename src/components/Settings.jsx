@@ -21,10 +21,11 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
-import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
+import { previewVoice, VOICE_PERSONAS, playHeartbeatSound } from '../utils/audioPack';
+import { triggerHapticHeartbeat } from '../utils/hapticsUtils';
 import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
 
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.2.1';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
@@ -374,7 +375,14 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           </div>
           <button
             type="button"
-            onClick={() => onUpdateSettings({ ...settings, heartbeatEnabled: settings.heartbeatEnabled !== false ? false : true })}
+            onClick={() => {
+              const nextVal = settings.heartbeatEnabled !== false ? false : true;
+              onUpdateSettings({ ...settings, heartbeatEnabled: nextVal });
+              if (nextVal) {
+                playHeartbeatSound({ enabled: true });
+                triggerHapticHeartbeat();
+              }
+            }}
             className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
               settings.heartbeatEnabled !== false ? 'bg-red-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
             }`}
