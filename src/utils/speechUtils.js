@@ -1,4 +1,5 @@
 import { getSettings } from '../services/storageService';
+import { speakEdgeNeural } from '../services/edgeTtsService';
 
 let speechUnlocked = false;
 
@@ -16,33 +17,48 @@ export const unlockSpeechAPI = () => {
   }
 };
 
-export const speakText = (text, options = {}) => {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  
-  // Kiểm tra nghiêm ngặt nếu trợ lý giọng nói đang bị tắt
+export const speakText = async (text, options = {}) => {
+  if (!text || !text.trim() || typeof window === 'undefined') return;
+
+  // Kiểm tra nếu trợ lý giọng nói đang bị tắt
   try {
     const settings = getSettings();
     if (options.enabled === false || (options.enabled === undefined && settings.voiceEnabled === false)) {
-      window.speechSynthesis.cancel();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       return;
     }
 
-    window.speechSynthesis.cancel(); // Xóa hàng đợi cũ để đọc ngay lập tức
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = options.lang || 'vi-VN';
-    utterance.rate = options.rate || 1.0;
-    utterance.pitch = options.pitch || 1.0;
-    utterance.volume = options.volume !== undefined ? options.volume : (settings.soundVolume || 1.0);
-
-    // Tìm giọng tiếng Việt nếu có
-    const voices = window.speechSynthesis.getVoices();
-    const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
-    if (viVoice) {
-      utterance.voice = viVoice;
+    // 1. Ưu tiên phát bằng Microsoft Edge Neural TTS Engine (chất lượng Studio truyền cảm)
+    try {
+      await speakEdgeNeural(text, {
+        voice: options.voice || settings.selectedVoice || 'female',
+        volume: options.volume !== undefined ? options.volume : (settings.soundVolume || 1.0),
+        rate: options.rate || 0,
+        pitch: options.pitch || 0
+      });
+      return;
+    } catch (edgeErr) {
+      console.warn("Edge Neural TTS failed, fallback to native SpeechSynthesis:", edgeErr);
     }
 
-    window.speechSynthesis.speak(utterance);
+    // 2. Dự phòng: Phát bằng Web Speech API nếu mất kết nối mạng
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = options.lang || 'vi-VN';
+      utterance.rate = options.rate || 1.0;
+      utterance.pitch = options.pitch || 1.0;
+      utterance.volume = options.volume !== undefined ? options.volume : (settings.soundVolume || 1.0);
+
+      const voices = window.speechSynthesis.getVoices();
+      const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'));
+      if (viVoice) {
+        utterance.voice = viVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
   } catch (e) {
     console.error("Speech Synthesis Error:", e);
   }

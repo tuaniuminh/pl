@@ -127,7 +127,7 @@ export const stopAllVoice = () => {
 };
 
 /**
- * Nghe thử giọng đọc trong Cài Đặt
+ * Nghe thử giọng đọc trong Cài Đặt (Sử dụng Microsoft Edge Neural TTS)
  * @param {string} voiceKey
  */
 export const previewVoice = (voiceKey = 'female') => {
@@ -144,9 +144,16 @@ export const previewVoice = (voiceKey = 'female') => {
     audio.currentTime = 0;
     audio.volume = 1.0;
     currentPlayingAudio = audio;
-    audio.play().catch(e => console.warn('Preview voice error:', e));
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Fallback sang Microsoft Edge Neural TTS
+        speakText('Bắt đầu buổi tập nào! Hãy gồng cơ bụng và giữ form chuẩn nhé.', { voice: voiceKey });
+      });
+    }
   } catch (err) {
-    console.error('Preview error:', err);
+    speakText('Bắt đầu buổi tập nào! Hãy gồng cơ bụng và giữ form chuẩn nhé.', { voice: voiceKey });
   }
 };
 

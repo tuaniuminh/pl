@@ -148,7 +148,7 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
             </div>
             <div>
               <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Giọng Đọc Huấn Luyện Viên AI</h3>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">Chọn người bạn đồng hành luyện tập cùng bạn</p>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">Microsoft Edge Neural TTS (Hoài My & Nam Minh Studio)</p>
             </div>
           </div>
           <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-500/30">
