@@ -31,9 +31,6 @@ jobs:
         run: |
           npx cap add ios || true
           npx cap sync ios
-          # Tích hợp Native Swift Plugin (LiveActivityPlugin) vào dự án Xcode
-          mkdir -p ios/App/App
-          cp -f ios-custom-plugins/* ios/App/App/ || true
 
       - name: Kích hoạt hỗ trợ màn hình 120Hz ProMotion trên iPhone / iPad
         run: |
