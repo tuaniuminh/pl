@@ -22,7 +22,7 @@ import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
 import { checkForUpdate, downloadIPAInApp } from '../services/updateService';
 
-const APP_VERSION = '2.1.1';
+const APP_VERSION = '2.1.2';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
@@ -461,18 +461,34 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
               </div>
             )}
 
-            {/* Close Button */}
-            <div className="pt-2">
+            {/* Action Buttons */}
+            <div className="pt-2 flex space-x-2">
               <button
                 onClick={() => {
                   setDownloadProgress(null);
                   setIsDownloading(false);
                   setDownloadFinished(false);
+                  setDownloadError(null);
                 }}
-                className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95 transition-all"
+                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95 transition-all"
               >
-                {downloadFinished ? "Đóng" : "Hủy Tải"}
+                {downloadFinished ? "Đóng" : "Hủy"}
               </button>
+
+              {downloadError && updateInfo?.ipaDownloadUrl && (
+                <button
+                  onClick={() => {
+                    window.open(updateInfo.ipaDownloadUrl, '_blank');
+                    setDownloadProgress(null);
+                    setIsDownloading(false);
+                    setDownloadError(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs active:scale-95 transition-all flex items-center justify-center space-x-1"
+                >
+                  <ExternalLink size={12} />
+                  <span>Mở Safari Tải</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

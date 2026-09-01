@@ -1,0 +1,12 @@
+{
+  "name": "capacitor-live-activity-plugin",
+  "version": "1.0.0",
+  "description": "Live Activity and In-App IPA Downloader for iOS",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}

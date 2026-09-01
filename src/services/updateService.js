@@ -57,28 +57,35 @@ export const checkForUpdate = async (currentVersion) => {
 };
 
 export const downloadIPAInApp = async (downloadUrl, onProgressCallback) => {
-  if (LiveActivityPlugin && typeof LiveActivityPlugin.downloadAndOpenIPA === 'function') {
-    let listener = null;
-    if (onProgressCallback) {
-      listener = await LiveActivityPlugin.addListener('ipaDownloadProgress', (data) => {
-        onProgressCallback(data);
-      });
-    }
-    try {
-      const result = await LiveActivityPlugin.downloadAndOpenIPA({ url: downloadUrl });
-      return result;
-    } catch (e) {
-      console.warn("Native plugin download failed, falling back to browser:", e);
-      window.open(downloadUrl, '_blank');
-      return { success: false, fallback: true };
-    } finally {
-      if (listener) {
-        listener.remove();
+  try {
+    if (LiveActivityPlugin && typeof LiveActivityPlugin.downloadAndOpenIPA === 'function') {
+      let listener = null;
+      if (onProgressCallback) {
+        try {
+          listener = await LiveActivityPlugin.addListener('ipaDownloadProgress', (data) => {
+            onProgressCallback(data);
+          });
+        } catch (listenerErr) {
+          console.warn("Could not attach progress listener:", listenerErr);
+        }
+      }
+      try {
+        const result = await LiveActivityPlugin.downloadAndOpenIPA({ url: downloadUrl });
+        return result;
+      } finally {
+        if (listener && typeof listener.remove === 'function') {
+          listener.remove();
+        }
       }
     }
-  } else {
-    // Fallback mở trình duyệt Safari nếu chạy trên Web / PWA
+  } catch (e) {
+    console.warn("Native plugin download failed, opening browser fallback:", e);
+    // Nếu Native Plugin chưa được hỗ trợ (chạy trên Web hoặc bản cũ chưa có native pod), mở Safari để tải trực tiếp
     window.open(downloadUrl, '_blank');
     return { success: true, fallback: true };
   }
+
+  // Fallback mở Safari tải trực tiếp
+  window.open(downloadUrl, '_blank');
+  return { success: true, fallback: true };
 };
