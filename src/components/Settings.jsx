@@ -24,7 +24,7 @@ import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
 import { checkForUpdate, downloadIPAInApp } from '../services/updateService';
 
-const APP_VERSION = '2.1.7';
+const APP_VERSION = '2.1.8';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);

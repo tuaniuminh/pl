@@ -488,10 +488,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                 className="w-full shrink-0 px-3 flex flex-col items-center justify-center"
               >
                 <div className="flex items-center justify-center space-x-2">
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                  <span className={`font-black uppercase tracking-wide transition-all ${
                     isMaxChallenge 
-                      ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border border-cyan-300/40' 
-                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40'
+                      ? 'text-xs sm:text-sm px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-2 border-cyan-400/60 dark:border-cyan-500/40 shadow-sm' 
+                      : 'text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40'
                   }`}>
                     {isMaxChallenge ? "⚡ THÁCH THỨC GIỚI HẠN" : `HIỆP ${idx + 1} / ${exercises.length}`}
                   </span>
@@ -502,14 +502,16 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                   )}
                 </div>
 
-                <h2 className="text-lg sm:text-xl font-black mt-1.5 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
-                  {isMaxChallenge ? "⚡ Thách Thức Giới Hạn" : (isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name)}
-                </h2>
+                {!isMaxChallenge && (
+                  <h2 className="text-lg sm:text-xl font-black mt-1.5 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
+                    {isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name}
+                  </h2>
+                )}
 
                 {/* Nút bấm (i) Mở Modal Chi Tiết */}
                 <button 
                   onClick={() => setShowInfoModal(true)}
-                  className="mt-1.5 inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full"
+                  className={`inline-flex items-center justify-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 active:scale-95 transition-all max-w-full ${isMaxChallenge ? 'mt-2.5' : 'mt-1.5'}`}
                 >
                   <div className="w-3.5 h-3.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center shrink-0">
                     <Info size={10} />
@@ -610,31 +612,31 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
         )}
       </div>
 
-      {/* 4. Giant Tactical Control Buttons (Nằm thoáng đãng, cân đối trên navbar) */}
+      {/* 4. Giant Tactical Control Buttons (Căn giữa màn hình, bo viền thanh lịch) */}
       <div className="w-full space-y-3 mb-2 shrink-0">
-        <div className="flex items-center space-x-3 w-full">
+        <div className={`flex items-center justify-center space-x-3.5 mx-auto w-full ${isMaxChallenge ? 'max-w-[320px]' : 'max-w-md'}`}>
           {/* Reset / Stop Button */}
           <button
             onClick={handleResetTimer}
-            className="w-16 h-16 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
             title="Khởi động lại bài tập"
           >
-            <RotateCcw size={24} />
+            <RotateCcw size={22} />
           </button>
 
           {/* Huge Main Play / Pause / Stop Challenge Button */}
           {isMaxChallenge && isActive ? (
             <button
               onClick={handleStopMaxChallenge}
-              className="flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white shadow-lg shadow-red-500/30"
+              className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white shadow-lg shadow-red-500/30"
             >
-              <Trophy size={26} />
+              <Trophy size={22} />
               <span>KẾT THÚC</span>
             </button>
           ) : (
             <button
               onClick={handleToggleTimer}
-              className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-md ${
+              className={`flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 shadow-md ${
                 isActive
                   ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'
                   : isMaxChallenge
@@ -644,12 +646,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
             >
               {isActive ? (
                 <>
-                  <Pause size={28} fill="currentColor" />
+                  <Pause size={24} fill="currentColor" />
                   <span>TẠM DỪNG</span>
                 </>
               ) : (
                 <>
-                  <Play size={28} fill="currentColor" />
+                  <Play size={24} fill="currentColor" />
                   <span>{timeLeft < totalSetDuration && !isMaxChallenge ? "TIẾP TỤC" : (isMaxChallenge && timeLeft > 0 ? "TIẾP TỤC" : "BẮT ĐẦU TẬP")}</span>
                 </>
               )}
@@ -660,10 +662,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
           {exercises.length > 1 && !isMaxChallenge && (
             <button
               onClick={handleSkipSet}
-              className="w-16 h-16 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
               title="Chuyển sang hiệp kế tiếp"
             >
-              <SkipForward size={24} />
+              <SkipForward size={22} />
             </button>
           )}
         </div>
