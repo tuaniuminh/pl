@@ -1,9 +1,12 @@
-name: Build iOS IPA for TrollStore
+name: Build & Release iOS IPA for TrollStore
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -28,6 +31,9 @@ jobs:
         run: |
           npx cap add ios || true
           npx cap sync ios
+          # Tích hợp Native Swift Plugin (LiveActivityPlugin) vào dự án Xcode
+          mkdir -p ios/App/App
+          cp -f ios-custom-plugins/* ios/App/App/ || true
 
       - name: Kích hoạt hỗ trợ màn hình 120Hz ProMotion trên iPhone / iPad
         run: |
@@ -38,9 +44,11 @@ jobs:
         run: npm run generate-icons || true
 
       - name: Đọc và đồng bộ Version từ package.json
+        id: get_version
         run: |
           VERSION=$(jq -r '.version' package.json)
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Cập nhật MARKETING_VERSION = $VERSION vào Xcode project"
           sed -i '' "s/MARKETING_VERSION = .*/MARKETING_VERSION = $VERSION;/g" ios/App/App.xcodeproj/project.pbxproj
 
@@ -67,7 +75,7 @@ jobs:
           mkdir -p Payload
           cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           
-          # Đặt tên file IPA chuẩn (Ví dụ: PlankAI-v1.4.4.ipa)
+          # Đặt tên file IPA chuẩn (Ví dụ: PlankAI-v2.0.0.ipa)
           IPA_NAME="PlankAI-v${{ env.APP_VERSION }}.ipa"
           zip -r "$IPA_NAME" Payload
           rm -rf Payload
@@ -80,3 +88,15 @@ jobs:
           name: PlankAI-v${{ env.APP_VERSION }}
           path: ${{ env.IPA_NAME }}
           retention-days: 14
+
+      - name: Tự động phát hành lên GitHub Releases (OTA In-App Update)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ env.APP_VERSION }}"
+          name: "PlankAI v${{ env.APP_VERSION }}"
+          body: "Bản phát hành tự động cho PlankAI v${{ env.APP_VERSION }} (Hỗ trợ cài đặt trực tiếp qua TrollStore & OTA Update)."
+          files: ${{ env.IPA_NAME }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
