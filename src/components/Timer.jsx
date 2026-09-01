@@ -82,7 +82,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const touchEndX = useRef(null);
 
   const currentExercise = isMaxChallenge 
-    ? { name: "Thách Thức Vô Cực (Max-Out)", holdTime: 0, tip: "Giữ form chuẩn, phá vỡ mọi giới hạn bản thân!" }
+    ? { name: "Thách Thức Giới Hạn", holdTime: 0, tip: "Giữ form chuẩn, phá vỡ mọi giới hạn bản thân!" }
     : (exercises[currentSetIndex] || exercises[0]);
 
   // Quản lý Screen Wake Lock khi đang tập
@@ -293,7 +293,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       if (voiceEnabled) {
         if (isMaxChallenge) {
           if (timeLeft === 0) {
-            playVoiceClip('start_challenge', 'Bắt đầu Thách Thức Vô Cực! Hãy giữ vững đến giây cuối cùng!', { enabled: voiceEnabled });
+            playVoiceClip('start_challenge', 'Bắt đầu Thách Thức Giới Hạn! Hãy giữ vững đến giây cuối cùng!', { enabled: voiceEnabled });
           } else {
             playVoiceClip('resume_workout', 'Tiếp tục nào! Giữ vững tư thế!', { enabled: voiceEnabled });
           }
@@ -327,12 +327,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setCurrentSetIndex(0);
 
     if (nextMode) {
-      // Chuyển sang Đếm Xuôi (Plank Tự Do)
+      // Chuyển sang Đếm Xuôi (Thách Thức Giới Hạn)
       setTimeLeft(0);
       setTotalSetDuration(0);
       setSessionTotalHoldSeconds(0);
       if (voiceEnabled) {
-        playVoiceClip('start_challenge', 'Chuyển sang chế độ đếm xuôi! Hãy giữ plank lâu nhất có thể!', { enabled: voiceEnabled });
+        playVoiceClip('start_challenge', 'Chuyển sang Thách Thức Giới Hạn! Hãy giữ plank lâu nhất có thể!', { enabled: voiceEnabled });
       }
     } else {
       // Chuyển về Đếm Ngược theo giáo án
@@ -346,7 +346,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const handleStopMaxChallenge = () => {
     triggerHapticSuccess();
     if (timeLeft > 0) {
-      finishWorkoutSession(timeLeft, 1, "🌌 Thách Thức Vô Cực (Max-Out)");
+      finishWorkoutSession(timeLeft, 1, "⚡ Thách Thức Giới Hạn");
     }
   };
 
@@ -480,7 +480,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
             transition: isDragging ? 'none' : 'transform 320ms cubic-bezier(0.25, 1, 0.5, 1)'
           }}
         >
-          {(isMaxChallenge ? [{ name: "Plank Tự Do (Đếm Xuôi)", holdTime: 0, tip: "Giữ form chuẩn, giữ plank lâu nhất có thể để phá kỷ lục!" }] : exercises).map((ex, idx) => {
+          {(isMaxChallenge ? [{ name: "Thách Thức Giới Hạn", holdTime: 0, tip: "Giữ form chuẩn, giữ plank lâu nhất có thể để phá kỷ lục!" }] : exercises).map((ex, idx) => {
             const isCurrent = idx === currentSetIndex;
             return (
               <div 
@@ -493,7 +493,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                       ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 border border-cyan-300/40' 
                       : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/40'
                   }`}>
-                    {isMaxChallenge ? "⚡ CHẾ ĐỘ ĐẾM XUÔI" : `HIỆP ${idx + 1} / ${exercises.length}`}
+                    {isMaxChallenge ? "⚡ THÁCH THỨC GIỚI HẠN" : `HIỆP ${idx + 1} / ${exercises.length}`}
                   </span>
                   {!isMaxChallenge && (
                     <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-gray-400">
@@ -503,7 +503,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                 </div>
 
                 <h2 className="text-lg sm:text-xl font-black mt-1.5 tracking-tight text-slate-900 dark:text-white px-5 truncate max-w-full">
-                  {isMaxChallenge ? "⚡ Plank Tự Do (Đếm Xuôi)" : (isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name)}
+                  {isMaxChallenge ? "⚡ Thách Thức Giới Hạn" : (isResting && isCurrent ? "❄️ Thời Gian Nghỉ Hồi Sức" : ex.name)}
                 </h2>
 
                 {/* Nút bấm (i) Mở Modal Chi Tiết */}
@@ -626,7 +626,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
           {isMaxChallenge && isActive ? (
             <button
               onClick={handleStopMaxChallenge}
-              className="flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-400 hover:to-teal-500 text-slate-950 shadow-lg shadow-cyan-500/30"
+              className="flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white shadow-lg shadow-red-500/30"
             >
               <Trophy size={26} />
               <span>KẾT THÚC</span>
@@ -637,6 +637,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               className={`flex-1 h-16 rounded-3xl font-black text-lg tracking-wider uppercase flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-md ${
                 isActive
                   ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'
+                  : isMaxChallenge
+                  ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-400 hover:from-sky-300 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/30 border border-cyan-300/30'
                   : 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
               }`}
             >
