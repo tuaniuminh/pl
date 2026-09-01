@@ -102,7 +102,7 @@ function App() {
       />
 
       {/* 2. Phần Thân Chứa 4 Tab Tính Năng (Tab Tập Luyện khóa cứng không cuộn) */}
-      <main className={`flex-1 relative ${activeTab === 'timer' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden pb-20'}`}>
+      <main className={`flex-1 relative ${activeTab === 'timer' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
         {activeTab === 'timer' && (
           <Timer 
             plan={currentPlan} 

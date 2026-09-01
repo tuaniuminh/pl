@@ -16,18 +16,23 @@ import {
   Share2,
   Check,
   X,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS } from '../utils/audioPack';
 import { checkForUpdate, downloadIPAInApp } from '../services/updateService';
 
-const APP_VERSION = '2.1.5';
+const APP_VERSION = '2.1.6';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
   const [testingKey, setTestingKey] = useState(false);
   const [testResult, setTestResult] = useState(null);
+
+  // Trạng thái đóng/mở danh sách giọng nói để tối ưu diện tích
+  const [isVoiceListOpen, setIsVoiceListOpen] = useState(false);
 
   // Trạng thái kiểm tra & tải bản cập nhật In-App OTA
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -128,221 +133,18 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const currentPersona = VOICE_PERSONAS.find(p => p.id === (settings.selectedVoice || 'female')) || VOICE_PERSONAS[0];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 pb-28 max-w-lg mx-auto">
+    <div className="p-4 sm:p-6 space-y-6 pb-24 max-w-lg mx-auto">
       {/* Title */}
       <div>
         <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
           Cài Đặt Hệ Thống
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-          Tùy chọn phong cách Huấn Luyện Viên AI, Gemini API Key & Cập Nhật OTA
+          Cập nhật OTA, phong cách Huấn Luyện Viên AI & Gemini API Key
         </p>
       </div>
 
-      {/* SECTION 1: BỘ SƯU TẬP 6 PHONG CÁCH HUẤN LUYỆN VIÊN STUDIO AI */}
-      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-emerald-300/40 dark:border-emerald-500/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Volume2 size={16} />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Giọng Đọc Huấn Luyện Viên AI</h3>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">Microsoft Edge Neural TTS (Hoài My & Nam Minh Studio)</p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-500/30">
-            {currentPersona.emoji} {currentPersona.name}
-          </span>
-        </div>
-
-        {/* 6 Voice Personas Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          {VOICE_PERSONAS.map((persona) => {
-            const isSelected = (settings.selectedVoice || 'female') === persona.id;
-
-            return (
-              <div 
-                key={persona.id}
-                onClick={() => handleVoiceChange(persona.id)}
-                className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
-                  isSelected
-                    ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
-                    : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl">{persona.emoji}</span>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                        {persona.name}
-                      </h4>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-400">
-                        {persona.desc}
-                      </p>
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                      <Check size={12} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-400 dark:text-gray-500 italic truncate max-w-[140px]">
-                    "{persona.sampleText}"
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      previewVoice(persona.id);
-                    }}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 shrink-0 ml-1 active:scale-95"
-                    title="Nghe thử"
-                  >
-                    <Play size={10} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Master Voice Assistant Toggle (Đồng bộ trực tiếp với nút âm thanh trên Header) */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5 gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold text-slate-900 dark:text-white">Bật Trợ Lý Giọng Nói Đếm Giờ</div>
-            <div className="text-[11px] text-slate-500 dark:text-gray-400">Đếm nhịp 3, 2, 1 và hướng dẫn tư thế</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled, soundEnabled: !settings.voiceEnabled })}
-            className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
-              settings.voiceEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
-            }`}
-          >
-            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
-              settings.voiceEnabled ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
-        </div>
-
-        {/* Heartbeat FX Sound Toggle */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5 gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
-              <span>❤️ Âm Thanh Nhịp Tim Gồng Cơ</span>
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 shrink-0">15s Cuối</span>
-            </div>
-            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 leading-snug">Tiếng tim đập dồn dập và rung kích thích bứt phá giới hạn</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => onUpdateSettings({ ...settings, heartbeatEnabled: settings.heartbeatEnabled !== false ? false : true })}
-            className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
-              settings.heartbeatEnabled !== false ? 'bg-red-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
-            }`}
-          >
-            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
-              settings.heartbeatEnabled !== false ? 'translate-x-5' : 'translate-x-0'
-            }`} />
-          </button>
-        </div>
-      </div>
-
-      {/* SECTION 2: CẤU HÌNH GOOGLE GEMINI API KEY */}
-      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-neon flex items-center justify-center">
-              <Key size={16} />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Google Gemini API Key</h3>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">Kích hoạt Huấn Luyện Viên AI chuyên sâu</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Input Key */}
-        <div className="relative">
-          <input
-            type={showKey ? "text" : "password"}
-            value={settings.apiKey || ''}
-            onChange={(e) => handleKeyChange(e.target.value)}
-            placeholder="Dán mã API Key (AIzaSy...)"
-            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3.5 pr-11 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-400"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white p-1"
-          >
-            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
-
-        {/* Test Result Message */}
-        {testResult && (
-          <div className={`p-3.5 rounded-2xl text-xs flex items-start space-x-2 border transition-all ${
-            testResult.success 
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300' 
-              : 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/30 text-red-700 dark:text-red-400'
-          }`}>
-            {testResult.success ? (
-              <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            )}
-            <div className="flex-1">
-              <div className="font-bold">{testResult.success ? "Tuyệt Vời!" : "Kết Nối Thất Bại"}</div>
-              <div className="text-[11px] mt-0.5 opacity-90">{testResult.message}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Test Key & Generate Plan Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <button
-            type="button"
-            onClick={handleTestKey}
-            disabled={testingKey}
-            className="flex-1 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50"
-          >
-            {testingKey ? (
-              <div className="w-4 h-4 border-2 border-slate-600 dark:border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400" />
-            )}
-            <span>{testingKey ? "Đang Kiểm Tra..." : "Kiểm Tra Kết Nối API"}</span>
-          </button>
-
-          <a
-            href="https://aistudio.google.com/app/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="py-3 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95"
-          >
-            <span>Lấy Key Miễn Phí</span>
-            <ExternalLink size={12} />
-          </a>
-        </div>
-
-        {testResult?.success && (
-          <button
-            onClick={onNavigateToAI}
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2 active:scale-95 transition-all"
-          >
-            <Sparkles size={14} />
-            <span>Mở Ngay Tab Giáo Án Để Thiết Kế Bài Tập</span>
-          </button>
-        )}
-      </div>
-
-      {/* SECTION 3: CẬP NHẬT ỨNG DỤNG (IN-APP OTA UPDATER) */}
+      {/* SECTION 1: CẬP NHẬT ỨNG DỤNG (OTA) - ĐƯA LÊN ĐẦU TRANG */}
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -413,6 +215,240 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
               <span>Tải & Cài Đặt Ngay</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* SECTION 2: BỘ SƯU TẬP GIỌNG ĐỌC HUẤN LUYỆN VIÊN STUDIO AI (DẠNG ACCORDION ĐÓNG/MỞ) */}
+      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-emerald-300/40 dark:border-emerald-500/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Volume2 size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Giọng Đọc Huấn Luyện Viên AI</h3>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">Microsoft Edge Neural TTS (Hoài My & Nam Minh Studio)</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-500/30 shrink-0">
+            {currentPersona.emoji} {currentPersona.name}
+          </span>
+        </div>
+
+        {/* Selected Persona Summary Bar & Collapse Toggle Button */}
+        <div className="p-3 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+            <span className="text-2xl shrink-0">{currentPersona.emoji}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xs font-black text-slate-900 dark:text-white truncate">{currentPersona.name}</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">Đang chọn</span>
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-gray-400 truncate mt-0.5">"{currentPersona.sampleText}"</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => previewVoice(currentPersona.id)}
+              className="p-2 rounded-xl bg-white dark:bg-white/10 text-slate-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-sm active:scale-95 transition-all"
+              title="Nghe thử"
+            >
+              <Play size={12} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsVoiceListOpen(!isVoiceListOpen)}
+              className="px-2.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-[11px] flex items-center space-x-1 active:scale-95 transition-all shadow-sm"
+            >
+              <span>{isVoiceListOpen ? "Thu gọn" : "Đổi giọng"}</span>
+              {isVoiceListOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          </div>
+        </div>
+
+        {/* 6 Voice Personas Grid (Chỉ hiện khi mở rộng) */}
+        {isVoiceListOpen && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 animate-fade-in">
+            {VOICE_PERSONAS.map((persona) => {
+              const isSelected = (settings.selectedVoice || 'female') === persona.id;
+
+              return (
+                <div 
+                  key={persona.id}
+                  onClick={() => handleVoiceChange(persona.id)}
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
+                      : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl">{persona.emoji}</span>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                          {persona.name}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 dark:text-gray-400">
+                          {persona.desc}
+                        </p>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                        <Check size={12} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-400 dark:text-gray-500 italic truncate max-w-[140px]">
+                      "{persona.sampleText}"
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        previewVoice(persona.id);
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 shrink-0 ml-1 active:scale-95"
+                      title="Nghe thử"
+                    >
+                      <Play size={10} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Master Voice Assistant Toggle (Đồng bộ trực tiếp với nút âm thanh trên Header) */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5 gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-slate-900 dark:text-white">Bật Trợ Lý Giọng Nói Đếm Giờ</div>
+            <div className="text-[11px] text-slate-500 dark:text-gray-400">Đếm nhịp 3, 2, 1 và hướng dẫn tư thế</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, voiceEnabled: !settings.voiceEnabled, soundEnabled: !settings.voiceEnabled })}
+            className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
+              settings.voiceEnabled ? 'bg-emerald-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
+            }`}
+          >
+            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
+              settings.voiceEnabled ? 'translate-x-5' : 'translate-x-0'
+            }`} />
+          </button>
+        </div>
+
+        {/* Heartbeat FX Sound Toggle */}
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5 gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+              <span>❤️ Âm Thanh Nhịp Tim Gồng Cơ</span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 shrink-0">15s Cuối</span>
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 leading-snug">Tiếng tim đập dồn dập và rung kích thích bứt phá giới hạn</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUpdateSettings({ ...settings, heartbeatEnabled: settings.heartbeatEnabled !== false ? false : true })}
+            className={`w-12 h-7 rounded-full p-1 transition-all shrink-0 active:scale-95 ${
+              settings.heartbeatEnabled !== false ? 'bg-red-500 shadow-sm' : 'bg-slate-300 dark:bg-white/20'
+            }`}
+          >
+            <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${
+              settings.heartbeatEnabled !== false ? 'translate-x-5' : 'translate-x-0'
+            }`} />
+          </button>
+        </div>
+      </div>
+
+      {/* SECTION 3: CẤU HÌNH GOOGLE GEMINI API KEY */}
+      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-neon flex items-center justify-center">
+              <Key size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Google Gemini API Key</h3>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">Kích hoạt Huấn Luyện Viên AI chuyên sâu</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Input Key */}
+        <div className="relative">
+          <input
+            type={showKey ? "text" : "password"}
+            value={settings.apiKey || ''}
+            onChange={(e) => handleKeyChange(e.target.value)}
+            placeholder="Dán mã API Key (AIzaSy...)"
+            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-3.5 pr-11 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={() => setShowKey(!showKey)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white p-1"
+          >
+            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+
+        {/* Test Result Message */}
+        {testResult && (
+          <div className={`p-3.5 rounded-2xl text-xs flex items-start space-x-2 border transition-all ${
+            testResult.success 
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300' 
+              : 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-500/30 text-red-800 dark:text-red-300'
+          }`}>
+            {testResult.success ? (
+              <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-emerald-500" />
+            ) : (
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+            )}
+            <div className="flex-1">
+              <p className="font-bold">{testResult.success ? "Kết nối thành công" : "Lỗi xác thực"}</p>
+              <p className="mt-0.5 text-[11px] opacity-90 leading-relaxed">{testResult.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex space-x-2 pt-1">
+          <button
+            type="button"
+            onClick={handleTestKey}
+            disabled={testingKey || !settings.apiKey}
+            className="flex-1 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {testingKey ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-slate-600 dark:border-white border-t-transparent rounded-full animate-spin" />
+                <span>Đang kiểm tra...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={14} className="text-cyan-600 dark:text-cyan-neon" />
+                <span>Kiểm Tra Kết Nối</span>
+              </>
+            )}
+          </button>
+
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon border border-cyan-500/20 font-bold text-xs flex items-center space-x-1 transition-all active:scale-95 shrink-0"
+          >
+            <span>Lấy Key Miễn Phí</span>
+            <ExternalLink size={12} />
+          </a>
         </div>
       </div>
 
