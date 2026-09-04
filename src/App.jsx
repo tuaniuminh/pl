@@ -159,24 +159,7 @@ function App() {
             <span className="text-[10px] tracking-tight mt-1 font-bold">Tập Luyện</span>
           </button>
 
-          {/* Tab 2: Giáo Án (Xanh Cyan / Electric Blue) */}
-          <button
-            onClick={() => handleTabChange('plans')}
-            disabled={isWorkoutActive}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
-              isWorkoutActive
-                ? 'opacity-25 cursor-not-allowed text-slate-400 dark:text-gray-600'
-                : activeTab === 'plans'
-                ? 'text-cyan-500 dark:text-cyan-neon scale-105 font-black'
-                : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
-            }`}
-            title={isWorkoutActive ? "Hãy kết thúc hoặc đặt lại bài tập trước khi chuyển tab" : "Giáo Án"}
-          >
-            <ClipboardList size={24} />
-            <span className="text-[10px] tracking-tight mt-1 font-bold">Giáo Án</span>
-          </button>
-
-          {/* Tab 3: Thành Tích (Vàng Hổ Phách / Amber Gold) */}
+          {/* Tab 2: Thành Tích (Vàng Hổ Phách / Amber Gold) */}
           <button
             onClick={() => handleTabChange('history')}
             disabled={isWorkoutActive}
@@ -191,6 +174,23 @@ function App() {
           >
             <HistoryIcon size={24} />
             <span className="text-[10px] tracking-tight mt-1 font-bold">Thành Tích</span>
+          </button>
+
+          {/* Tab 3: Giáo Án (Xanh Cyan / Electric Blue) */}
+          <button
+            onClick={() => handleTabChange('plans')}
+            disabled={isWorkoutActive}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all duration-300 ${
+              isWorkoutActive
+                ? 'opacity-25 cursor-not-allowed text-slate-400 dark:text-gray-600'
+                : activeTab === 'plans'
+                ? 'text-cyan-500 dark:text-cyan-neon scale-105 font-black'
+                : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
+            }`}
+            title={isWorkoutActive ? "Hãy kết thúc hoặc đặt lại bài tập trước khi chuyển tab" : "Giáo Án"}
+          >
+            <ClipboardList size={24} />
+            <span className="text-[10px] tracking-tight mt-1 font-bold">Giáo Án</span>
           </button>
 
           {/* Tab 4: Cài Đặt (Tím Điện Tử / Electric Purple) */}

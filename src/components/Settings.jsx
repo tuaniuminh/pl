@@ -27,7 +27,7 @@ import { triggerHapticHeartbeat } from '../utils/hapticsUtils';
 import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
 import { getUserProfile, saveUserProfile, calculateBMI } from '../services/storageService';
 
-const APP_VERSION = '2.2.5';
+const APP_VERSION = '2.2.6';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [userProfile, setUserProfileState] = useState(getUserProfile());
