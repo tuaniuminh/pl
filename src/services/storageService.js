@@ -800,6 +800,9 @@ export const recalibrateAndSyncAllData = () => {
   try {
     const history = getHistory();
     const customPlans = getSavedPlans();
+    const profile = getUserProfile();
+    const currentWeight = Number(profile.weight) || 68;
+    const currentGender = profile.gender || 'male';
     let historyChanged = false;
 
     // 1. Cân chỉnh và sửa các bản ghi lịch sử cũ (sửa 660s -> 600s, gán maxSingleHold, cập nhật tên giáo án)
@@ -810,19 +813,20 @@ export const recalibrateAndSyncAllData = () => {
       if (item.duration === 660 && (item.completedSets === 10 || item.totalSets === 10)) {
         item.duration = 600;
         item.maxSingleHold = 60;
-        item.calories = 45;
         historyChanged = true;
       }
 
-      // Bảo toàn mốc cân nặng tại thời điểm tập (nếu bản ghi cũ chưa có thì gán mốc gốc 65kg)
-      if (!item.weightAtTime) {
-        item.weightAtTime = 65;
+      // Chuẩn hóa các bản ghi cũ từng mang mốc mặc định ban đầu (65kg) sang cân nặng thật đã thiết lập trong hồ sơ
+      if (!item.weightAtTime || item.weightAtTime === 65) {
+        item.weightAtTime = currentWeight;
+        item.genderAtTime = currentGender;
+        item.calories = calculatePersonalizedCalories(item.duration || 0, currentWeight, currentGender);
         historyChanged = true;
       }
 
       // Đảm bảo mỗi buổi tập luôn có giá trị calo hợp lệ
       if (!item.calories || item.calories <= 0) {
-        item.calories = calculatePersonalizedCalories(item.duration || 0, item.weightAtTime || 65, item.genderAtTime || 'male');
+        item.calories = calculatePersonalizedCalories(item.duration || 0, item.weightAtTime || currentWeight, item.genderAtTime || currentGender);
         historyChanged = true;
       }
 
