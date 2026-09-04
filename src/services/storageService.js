@@ -499,6 +499,55 @@ export const DEFAULT_PLANS = [
         ]
       }
     ]
+  },
+  {
+    id: 'preset_hybrid_amrap',
+    planName: 'Thách Thức Giới Hạn & Phục Hồi (AMRAP)',
+    goal: 'Bung 100% công lực ở hiệp đầu đến khi sập cơ, nghỉ tự do hồi phục và củng cố các hiệp sau',
+    level: 'Nâng cao',
+    type: 'preset',
+    isDefault: true,
+    createdAt: '2026-09-04T00:00:00.000Z',
+    days: [
+      {
+        day: 1,
+        title: 'Bứt Phá Giới Hạn Cá Nhân',
+        exercises: [
+          { 
+            name: 'Plank Tiêu Chuẩn (Hiệp 1 Bung Hết Sức)', 
+            holdTime: 0, 
+            isMaxEffort: true, 
+            restTime: 0, 
+            isManualRest: true, 
+            tip: 'Gồng hết công lực đến khi sập cơ! Bấm HẾT SỨC khi không giữ nổi nữa.' 
+          },
+          { 
+            name: 'Side Plank Nghiêng Trái', 
+            holdTime: 40, 
+            isMaxEffort: false, 
+            restTime: 20, 
+            isManualRest: false, 
+            tip: 'Nâng hông cao, siết chặt cơ liên sườn.' 
+          },
+          { 
+            name: 'Side Plank Nghiêng Phải', 
+            holdTime: 40, 
+            isMaxEffort: false, 
+            restTime: 20, 
+            isManualRest: false, 
+            tip: 'Đẩy hông vững chắc, hít thở đều.' 
+          },
+          { 
+            name: 'Plank Khóa Khớp (Hiệp Cuối Cháy Hết Mình)', 
+            holdTime: 0, 
+            isMaxEffort: true, 
+            restTime: 30, 
+            isManualRest: false, 
+            tip: 'Hiệp cuối cùng! Dồn toàn bộ sức lực còn lại đến giây cuối cùng!' 
+          }
+        ]
+      }
+    ]
   }
 ];
 

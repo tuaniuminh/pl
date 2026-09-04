@@ -6,6 +6,8 @@ const CircularProgress = ({
   totalTime = 60,
   isResting = false,
   isMaxChallenge = false,
+  isSetMaxEffort = false,
+  isSetManualRest = false,
   isActive = false,
   personalRecord = 60,
   exerciseName = "Plank Cơ Bản"
@@ -14,14 +16,17 @@ const CircularProgress = ({
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = isMaxChallenge 
+
+  const isCountUp = isMaxChallenge || isSetMaxEffort || (isResting && isSetManualRest);
+
+  const strokeDashoffset = isCountUp
     ? circumference - ((timeLeft % 60) / 60) * circumference
     : circumference - (progress / 100) * circumference;
 
   let strokeGradientId = "neonGradient";
   let glowColor = "rgba(16, 185, 129, 0.5)";
 
-  if (isMaxChallenge) {
+  if (isMaxChallenge || isSetMaxEffort) {
     strokeGradientId = "cosmicGradient";
     glowColor = "rgba(6, 182, 212, 0.6)";
   } else if (isResting) {
@@ -109,13 +114,19 @@ const CircularProgress = ({
       <div className="absolute flex flex-col items-center justify-center text-center">
         {/* Status Badge */}
         <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full mb-1 tracking-wider border shadow-sm ${
-          isMaxChallenge
+          isMaxChallenge || isSetMaxEffort
             ? 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/80 dark:border-cyan-500/40 dark:text-cyan-neon'
             : isResting 
             ? 'bg-cyan-50 text-cyan-800 border-cyan-300 dark:bg-cyan-950/80 dark:border-cyan-500/40 dark:text-cyan-neon'
             : 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:border-emerald-500/40 dark:text-emerald-400'
         }`}>
-          {isMaxChallenge ? "⚡ ĐẾM XUÔI" : (isResting ? "❄️ HỒI SỨC" : "🔥 ĐANG GIỮ CORE")}
+          {isMaxChallenge 
+            ? "⚡ ĐẾM XUÔI" 
+            : isSetMaxEffort && !isResting
+            ? "⚡ ĐẾN KHI FAIL" 
+            : isResting 
+            ? (isSetManualRest ? "🍃 NGHỈ TỰ DO" : "❄️ HỒI SỨC")
+            : "🔥 ĐANG GIỮ CORE"}
         </span>
 
         {/* Main Big Digit Timer */}
@@ -127,8 +138,14 @@ const CircularProgress = ({
         <div className="text-[11px] font-medium text-slate-500 dark:text-gray-400 mt-1">
           {isMaxChallenge ? (
             <span>Kỷ lục: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{personalRecord}s</strong></span>
+          ) : isSetMaxEffort && !isResting ? (
+            <span>Mục tiêu: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">Gồng đến khi sập cơ</strong></span>
           ) : isResting ? (
-            <span>Mục tiêu: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{totalTime}s</strong></span>
+            isSetManualRest ? (
+              <span>Nghỉ ngơi: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">Bấm sẵn sàng để tiếp</strong></span>
+            ) : (
+              <span>Mục tiêu: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{totalTime}s</strong></span>
+            )
           ) : (
             <span>Mục tiêu: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{totalTime}s</strong> ({Math.round(progress)}%)</span>
           )}

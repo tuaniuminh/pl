@@ -729,6 +729,8 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
             {filteredPlans.map((plan) => {
               const isActive = activePlan?.id === plan.id || activePlan?.planName === plan.planName;
               const exercises = plan.exercises || plan.days?.[0]?.exercises || [];
+              const hasMaxEffort = exercises.some(e => e.isMaxEffort);
+              const hasManualRest = exercises.some(e => e.isManualRest);
               const totalHoldSec = exercises.reduce((acc, curr) => acc + (Number(curr.holdTime) || 0), 0);
               const totalRestSec = exercises.slice(0, -1).reduce((acc, curr) => acc + (Number(curr.restTime) || 20), 0);
               const totalWorkoutSec = totalHoldSec + totalRestSec;
@@ -795,7 +797,9 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                         🔥 Thời Gian Plank
                       </span>
                       <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
-                        {formatDurationNice(totalHoldSec)}
+                        {hasMaxEffort 
+                          ? (totalHoldSec > 0 ? `${formatDurationNice(totalHoldSec)} + ⚡Max` : '⚡ Đến khi fail') 
+                          : formatDurationNice(totalHoldSec)}
                       </span>
                     </div>
 
@@ -804,7 +808,9 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                         ⏱️ Tổng Bài Tập
                       </span>
                       <span className="font-mono text-xs font-black text-cyan-600 dark:text-cyan-neon mt-0.5 block">
-                        {formatDurationNice(totalWorkoutSec)}
+                        {hasMaxEffort 
+                          ? `${formatDurationNice(totalWorkoutSec)} + ⚡Max` 
+                          : formatDurationNice(totalWorkoutSec)}
                       </span>
                     </div>
                   </div>
@@ -840,8 +846,12 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                               )}
                             </div>
                             <div className="text-right shrink-0 text-[11px] font-mono">
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">{ex.holdTime}s giữ</span>
-                              <span className="text-slate-400 dark:text-gray-500 ml-1.5">/ {ex.restTime || 20}s nghỉ</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                {ex.isMaxEffort ? '⚡ Đến Fail' : `${ex.holdTime}s giữ`}
+                              </span>
+                              <span className="text-slate-400 dark:text-gray-500 ml-1.5">
+                                / {ex.isManualRest ? '🍃 Tự do' : `${ex.restTime || 20}s nghỉ`}
+                              </span>
                             </div>
                           </div>
                         ))}
@@ -1139,56 +1149,104 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
 
                 {/* Steppers for Hold Time & Rest Time */}
                 <div className="grid grid-cols-2 gap-3 pt-1">
-                  {/* Hold Time Stepper */}
-                  <div className="p-3 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 text-center">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400 block mb-1.5">
-                      ⏱️ Thời Gian Giữ
-                    </span>
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateExercise(index, 'holdTime', Math.max(5, Number(ex.holdTime || 45) - 5))}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
-                      >
-                        -5
-                      </button>
-                      <span className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400 w-12">
-                        {ex.holdTime}s
+                  {/* Hold Time Stepper / Mode Toggle */}
+                  <div className={`p-3 rounded-2xl border text-center transition-all ${
+                    ex.isMaxEffort 
+                      ? 'bg-cyan-500/10 border-cyan-500/40 dark:bg-cyan-950/40' 
+                      : 'bg-slate-100/80 dark:bg-white/5 border-slate-200/80 dark:border-white/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5 px-0.5">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400">
+                        ⏱️ Giữ Core
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleUpdateExercise(index, 'holdTime', Number(ex.holdTime || 45) + 5)}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
+                        onClick={() => handleUpdateExercise(index, 'isMaxEffort', !ex.isMaxEffort)}
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all active:scale-95 ${
+                          ex.isMaxEffort 
+                            ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm' 
+                            : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-gray-400 border-transparent hover:text-slate-900 dark:hover:text-white'
+                        }`}
                       >
-                        +5
+                        {ex.isMaxEffort ? '⚡ Đến Fail' : 'Cố định'}
                       </button>
                     </div>
+
+                    {ex.isMaxEffort ? (
+                      <div className="h-7 flex items-center justify-center font-black text-xs text-cyan-600 dark:text-cyan-neon">
+                        ⚡ Gồng Đến Sập Cơ
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateExercise(index, 'holdTime', Math.max(5, Number(ex.holdTime || 45) - 5))}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
+                        >
+                          -5
+                        </button>
+                        <span className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400 w-12">
+                          {ex.holdTime || 45}s
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateExercise(index, 'holdTime', Number(ex.holdTime || 45) + 5)}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
+                        >
+                          +5
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Rest Time Stepper */}
-                  <div className="p-3 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 text-center">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400 block mb-1.5">
-                      ❄️ Thời Gian Nghỉ
-                    </span>
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateExercise(index, 'restTime', Math.max(5, Number(ex.restTime || 20) - 5))}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
-                      >
-                        -5
-                      </button>
-                      <span className="font-mono text-sm font-black text-cyan-600 dark:text-cyan-neon w-12">
-                        {ex.restTime || 20}s
+                  {/* Rest Time Stepper / Mode Toggle */}
+                  <div className={`p-3 rounded-2xl border text-center transition-all ${
+                    ex.isManualRest 
+                      ? 'bg-teal-500/10 border-teal-500/40 dark:bg-teal-950/40' 
+                      : 'bg-slate-100/80 dark:bg-white/5 border-slate-200/80 dark:border-white/5'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5 px-0.5">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-gray-400">
+                        ❄️ Nghỉ Ngơi
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleUpdateExercise(index, 'restTime', Number(ex.restTime || 20) + 5)}
-                        className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
+                        onClick={() => handleUpdateExercise(index, 'isManualRest', !ex.isManualRest)}
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all active:scale-95 ${
+                          ex.isManualRest 
+                            ? 'bg-teal-500 text-white border-teal-400 shadow-sm' 
+                            : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-gray-400 border-transparent hover:text-slate-900 dark:hover:text-white'
+                        }`}
                       >
-                        +5
+                        {ex.isManualRest ? '🍃 Tự do' : 'Cố định'}
                       </button>
                     </div>
+
+                    {ex.isManualRest ? (
+                      <div className="h-7 flex items-center justify-center font-black text-xs text-teal-600 dark:text-teal-400">
+                        🍃 Đến Khi Sẵn Sàng
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateExercise(index, 'restTime', Math.max(5, Number(ex.restTime || 20) - 5))}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
+                        >
+                          -5
+                        </button>
+                        <span className="font-mono text-sm font-black text-cyan-600 dark:text-cyan-neon w-12">
+                          {ex.restTime || 20}s
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateExercise(index, 'restTime', Number(ex.restTime || 20) + 5)}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center shadow-sm active:scale-90"
+                        >
+                          +5
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1581,8 +1639,8 @@ const PlanManager = ({ apiKey, onSelectPlan, onOpenSettings }) => {
                       )}
                     </div>
                     <div className="text-right shrink-0 font-mono text-[11px]">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">{ex.holdTime}s</span>
-                      <span className="text-slate-400 ml-1">/ {ex.restTime || 20}s</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">{ex.isMaxEffort ? '⚡ Đến Fail' : `${ex.holdTime}s`}</span>
+                      <span className="text-slate-400 ml-1">/ {ex.isManualRest ? '🍃 Tự do' : `${ex.restTime || 20}s`}</span>
                     </div>
                   </div>
                 ))}
