@@ -745,6 +745,13 @@ export const recalibrateAndSyncAllData = () => {
         historyChanged = true;
       }
 
+      // Tự động đồng bộ và tính lại calo chính xác theo thời lượng thực tế (chuẩn hóa các bản ghi cũ)
+      const standardCalories = Math.round(((item.duration || 0) / 60) * 4.5);
+      if (item.calories !== standardCalories) {
+        item.calories = standardCalories;
+        historyChanged = true;
+      }
+
       // Đảm bảo có maxSingleHold chính xác
       if (item.maxSingleHold === undefined || item.maxSingleHold === null) {
         if (item.completedSets > 1) {

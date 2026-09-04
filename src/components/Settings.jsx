@@ -25,7 +25,7 @@ import { previewVoice, VOICE_PERSONAS, playHeartbeatSound } from '../utils/audio
 import { triggerHapticHeartbeat } from '../utils/hapticsUtils';
 import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
 
-const APP_VERSION = '2.2.1';
+const APP_VERSION = '2.2.2';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [showKey, setShowKey] = useState(false);
