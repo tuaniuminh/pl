@@ -27,6 +27,7 @@ import {
   BADGES_LIST, 
   getUnlockedBadges, 
   getUserProfile,
+  calculateBMI,
   recalibrateAndSyncAllData
 } from '../services/storageService';
 
@@ -41,6 +42,10 @@ const History = ({ onStartWorkout }) => {
   const [currentViewDate, setCurrentViewDate] = useState(new Date());
   const [selectedDayDetail, setSelectedDayDetail] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null); // null | { type: 'single', id: string } | { type: 'all' }
+
+  const bmiInfo = calculateBMI(userProfile.weight || 65, userProfile.height || 170, userProfile.gender || 'male');
+  const met = (userProfile.gender || 'male') === 'female' ? 4.1 : 4.4;
+  const currentCalPerMin = ((met * 3.5 * (Number(userProfile.weight) || 65)) / 200).toFixed(1);
 
   const refreshData = () => {
     recalibrateAndSyncAllData();
@@ -206,7 +211,35 @@ const History = ({ onStartWorkout }) => {
 
       {/* TAB 1: NHẬT KÝ TẬP & 4 CHỈ SỐ KPI */}
       {activeTab === 'history' && (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 animate-fade-in">
+          {/* Header Card: Hồ Sơ Thể Trạng Hiện Tại */}
+          <div className="glass-panel p-3.5 rounded-3xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 via-emerald-500/5 to-teal-500/10 flex items-center justify-between text-xs">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                {userProfile.gender === 'female' ? '👩' : '👨'}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1 font-black text-slate-900 dark:text-white text-xs">
+                  <span>{userProfile.gender === 'female' ? 'Nữ' : 'Nam'} • {userProfile.height || 170}cm • {userProfile.weight || 65}kg</span>
+                  <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${
+                    bmiInfo.color === 'emerald'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/60 dark:border-emerald-500/30'
+                      : bmiInfo.color === 'cyan'
+                      ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300/60 dark:border-cyan-500/30'
+                      : bmiInfo.color === 'amber'
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-300/60 dark:border-amber-500/30'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-300/60 dark:border-rose-500/30'
+                  }`}>
+                    BMI {bmiInfo.bmi} • {bmiInfo.status}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">
+                  Tốc độ đốt hiện tại: <span className="font-mono text-cyan-600 dark:text-cyan-neon font-bold">~{currentCalPerMin} kcal/phút</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* 4 Summary Stats Cards Grid */}
           <div className="grid grid-cols-2 gap-3">
             {/* Total Minutes */}
@@ -239,7 +272,7 @@ const History = ({ onStartWorkout }) => {
                 <span className="text-xs text-slate-500 dark:text-gray-400 font-bold">kcal</span>
               </div>
               <div className="text-[10px] text-slate-400 dark:text-gray-500 mt-1">
-                Ước tính tiêu chuẩn
+                Tích lũy từng thời kỳ
               </div>
             </div>
 
@@ -540,7 +573,7 @@ const History = ({ onStartWorkout }) => {
                         </div>
                       )}
                       <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">
-                        ~{item.calories || Math.round((item.duration / 60) * 4.5)} kcal
+                        ~{item.calories || Math.round((item.duration / 60) * 4.5)} kcal{item.weightAtTime ? ` (${item.weightAtTime}kg)` : ''}
                       </div>
                     </div>
                   </div>

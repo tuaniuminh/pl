@@ -707,7 +707,9 @@ export const saveHistory = (session) => {
       maxSingleHold: maxSingleHold,
       completedSets: session.completedSets || 1,
       totalSets: session.totalSets || 1,
-      calories: calories
+      calories: calories,
+      weightAtTime: Number(profile.weight) || 65,
+      genderAtTime: profile.gender || 'male'
     };
     history.unshift(newRecord);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
@@ -808,13 +810,19 @@ export const recalibrateAndSyncAllData = () => {
       if (item.duration === 660 && (item.completedSets === 10 || item.totalSets === 10)) {
         item.duration = 600;
         item.maxSingleHold = 60;
+        item.calories = 45;
         historyChanged = true;
       }
 
-      // Tự động đồng bộ và tính lại calo chính xác theo thời lượng thực tế (chuẩn hóa các bản ghi cũ)
-      const standardCalories = Math.round(((item.duration || 0) / 60) * 4.5);
-      if (item.calories !== standardCalories) {
-        item.calories = standardCalories;
+      // Bảo toàn mốc cân nặng tại thời điểm tập (nếu bản ghi cũ chưa có thì gán mốc gốc 65kg)
+      if (!item.weightAtTime) {
+        item.weightAtTime = 65;
+        historyChanged = true;
+      }
+
+      // Đảm bảo mỗi buổi tập luôn có giá trị calo hợp lệ
+      if (!item.calories || item.calories <= 0) {
+        item.calories = calculatePersonalizedCalories(item.duration || 0, item.weightAtTime || 65, item.genderAtTime || 'male');
         historyChanged = true;
       }
 
