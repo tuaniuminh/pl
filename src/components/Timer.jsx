@@ -58,6 +58,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const [isActive, setIsActive] = useState(false);
   const [isResting, setIsResting] = useState(false);
   const [isMaxChallenge, setIsMaxChallenge] = useState(false);
+  const [challengeSetIndex, setChallengeSetIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [totalSetDuration, setTotalSetDuration] = useState(60);
   const [sessionTotalHoldSeconds, setSessionTotalHoldSeconds] = useState(0);
@@ -78,7 +79,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
 
   // Trạng thái kiểm tra xem có đang trong quá trình tập luyện dở dang không
   const isWorkoutInProgress = isActive 
-    || (isMaxChallenge && timeLeft > 0) 
+    || (isMaxChallenge && (timeLeft > 0 || challengeSetIndex > 0 || isResting))
     || currentSetIndex > 0 
     || isResting 
     || (!isMaxChallenge && !isResting && !isCurrentSetMaxEffort && timeLeft < totalSetDuration)
@@ -161,7 +162,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
 
     if (isActive) {
       interval = setInterval(() => {
-        if (isMaxChallenge || isCurrentSetMaxEffort) {
+        if ((isMaxChallenge && !isResting) || isCurrentSetMaxEffort) {
           // CHẾ ĐỘ THÁCH THỨC VÔ CỰC HOẶC HIỆP AMRAP GỒNG ĐẾN KHI FAIL (Đếm tăng dần)
           setTimeLeft((prev) => {
             const nextSec = prev + 1;
@@ -199,7 +200,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
 
             return nextSec;
           });
-        } else if (isCurrentSetManualRest) {
+        } else if (isCurrentSetManualRest || (isMaxChallenge && isResting)) {
           // NGHỈ TỰ DO (Đếm tăng dần thời gian nghỉ, không tính vào sessionTotalHoldSeconds)
           setTimeLeft((prev) => {
             const nextSec = prev + 1;
@@ -418,6 +419,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setTimeLeft(0);
       setTotalSetDuration(0);
       setSessionTotalHoldSeconds(0);
+      setSessionMaxSingleHold(0);
+      setChallengeSetIndex(0);
       if (voiceEnabled) {
         playVoiceClip('start_challenge', 'Chuyển sang Thách Thức Giới Hạn! Hãy giữ plank lâu nhất có thể!', { enabled: voiceEnabled });
       }
@@ -429,13 +432,68 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setTimeLeft(firstHold);
       setTotalSetDuration(firstHold);
       setSessionTotalHoldSeconds(0);
+      setChallengeSetIndex(0);
     }
   };
 
+  // Khi đang gồng trong Thách Thức Giới Hạn và bấm "NGHỈ HỒI SỨC"
+  const handleChallengeRest = () => {
+    triggerHapticHeavy();
+    if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
+
+    const currentHold = timeLeft;
+    setSessionMaxSingleHold(prev => Math.max(prev, currentHold));
+
+    // Cập nhật kỷ lục cá nhân nếu vượt qua
+    if (currentHold > (userProfile.record || 0)) {
+      updatePersonalRecord(currentHold);
+      setUserProfile(getUserProfile());
+    }
+
+    setIsResting(true);
+    setTimeLeft(0); // Reset đồng hồ về 0 để đếm thời gian nghỉ ngơi
+    setTotalSetDuration(0);
+    setIsActive(true); // Tiếp tục chạy đồng hồ đếm thời gian nghỉ
+
+    if (voiceEnabled) {
+      playVoiceClip('rest_start', 'Tuyệt vời! Nghỉ ngơi hồi sức và chuẩn bị cho hiệp tiếp theo.', { enabled: voiceEnabled });
+    }
+  };
+
+  // Khi đang nghỉ trong Thách Thức Giới Hạn và bấm "HIỆP 2", "HIỆP 3"...
+  const handleChallengeNextRound = () => {
+    triggerHapticHeavy();
+    if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
+
+    setChallengeSetIndex(prev => prev + 1);
+    setIsResting(false);
+    setTimeLeft(0); // Reset đồng hồ về 0 để đếm thời gian gồng hiệp mới
+    setTotalSetDuration(0);
+    setIsActive(true);
+
+    if (voiceEnabled) {
+      playVoiceClip('start_challenge', `Bắt đầu Hiệp ${challengeSetIndex + 2}! Cố lên!`, { enabled: voiceEnabled });
+    }
+  };
+
+  // Khi bấm "KẾT THÚC" trong Thách Thức Giới Hạn
   const handleStopMaxChallenge = () => {
     triggerHapticSuccess();
-    if (timeLeft > 0) {
-      finishWorkoutSession(timeLeft, 1, "⚡ Thách Thức Giới Hạn");
+
+    if (!isResting && timeLeft > 0) {
+      const holdTime = timeLeft;
+      setSessionMaxSingleHold(prev => Math.max(prev, holdTime));
+      if (holdTime > (userProfile.record || 0)) {
+        updatePersonalRecord(holdTime);
+        setUserProfile(getUserProfile());
+      }
+    }
+
+    const totalHold = sessionTotalHoldSeconds;
+    const completedSets = challengeSetIndex + 1;
+
+    if (totalHold > 0 || timeLeft > 0) {
+      finishWorkoutSession(totalHold, Math.max(1, completedSets), "⚡ Thách Thức Giới Hạn");
     }
   };
 
@@ -449,6 +507,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     if (isMaxChallenge) {
       setTimeLeft(0);
       setTotalSetDuration(0);
+      setChallengeSetIndex(0);
     } else {
       setCurrentSetIndex(0);
       const firstEx = exercises[0];
@@ -554,9 +613,11 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setIsActive(false);
     setIsResting(false);
     setIsMaxChallenge(true);
+    setChallengeSetIndex(0);
     setTimeLeft(0);
     setTotalSetDuration(0);
     setSessionTotalHoldSeconds(0);
+    setSessionMaxSingleHold(0);
   };
 
   const progressPercent = totalSetDuration > 0 ? ((totalSetDuration - timeLeft) / totalSetDuration) * 100 : 0;
@@ -573,7 +634,11 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
         {isMaxChallenge ? (
           <div className="w-full h-full flex flex-col items-center justify-center space-y-2 py-1">
             <span className="text-xs sm:text-sm font-black uppercase px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-2 border-cyan-400/60 dark:border-cyan-500/40 shadow-sm">
-              ⚡ THÁCH THỨC GIỚI HẠN
+              {isResting 
+                ? `🍃 NGHỈ HỒI SỨC (SAU HIỆP ${challengeSetIndex + 1})` 
+                : challengeSetIndex > 0 
+                ? `⚡ THÁCH THỨC GIỚI HẠN • HIỆP ${challengeSetIndex + 1}` 
+                : "⚡ THÁCH THỨC GIỚI HẠN"}
             </span>
 
             {/* Nút bấm (i) Mở Modal Chi Tiết */}
@@ -585,7 +650,11 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                 <Info size={10} />
               </div>
               <span className="truncate text-[10px] font-medium">
-                Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới
+                {isResting 
+                  ? `Thả lỏng cơ bắp, bấm Hiệp ${challengeSetIndex + 2} khi đã sẵn sàng` 
+                  : challengeSetIndex > 0 
+                  ? `Tổng thời gian đã gồng: ${sessionTotalHoldSeconds}s` 
+                  : "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới"}
               </span>
               <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
             </button>
@@ -693,20 +762,27 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
           isResting={isResting}
           isMaxChallenge={isMaxChallenge}
           isSetMaxEffort={isCurrentSetMaxEffort}
-          isSetManualRest={isCurrentSetManualRest}
+          isSetManualRest={isCurrentSetManualRest || (isMaxChallenge && isResting)}
           isActive={isActive}
           personalRecord={userProfile.record || 60}
-          exerciseName={currentExercise.name}
+          exerciseName={isMaxChallenge ? (isResting ? "Nghỉ Hồi Sức" : `Thách Thức Hiệp ${challengeSetIndex + 1}`) : currentExercise.name}
         />
 
         {/* Quick Time Adjuster / Status Bar (Cố định chiều cao h-12 mt-4 sm:mt-5 trong tất cả các chế độ) */}
         <div className="h-12 mt-4 sm:mt-5 flex items-center justify-center shrink-0">
           {isMaxChallenge ? (
             <div className="h-12 flex items-center justify-center">
-              <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
-                <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
-                <span>Gồng giữ tự do không giới hạn</span>
-              </div>
+              {isResting ? (
+                <div className="text-[11px] font-bold text-cyan-700 dark:text-cyan-300 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/60 dark:border-cyan-500/30 shadow-sm animate-pulse">
+                  <span className="text-xs">🍃</span>
+                  <span>Đang nghỉ sau Hiệp {challengeSetIndex + 1} • Bấm Hiệp {challengeSetIndex + 2} để tập tiếp</span>
+                </div>
+              ) : (
+                <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
+                  <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
+                  <span>{challengeSetIndex > 0 ? `Hiệp ${challengeSetIndex + 1} • Tổng đã gồng: ${sessionTotalHoldSeconds}s` : 'Gồng giữ tự do không giới hạn'}</span>
+                </div>
+              )}
             </div>
           ) : isCurrentSetMaxEffort ? (
             <div className="h-12 flex items-center justify-center">
@@ -748,85 +824,135 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
 
       {/* 4. Giant Tactical Control Buttons (Cố định chiều cao h-16 mb-3 sm:mb-5 chống nhảy vị trí) */}
       <div className="w-full h-16 mb-3 sm:mb-5 shrink-0 flex items-center justify-center">
-        <div className={`flex items-center justify-center space-x-3.5 mx-auto w-full ${isMaxChallenge ? 'max-w-[320px]' : 'max-w-md'}`}>
-          {/* Reset / Stop Button */}
-          <button
-            onClick={handleResetTimer}
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
-            title="Khởi động lại bài tập"
-          >
-            <RotateCcw size={22} />
-          </button>
+        <div className="flex items-center justify-center space-x-3.5 mx-auto w-full max-w-md">
+          {isMaxChallenge && isResting ? (
+            /* Khi đang nghỉ trong Thách Thức Giới Hạn */
+            <>
+              {/* Nút Kết Thúc Bài Tập */}
+              <button
+                onClick={handleStopMaxChallenge}
+                className="h-14 sm:h-16 px-4 sm:px-5 rounded-2xl sm:rounded-3xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-400/40 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all shadow-sm shrink-0 space-x-1.5 text-xs sm:text-sm font-black uppercase"
+                title="Kết thúc bài tập và lưu thành tích"
+              >
+                <Trophy size={18} />
+                <span>KẾT THÚC</span>
+              </button>
 
-          {/* Huge Main Play / Pause / Stop / Next Set Button */}
-          {isMaxChallenge && isActive ? (
-            <button
-              onClick={handleStopMaxChallenge}
-              className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white shadow-lg shadow-red-500/30"
-            >
-              <Trophy size={22} />
-              <span>KẾT THÚC</span>
-            </button>
-          ) : isCurrentSetMaxEffort && isActive ? (
-            <button
-              onClick={handleFinishMaxEffortSet}
-              className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white shadow-lg shadow-rose-500/30"
-              title="Bấm khi bạn đã hết sức để chuyển sang hiệp kế tiếp hoặc nghỉ"
-            >
-              <Zap size={22} className="fill-current animate-bounce" />
-              <span>HẾT SỨC - XONG HIỆP</span>
-            </button>
-          ) : isCurrentSetManualRest ? (
-            <button
-              onClick={handleAdvanceFromManualRest}
-              className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-lg shadow-teal-500/30"
-              title="Bấm khi bạn đã hồi sức để vào hiệp tiếp theo"
-            >
-              <Play size={22} fill="currentColor" />
-              <span>SẴN SÀNG - VÀO HIỆP TIẾP</span>
-            </button>
+              {/* Nút Vào Hiệp Kế Tiếp: Đúng theo yêu cầu người dùng "HIỆP 2", "HIỆP 3"... */}
+              <button
+                onClick={handleChallengeNextRound}
+                className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-lg shadow-teal-500/30"
+              >
+                <Play size={22} fill="currentColor" />
+                <span>HIỆP {challengeSetIndex + 2}</span>
+              </button>
+            </>
+          ) : isMaxChallenge && isActive ? (
+            /* Khi đang gồng trong Thách Thức Giới Hạn */
+            <>
+              {/* Reset */}
+              <button
+                onClick={handleResetTimer}
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
+                title="Khởi động lại bài tập"
+              >
+                <RotateCcw size={22} />
+              </button>
+
+              {/* Nút Nghỉ Hồi Sức */}
+              <button
+                onClick={handleChallengeRest}
+                className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2 transition-all active:scale-95 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/30"
+                title="Bấm để nghỉ hồi sức và chuẩn bị hiệp tiếp"
+              >
+                <Zap size={22} className="fill-current animate-bounce" />
+                <span>NGHỈ HỒI SỨC</span>
+              </button>
+
+              {/* Nút Kết Thúc Bài Tập Ngay */}
+              <button
+                onClick={handleStopMaxChallenge}
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-400/40 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-90 transition-all shadow-sm shrink-0"
+                title="Kết thúc bài tập và lưu thành tích"
+              >
+                <Trophy size={22} />
+              </button>
+            </>
           ) : (
-            <button
-              onClick={handleToggleTimer}
-              className={`flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 shadow-md ${
-                isActive
-                  ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'
-                  : isMaxChallenge
-                  ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-400 hover:from-sky-300 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/30 border border-cyan-300/30'
-                  : 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
-              }`}
-            >
-              {isActive ? (
-                <>
-                  <Pause size={24} fill="currentColor" />
-                  <span>TẠM DỪNG</span>
-                </>
-              ) : (
-                <>
-                  <Play size={24} fill="currentColor" />
-                  <span>
-                    {isCurrentSetMaxEffort && timeLeft > 0
-                      ? "TIẾP TỤC GỒNG"
-                      : !isMaxChallenge && timeLeft < totalSetDuration
-                      ? "TIẾP TỤC"
-                      : isMaxChallenge && timeLeft > 0
-                      ? "TIẾP TỤC"
-                      : "BẮT ĐẦU TẬP"}
-                  </span>
-                </>
-              )}
-            </button>
-          )}
+            /* Khi chưa bắt đầu hoặc trong giáo án chuẩn */
+            <>
+              {/* Reset / Stop Button */}
+              <button
+                onClick={handleResetTimer}
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
+                title="Khởi động lại bài tập"
+              >
+                <RotateCcw size={22} />
+              </button>
 
-          {/* Next Set Button */}
-          {exercises.length > 1 && !isMaxChallenge && (
-            <button
-              onClick={handleSkipSet}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
-              title="Chuyển sang hiệp kế tiếp"
-            >
-              <SkipForward size={22} />
-            </button>
+              {/* Huge Main Play / Pause / Stop / Next Set Button */}
+              {isCurrentSetMaxEffort && isActive ? (
+                <button
+                  onClick={handleFinishMaxEffortSet}
+                  className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white shadow-lg shadow-rose-500/30"
+                  title="Bấm khi bạn đã hết sức để chuyển sang hiệp kế tiếp hoặc nghỉ"
+                >
+                  <Zap size={22} className="fill-current animate-bounce" />
+                  <span>HẾT SỨC - XONG HIỆP</span>
+                </button>
+              ) : isCurrentSetManualRest ? (
+                <button
+                  onClick={handleAdvanceFromManualRest}
+                  className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-lg shadow-teal-500/30"
+                  title="Bấm khi bạn đã hồi sức để vào hiệp tiếp theo"
+                >
+                  <Play size={22} fill="currentColor" />
+                  <span>SẴN SÀNG - VÀO HIỆP TIẾP</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleToggleTimer}
+                  className={`flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 shadow-md ${
+                    isActive
+                      ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'
+                      : isMaxChallenge
+                      ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-400 hover:from-sky-300 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/30 border border-cyan-300/30'
+                      : 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/20'
+                  }`}
+                >
+                  {isActive ? (
+                    <>
+                      <Pause size={24} fill="currentColor" />
+                      <span>TẠM DỪNG</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play size={24} fill="currentColor" />
+                      <span>
+                        {isCurrentSetMaxEffort && timeLeft > 0
+                          ? "TIẾP TỤC GỒNG"
+                          : !isMaxChallenge && timeLeft < totalSetDuration
+                          ? "TIẾP TỤC"
+                          : isMaxChallenge && timeLeft > 0
+                          ? "TIẾP TỤC"
+                          : "BẮT ĐẦU TẬP"}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Next Set Button */}
+              {exercises.length > 1 && !isMaxChallenge && (
+                <button
+                  onClick={handleSkipSet}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
+                  title="Chuyển sang hiệp kế tiếp"
+                >
+                  <SkipForward size={22} />
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
