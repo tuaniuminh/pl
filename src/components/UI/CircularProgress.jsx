@@ -31,11 +31,26 @@ const CircularProgress = ({
 
   return (
     <div className="relative flex items-center justify-center">
-      {/* Background radial glow */}
+      {/* Background radial glow - Quầng sáng Neon rực rỡ đa tầng */}
       <div 
-        className="absolute w-48 h-48 rounded-full blur-3xl opacity-20 dark:opacity-35 transition-all duration-700 pointer-events-none"
+        className={`absolute w-52 h-52 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
+          isActive 
+            ? 'opacity-40 dark:opacity-70 scale-105' 
+            : 'opacity-25 dark:opacity-55 scale-100'
+        }`}
         style={{ 
           backgroundColor: isMaxChallenge ? '#06b6d4' : (isResting ? '#00f2fe' : '#10b981') 
+        }}
+      />
+      {/* Lõi sáng trung tâm giúp tỏa sáng rực rỡ phía sau con số */}
+      <div 
+        className={`absolute w-32 h-32 rounded-full blur-2xl transition-all duration-500 pointer-events-none ${
+          isActive 
+            ? 'opacity-30 dark:opacity-50' 
+            : 'opacity-15 dark:opacity-30'
+        }`}
+        style={{ 
+          backgroundColor: isMaxChallenge ? '#22d3ee' : (isResting ? '#38bdf8' : '#34d399') 
         }}
       />
 
