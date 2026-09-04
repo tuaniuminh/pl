@@ -85,17 +85,26 @@ export const generatePlankPlan = async (apiKey, userProfile, historySummary) => 
     throw new Error("Vui lòng nhập Google Gemini API Key trong phần Cài đặt.");
   }
 
+  const record = userProfile.record || 45;
+  const height = userProfile.height || 170;
+  const weight = userProfile.weight || 65;
+  const heightM = height / 100;
+  const bmi = (weight / (heightM * heightM)).toFixed(1);
+
   const promptText = `
 Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp cao quốc tế.
-Dưới đây là BÁO CÁO TOÀN DIỆN VỀ LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
+Dưới đây là BÁO CÁO TOÀN DIỆN VỀ THỂ TRẠNG & LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
+
+👤 CHỈ SỐ THỂ TRẠNG:
+- Chiều cao: ${height} cm | Cân nặng: ${weight} kg | BMI: ${bmi}
+- Trình độ thể lực: ${userProfile.level || "Trung bình"}
+- Mục tiêu chính: ${userProfile.goal || "Tăng sức bền & Giảm mỡ bụng"}
 
 📊 THỐNG KÊ LỊCH SỬ:
-- Kỷ lục giữ Plank cao nhất: ${userProfile.record || 45} giây
+- Kỷ lục giữ Plank cao nhất: ${record} giây
 - Tổng số buổi tập đã hoàn thành: ${historySummary?.totalWorkouts || 0} buổi
 - Tổng thời gian Plank tích lũy: ${historySummary?.totalMinutes || 0} phút
 - Chuỗi ngày tập liên tục: ${historySummary?.streak || 0} ngày
-- Trình độ thể lực: ${userProfile.level || "Trung bình"}
-- Mục tiêu chính: ${userProfile.goal || "Tăng sức bền & Giảm mỡ bụng"}
 
 🗓️ CHI TIẾT CÁC BUỔI TẬP GẦN NHẤT:
 ${historySummary?.recentSessionsText || "Chưa có lịch sử buổi tập trước đó."}

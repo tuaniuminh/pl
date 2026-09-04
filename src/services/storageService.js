@@ -338,6 +338,8 @@ export const saveSettings = (settings) => {
 export const getUserProfile = () => {
   const defaultProfile = {
     record: 60,
+    weight: 65, // Cân nặng (kg)
+    height: 170, // Chiều cao (cm)
     frequency: '3 buổi/tuần',
     goal: 'Giảm mỡ bụng & Tăng cơ Core',
     level: 'Trung bình',
@@ -349,6 +351,49 @@ export const getUserProfile = () => {
   } catch (e) {
     return defaultProfile;
   }
+};
+
+/**
+ * Tính chỉ số thể trạng BMI và đánh giá tình trạng cơ thể
+ */
+export const calculateBMI = (weight = 65, height = 170) => {
+  const w = Number(weight) || 65;
+  const h = Number(height) || 170;
+  const heightM = h / 100;
+  const bmi = Number((w / (heightM * heightM)).toFixed(1));
+  let status = 'Cân đối';
+  let color = 'emerald';
+  let desc = 'Thể trạng lý tưởng cho các bài tập Plank nâng cao';
+
+  if (bmi < 18.5) {
+    status = 'Hơi gầy';
+    color = 'cyan';
+    desc = 'Nên kết hợp bài tập Core và bổ sung dinh dưỡng tăng cơ';
+  } else if (bmi < 23.0) {
+    status = 'Cân đối';
+    color = 'emerald';
+    desc = 'Chỉ số vàng! Tiếp tục duy trì để siết cơ Core săn chắc';
+  } else if (bmi < 25.0) {
+    status = 'Hơi thừa cân';
+    color = 'amber';
+    desc = 'Tăng số hiệp Plank ngắn ngắt quãng để kích hoạt đốt mỡ';
+  } else {
+    status = 'Cần giảm mỡ';
+    color = 'rose';
+    desc = 'Tập trung các bài Plank đốt mỡ toàn thân và kiểm soát calo';
+  }
+
+  return { bmi, status, color, desc, weight: w, height: h };
+};
+
+/**
+ * Tính lượng Calo cá nhân hóa theo Cân Nặng (Chuẩn chuyển hóa MET 4.3 y khoa thể thao)
+ */
+export const calculatePersonalizedCalories = (durationSeconds, weightKg = 65) => {
+  const w = Number(weightKg) || 65;
+  // Công thức ACSM: Calo/phút = (MET x 3.5 x Trọng lượng kg) / 200
+  const calPerMin = (4.3 * 3.5 * w) / 200;
+  return Math.max(1, Math.round(((durationSeconds || 0) / 60) * calPerMin));
 };
 
 export const saveUserProfile = (profile) => {
@@ -627,7 +672,8 @@ export const getHistory = () => {
 export const saveHistory = (session) => {
   try {
     const history = getHistory();
-    const calories = Math.round((session.duration / 60) * 4.5);
+    const profile = getUserProfile();
+    const calories = calculatePersonalizedCalories(session.duration || 0, profile.weight);
     const maxSingleHold = session.maxSingleHold !== undefined 
       ? session.maxSingleHold 
       : (session.totalSets === 1 ? (session.duration || 0) : (session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0));

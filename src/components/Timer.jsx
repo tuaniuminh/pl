@@ -797,7 +797,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               <div className="text-center">
                 <div className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Calo Tiêu Hao</div>
                 <div className="font-mono text-lg font-extrabold text-cyan-600 dark:text-cyan-neon">
-                  {Math.round((completedSessionData.duration / 60) * 4.5)} kcal
+                  {completedSessionData.calories || Math.round((completedSessionData.duration / 60) * 4.5)} kcal
                 </div>
               </div>
             </div>

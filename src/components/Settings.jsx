@@ -18,16 +18,19 @@ import {
   X,
   Info,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Scale
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS, playHeartbeatSound } from '../utils/audioPack';
 import { triggerHapticHeartbeat } from '../utils/hapticsUtils';
 import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
+import { getUserProfile, saveUserProfile, calculateBMI } from '../services/storageService';
 
-const APP_VERSION = '2.2.2';
+const APP_VERSION = '2.2.3';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
+  const [userProfile, setUserProfileState] = useState(getUserProfile());
   const [showKey, setShowKey] = useState(false);
   const [testingKey, setTestingKey] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -46,6 +49,23 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
 
   // Cờ hủy tiến trình tải ngầm
   const downloadCanceledRef = useRef(false);
+
+  const handleHeightChange = (newHeight) => {
+    const val = Number(newHeight) || 170;
+    const updated = { ...userProfile, height: val };
+    setUserProfileState(updated);
+    saveUserProfile(updated);
+  };
+
+  const handleWeightChange = (newWeight) => {
+    const val = Number(newWeight) || 65;
+    const updated = { ...userProfile, weight: val };
+    setUserProfileState(updated);
+    saveUserProfile(updated);
+  };
+
+  const bmiInfo = calculateBMI(userProfile.weight || 65, userProfile.height || 170);
+  const calPerMin = ((4.3 * 3.5 * (Number(userProfile.weight) || 65)) / 200).toFixed(1);
 
   const handleKeyChange = (val) => {
     onUpdateSettings({ ...settings, apiKey: val });
@@ -394,7 +414,118 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
         </div>
       </div>
 
-      {/* SECTION 3: CẤU HÌNH GOOGLE GEMINI API KEY */}
+      {/* SECTION 3: CHỈ SỐ CƠ THỂ & THỂ TRẠNG (BMI) */}
+      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-neon flex items-center justify-center">
+              <Scale size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Chỉ Số Cơ Thể & Thể Trạng</h3>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">Cá nhân hóa lượng Calo đốt & Tối ưu giáo án AI</p>
+            </div>
+          </div>
+          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shrink-0 ${
+            bmiInfo.color === 'emerald'
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/60 dark:border-emerald-500/30'
+              : bmiInfo.color === 'cyan'
+              ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 border-cyan-300/60 dark:border-cyan-500/30'
+              : bmiInfo.color === 'amber'
+              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-300/60 dark:border-amber-500/30'
+              : 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-300/60 dark:border-rose-500/30'
+          }`}>
+            BMI: {bmiInfo.bmi} • {bmiInfo.status}
+          </span>
+        </div>
+
+        {/* 2 Sliders / Quick Step: Cân Nặng & Chiều Cao */}
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          {/* Cân Nặng (kg) */}
+          <div className="p-3.5 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-700 dark:text-gray-300">Cân Nặng</span>
+              <span className="font-mono font-black text-cyan-600 dark:text-cyan-neon text-sm">{userProfile.weight || 65} <span className="text-[10px] font-normal text-slate-400">kg</span></span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => handleWeightChange(Math.max(35, (userProfile.weight || 65) - 1))}
+                className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white flex items-center justify-center font-bold text-sm shadow-sm active:scale-90"
+              >
+                -
+              </button>
+              <input
+                type="range"
+                min="35"
+                max="130"
+                step="1"
+                value={userProfile.weight || 65}
+                onChange={(e) => handleWeightChange(e.target.value)}
+                className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-white/10 rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={() => handleWeightChange(Math.min(150, (userProfile.weight || 65) + 1))}
+                className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white flex items-center justify-center font-bold text-sm shadow-sm active:scale-90"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Chiều Cao (cm) */}
+          <div className="p-3.5 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-700 dark:text-gray-300">Chiều Cao</span>
+              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">{userProfile.height || 170} <span className="text-[10px] font-normal text-slate-400">cm</span></span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => handleHeightChange(Math.max(130, (userProfile.height || 170) - 1))}
+                className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white flex items-center justify-center font-bold text-sm shadow-sm active:scale-90"
+              >
+                -
+              </button>
+              <input
+                type="range"
+                min="130"
+                max="210"
+                step="1"
+                value={userProfile.height || 170}
+                onChange={(e) => handleHeightChange(e.target.value)}
+                className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-white/10 rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={() => handleHeightChange(Math.min(220, (userProfile.height || 170) + 1))}
+                className="w-7 h-7 rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white flex items-center justify-center font-bold text-sm shadow-sm active:scale-90"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Metrics Feedback Card */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-emerald-500/10 to-teal-500/10 border border-cyan-500/20 flex items-center justify-between text-xs">
+          <div className="space-y-0.5 min-w-0 flex-1 pr-2">
+            <div className="font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+              <span>🔥 Tốc độ đốt:</span>
+              <span className="font-mono text-cyan-600 dark:text-cyan-neon font-black">~{calPerMin} kcal / phút</span>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-gray-400 leading-tight">{bmiInfo.desc}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-300">
+              ACSM MET 4.3
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: CẤU HÌNH GOOGLE GEMINI API KEY */}
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

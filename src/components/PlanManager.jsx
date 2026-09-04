@@ -81,6 +81,10 @@ export const formatDurationNice = (totalSeconds) => {
 // Hàm tạo Prompt chuyên sâu tối ưu cho tài khoản Gemini Pro kèm toàn bộ Lịch Sử Tập Luyện
 export const buildGeminiProPrompt = (userProfile, historySummary) => {
   const record = userProfile.record || 60;
+  const height = userProfile.height || 170;
+  const weight = userProfile.weight || 65;
+  const heightM = height / 100;
+  const bmi = (weight / (heightM * heightM)).toFixed(1);
   const goal = userProfile.goal || "Tăng sức bền & Giảm mỡ bụng";
   const level = userProfile.level || "Trung bình";
   const totalWorkouts = historySummary?.totalWorkouts || 0;
@@ -89,15 +93,18 @@ export const buildGeminiProPrompt = (userProfile, historySummary) => {
   const recentSessionsText = historySummary?.recentSessionsText || "Chưa có lịch sử buổi tập trước đó.";
 
   return `Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp cao quốc tế.
-Dưới đây là BÁO CÁO TOÀN DIỆN VỀ LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
+Dưới đây là BÁO CÁO TOÀN DIỆN VỀ THỂ TRẠNG & LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
+
+👤 CHỈ SỐ THỂ TRẠNG:
+- Chiều cao: ${height} cm | Cân nặng: ${weight} kg | BMI: ${bmi}
+- Trình độ thể lực: ${level}
+- Mục tiêu chính: ${goal}
 
 📊 THỐNG KÊ LỊCH SỬ TẬP LUYỆN:
 - Kỷ lục giữ Plank cao nhất: ${record} giây
 - Tổng số buổi tập đã hoàn thành: ${totalWorkouts} buổi
 - Tổng thời gian Plank tích lũy: ${totalMinutes} phút
 - Chuỗi ngày tập liên tục: ${streak} ngày
-- Trình độ thể lực: ${level}
-- Mục tiêu chính: ${goal}
 
 🗓️ CHI TIẾT CÁC BUỔI TẬP GẦN NHẤT:
 ${recentSessionsText}
