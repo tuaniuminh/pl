@@ -27,7 +27,7 @@ import { triggerHapticHeartbeat } from '../utils/hapticsUtils';
 import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
 import { getUserProfile, saveUserProfile, calculateBMI } from '../services/storageService';
 
-const APP_VERSION = '2.2.3';
+const APP_VERSION = '2.2.4';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [userProfile, setUserProfileState] = useState(getUserProfile());
@@ -50,6 +50,12 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   // Cờ hủy tiến trình tải ngầm
   const downloadCanceledRef = useRef(false);
 
+  const handleGenderChange = (newGender) => {
+    const updated = { ...userProfile, gender: newGender };
+    setUserProfileState(updated);
+    saveUserProfile(updated);
+  };
+
   const handleHeightChange = (newHeight) => {
     const val = Number(newHeight) || 170;
     const updated = { ...userProfile, height: val };
@@ -64,8 +70,9 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
     saveUserProfile(updated);
   };
 
-  const bmiInfo = calculateBMI(userProfile.weight || 65, userProfile.height || 170);
-  const calPerMin = ((4.3 * 3.5 * (Number(userProfile.weight) || 65)) / 200).toFixed(1);
+  const bmiInfo = calculateBMI(userProfile.weight || 65, userProfile.height || 170, userProfile.gender || 'male');
+  const met = (userProfile.gender || 'male') === 'female' ? 4.1 : 4.4;
+  const calPerMin = ((met * 3.5 * (Number(userProfile.weight) || 65)) / 200).toFixed(1);
 
   const handleKeyChange = (val) => {
     onUpdateSettings({ ...settings, apiKey: val });
@@ -437,6 +444,35 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           }`}>
             BMI: {bmiInfo.bmi} • {bmiInfo.status}
           </span>
+        </div>
+
+        {/* Giới Tính Sinh Học (Nam / Nữ) */}
+        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10">
+          <span className="text-xs font-bold text-slate-700 dark:text-gray-300 ml-1.5">Giới Tính Sinh Học</span>
+          <div className="flex space-x-1.5">
+            <button
+              type="button"
+              onClick={() => handleGenderChange('male')}
+              className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center space-x-1.5 active:scale-95 ${
+                (userProfile.gender || 'male') === 'male'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/20'
+                  : 'bg-white dark:bg-white/10 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>👨 Nam</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGenderChange('female')}
+              className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center space-x-1.5 active:scale-95 ${
+                userProfile.gender === 'female'
+                  ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/20'
+                  : 'bg-white dark:bg-white/10 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>👩 Nữ</span>
+            </button>
+          </div>
         </div>
 
         {/* 2 Sliders / Quick Step: Cân Nặng & Chiều Cao */}

@@ -338,6 +338,7 @@ export const saveSettings = (settings) => {
 export const getUserProfile = () => {
   const defaultProfile = {
     record: 60,
+    gender: 'male', // 'male' (Nam) hoặc 'female' (Nữ)
     weight: 65, // Cân nặng (kg)
     height: 170, // Chiều cao (cm)
     frequency: '3 buổi/tuần',
@@ -354,45 +355,64 @@ export const getUserProfile = () => {
 };
 
 /**
- * Tính chỉ số thể trạng BMI và đánh giá tình trạng cơ thể
+ * Tính chỉ số thể trạng BMI và đánh giá tình trạng cơ thể cá nhân hóa theo Giới Tính
  */
-export const calculateBMI = (weight = 65, height = 170) => {
+export const calculateBMI = (weight = 65, height = 170, gender = 'male') => {
   const w = Number(weight) || 65;
   const h = Number(height) || 170;
   const heightM = h / 100;
   const bmi = Number((w / (heightM * heightM)).toFixed(1));
+  const isFemale = gender === 'female';
+
   let status = 'Cân đối';
   let color = 'emerald';
-  let desc = 'Thể trạng lý tưởng cho các bài tập Plank nâng cao';
+  let desc = isFemale 
+    ? 'Vóc dáng cân đối! Thích hợp để siết eo và tạo rãnh bụng số 11'
+    : 'Thể trạng lý tưởng! Sẵn sàng tăng cường sức mạnh cơ bụng 6 múi';
 
-  if (bmi < 18.5) {
+  // Chuẩn nhân trắc học châu Á có phân hóa theo giới tính
+  const underweightThreshold = isFemale ? 18.0 : 18.5;
+  const normalUpperThreshold = isFemale ? 22.5 : 23.0;
+  const overweightThreshold = isFemale ? 24.5 : 25.0;
+
+  if (bmi < underweightThreshold) {
     status = 'Hơi gầy';
     color = 'cyan';
-    desc = 'Nên kết hợp bài tập Core và bổ sung dinh dưỡng tăng cơ';
-  } else if (bmi < 23.0) {
+    desc = isFemale
+      ? 'Nên tập các bài Plank nhẹ nhàng kết hợp bổ sung dinh dưỡng săn chắc'
+      : 'Cần bổ sung protein tăng cơ nạc và tập trung bài Plank sức bền';
+  } else if (bmi < normalUpperThreshold) {
     status = 'Cân đối';
     color = 'emerald';
-    desc = 'Chỉ số vàng! Tiếp tục duy trì để siết cơ Core săn chắc';
-  } else if (bmi < 25.0) {
+    desc = isFemale
+      ? 'Tỷ lệ vàng! Duy trì để tạo cơ bụng số 11 và vòng eo thon gọn'
+      : 'Chỉ số lý tưởng! Tăng độ khó để cắt nét khối cơ bụng 6 múi';
+  } else if (bmi < overweightThreshold) {
     status = 'Hơi thừa cân';
     color = 'amber';
-    desc = 'Tăng số hiệp Plank ngắn ngắt quãng để kích hoạt đốt mỡ';
+    desc = isFemale
+      ? 'Tập trung các bài Plank liên sườn để siết gọn vòng eo và giảm mỡ bụng'
+      : 'Tăng số hiệp Plank ngắt quãng cường độ cao (HIIT Core) để đốt mỡ';
   } else {
     status = 'Cần giảm mỡ';
     color = 'rose';
-    desc = 'Tập trung các bài Plank đốt mỡ toàn thân và kiểm soát calo';
+    desc = isFemale
+      ? 'Ưu tiên các bài Plank toàn thân giúp đốt calo và phẳng bụng dưới'
+      : 'Tập trung chuỗi Plank đốt mỡ toàn diện kết hợp kiểm soát calo';
   }
 
-  return { bmi, status, color, desc, weight: w, height: h };
+  return { bmi, status, color, desc, weight: w, height: h, gender };
 };
 
 /**
- * Tính lượng Calo cá nhân hóa theo Cân Nặng (Chuẩn chuyển hóa MET 4.3 y khoa thể thao)
+ * Tính lượng Calo cá nhân hóa theo Cân Nặng & Giới Tính (Chuẩn chuyển hóa MET y khoa thể thao)
+ * Nam: MET ~4.4 (tỷ lệ cơ nạc cao hơn) | Nữ: MET ~4.1
  */
-export const calculatePersonalizedCalories = (durationSeconds, weightKg = 65) => {
+export const calculatePersonalizedCalories = (durationSeconds, weightKg = 65, gender = 'male') => {
   const w = Number(weightKg) || 65;
+  const met = gender === 'female' ? 4.1 : 4.4;
   // Công thức ACSM: Calo/phút = (MET x 3.5 x Trọng lượng kg) / 200
-  const calPerMin = (4.3 * 3.5 * w) / 200;
+  const calPerMin = (met * 3.5 * w) / 200;
   return Math.max(1, Math.round(((durationSeconds || 0) / 60) * calPerMin));
 };
 
@@ -673,7 +693,7 @@ export const saveHistory = (session) => {
   try {
     const history = getHistory();
     const profile = getUserProfile();
-    const calories = calculatePersonalizedCalories(session.duration || 0, profile.weight);
+    const calories = calculatePersonalizedCalories(session.duration || 0, profile.weight, profile.gender);
     const maxSingleHold = session.maxSingleHold !== undefined 
       ? session.maxSingleHold 
       : (session.totalSets === 1 ? (session.duration || 0) : (session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0));

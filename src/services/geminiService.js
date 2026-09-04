@@ -96,6 +96,7 @@ Bạn là Huấn luyện viên Thể hình & Chuyên gia Plank cơ Core cấp ca
 Dưới đây là BÁO CÁO TOÀN DIỆN VỀ THỂ TRẠNG & LỊCH SỬ TẬP LUYỆN THỰC TẾ của học viên:
 
 👤 CHỈ SỐ THỂ TRẠNG:
+- Giới tính sinh học: ${userProfile.gender === 'female' ? 'Nữ 👩 (Định hướng: Siết eo thon gọn, phẳng bụng dưới, tạo rãnh bụng số 11)' : 'Nam 👨 (Định hướng: Phát triển khối cơ bụng 6 múi dày khỏe, rãnh V-cut, tăng sức mạnh Core)'}
 - Chiều cao: ${height} cm | Cân nặng: ${weight} kg | BMI: ${bmi}
 - Trình độ thể lực: ${userProfile.level || "Trung bình"}
 - Mục tiêu chính: ${userProfile.goal || "Tăng sức bền & Giảm mỡ bụng"}
