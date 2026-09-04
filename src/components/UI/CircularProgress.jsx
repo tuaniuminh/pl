@@ -35,8 +35,8 @@ const CircularProgress = ({
       <div 
         className={`absolute w-52 h-52 rounded-full blur-3xl transition-all duration-700 pointer-events-none ${
           isActive 
-            ? 'opacity-40 dark:opacity-70 scale-105' 
-            : 'opacity-25 dark:opacity-55 scale-100'
+            ? 'opacity-30 dark:opacity-50 scale-105' 
+            : 'opacity-20 dark:opacity-35 scale-100'
         }`}
         style={{ 
           backgroundColor: isMaxChallenge ? '#06b6d4' : (isResting ? '#00f2fe' : '#10b981') 
@@ -46,8 +46,8 @@ const CircularProgress = ({
       <div 
         className={`absolute w-32 h-32 rounded-full blur-2xl transition-all duration-500 pointer-events-none ${
           isActive 
-            ? 'opacity-30 dark:opacity-50' 
-            : 'opacity-15 dark:opacity-30'
+            ? 'opacity-20 dark:opacity-30' 
+            : 'opacity-10 dark:opacity-15'
         }`}
         style={{ 
           backgroundColor: isMaxChallenge ? '#22d3ee' : (isResting ? '#38bdf8' : '#34d399') 
