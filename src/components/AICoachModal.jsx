@@ -58,16 +58,26 @@ const AICoachModal = ({ isOpen, onClose }) => {
 
       // Lấy Gemini API Key nếu đã lưu trong cài đặt
       const storedSettings = localStorage.getItem('plank_settings_v2');
+      let foundKey = '';
       if (storedSettings) {
         try {
           const parsed = JSON.parse(storedSettings);
           if (parsed.geminiApiKey) {
-            setApiKey(parsed.geminiApiKey);
+            foundKey = parsed.geminiApiKey.trim();
+            setApiKey(foundKey);
           }
         } catch (e) {
           console.error("Parse settings error:", e);
         }
       }
+
+      // Nếu chưa có API Key, ưu tiên mở ngay tab 'bridge' (Cầu Nối Miễn Phí)
+      if (!foundKey) {
+        setActiveTab('bridge');
+      } else {
+        setActiveTab('api');
+      }
+      setError(null);
     }
   }, [isOpen]);
 
@@ -76,7 +86,8 @@ const AICoachModal = ({ isOpen, onClose }) => {
   // Xử lý gọi phân tích phong độ bằng Gemini API
   const handleAnalyzePerformance = async () => {
     if (!apiKey) {
-      setError("Vui lòng cài đặt Google Gemini API Key trong mục Cài Đặt, hoặc sử dụng tab 'Cầu Nối Miễn Phí' bên cạnh.");
+      setActiveTab('bridge');
+      setError(null);
       return;
     }
 
@@ -203,16 +214,16 @@ const AICoachModal = ({ isOpen, onClose }) => {
 
           {/* QUICK METRICS PILLS */}
           {historySummary && userProfile && (
-            <div className="mt-3.5 pt-3 border-t border-white/15 flex items-center justify-between text-[10px] font-bold text-purple-100 flex-wrap gap-1.5">
-              <span className="px-2.5 py-1 rounded-full bg-black/20">
-                {userProfile.gender === 'female' ? '👩 Nữ' : '👨 Nam'} • {historySummary.height}cm • {historySummary.weight}kg (BMI {historySummary.bmi})
+            <div className="mt-3.5 pt-3 border-t border-white/15 grid grid-cols-2 gap-1.5 text-[10px] font-bold text-purple-100">
+              <span className="px-2.5 py-1.5 rounded-xl bg-black/20 text-center truncate">
+                {userProfile.gender === 'female' ? '👩 Nữ' : '👨 Nam'} • {historySummary.height}cm • {historySummary.weight}kg
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-white/20 text-white font-extrabold flex items-center space-x-1">
-                <Trophy size={11} className="text-amber-300" />
-                <span>PR {historySummary.personalRecord}s</span>
+              <span className="px-2.5 py-1.5 rounded-xl bg-white/20 text-white font-extrabold flex items-center justify-center space-x-1">
+                <Trophy size={11} className="text-amber-300 shrink-0" />
+                <span>Kỷ lục PR: {historySummary.personalRecord}s</span>
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-black/20">
-                {historySummary.totalWorkouts} buổi tập • {historySummary.totalMinutes}p tích lũy
+              <span className="px-2.5 py-1 rounded-xl bg-black/20 col-span-2 text-center text-[10px]">
+                📊 Đã tập: <strong>{historySummary.totalWorkouts} buổi</strong> • <strong>{historySummary.totalMinutes}p</strong> tích lũy (BMI {historySummary.bmi})
               </span>
             </div>
           )}
@@ -221,7 +232,7 @@ const AICoachModal = ({ isOpen, onClose }) => {
         {/* TAB NAVIGATION */}
         <div className="p-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 flex space-x-2 shrink-0">
           <button
-            onClick={() => { setActiveTab('api'); triggerHapticMedium(); }}
+            onClick={() => { setActiveTab('api'); setError(null); triggerHapticMedium(); }}
             className={`flex-1 py-2 rounded-2xl font-black text-xs flex items-center justify-center space-x-1.5 transition-all ${
               activeTab === 'api'
                 ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
@@ -232,7 +243,7 @@ const AICoachModal = ({ isOpen, onClose }) => {
             <span>Tư Vấn Tự Động (API)</span>
           </button>
           <button
-            onClick={() => { setActiveTab('bridge'); triggerHapticMedium(); }}
+            onClick={() => { setActiveTab('bridge'); setError(null); triggerHapticMedium(); }}
             className={`flex-1 py-2 rounded-2xl font-black text-xs flex items-center justify-center space-x-1.5 transition-all ${
               activeTab === 'bridge'
                 ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
@@ -246,35 +257,60 @@ const AICoachModal = ({ isOpen, onClose }) => {
 
         {/* MODAL CONTENT BODY */}
         <div className="p-4 overflow-y-auto space-y-4 flex-1 overscroll-contain">
-          {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs flex items-start space-x-2 animate-fade-in">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <span className="text-[11px] leading-relaxed">{error}</span>
-            </div>
-          )}
-
           {/* TAB 1: API DIRECT CALL & RESULTS */}
           {activeTab === 'api' && (
             <div className="space-y-4">
-              {/* Action Bar / Trigger Button */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleAnalyzePerformance}
-                  disabled={loading}
-                  className={`flex-1 py-3 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all ${
-                    loading
-                      ? 'bg-slate-300 dark:bg-white/20 text-slate-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/30'
-                  }`}
-                >
-                  <Sparkles size={16} className={loading ? "animate-spin" : "animate-pulse"} />
-                  <span>
-                    {loading 
-                      ? "HLV Đang Phân Tích Dữ Liệu..." 
-                      : (advice ? "Phân Tích Lại Phong Độ ⚡" : "Bắt Đầu Nhận Xét & Tư Vấn ⚡")}
-                  </span>
-                </button>
-              </div>
+              {error && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs flex items-start space-x-2 animate-fade-in">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <span className="text-[11px] leading-relaxed">{error}</span>
+                </div>
+              )}
+
+              {!apiKey ? (
+                <div className="p-4 rounded-3xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-300/50 dark:border-purple-500/30 text-center space-y-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center mx-auto">
+                    <Sparkles size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                      Cần Gemini API Key Để Gọi 1-Chạm
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-gray-400 leading-relaxed">
+                      Để phân tích tự động ngay trong ứng dụng, bạn có thể cài API Key miễn phí của Google trong mục <strong>Cài Đặt</strong>.
+                    </p>
+                  </div>
+                  <div className="pt-1">
+                    <button
+                      onClick={() => { setActiveTab('bridge'); setError(null); triggerHapticMedium(); }}
+                      className="w-full py-2.5 px-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md shadow-purple-600/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                    >
+                      <span>Dùng Cầu Nối Miễn Phí (Không cần Key)</span>
+                      <ExternalLink size={13} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Action Bar / Trigger Button */
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleAnalyzePerformance}
+                    disabled={loading}
+                    className={`flex-1 py-3 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all ${
+                      loading
+                        ? 'bg-slate-300 dark:bg-white/20 text-slate-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/30'
+                    }`}
+                  >
+                    <Sparkles size={16} className={loading ? "animate-spin" : "animate-pulse"} />
+                    <span>
+                      {loading 
+                        ? "HLV Đang Phân Tích Dữ Liệu..." 
+                        : (advice ? "Phân Tích Lại Phong Độ ⚡" : "Bắt Đầu Nhận Xét & Tư Vấn ⚡")}
+                    </span>
+                  </button>
+                </div>
+              )}
 
               {/* Loading steps animation */}
               {loading && (
