@@ -783,8 +783,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                 : 'bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-cyan-400/60 dark:border-cyan-500/40'
             }`}>
               {isResting 
-                ? `🍃 ĐANG NGHỈ HỒI SỨC (HIỆP ${challengeSetIndex + 1})` 
-                : `⚡ THÁCH THỨC GIỚI HẠN (HIỆP ${challengeSetIndex + 1})`}
+                ? "🍃 ĐANG NGHỈ HỒI SỨC" 
+                : "⚡ THÁCH THỨC GIỚI HẠN"}
             </span>
 
             {/* Nút bấm (i) Mở Modal Chi Tiết */}
@@ -797,10 +797,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               </div>
               <span className="truncate text-[10px] font-medium">
                 {isResting 
-                  ? `Đã xong Hiệp ${challengeSetIndex + 1} • Tổng đã gồng: ${formatTotalHoldTime(sessionTotalHoldSeconds)}` 
-                  : challengeSetIndex > 0 
-                  ? `Hiệp ${challengeSetIndex + 1} • Tổng đã gồng: ${formatTotalHoldTime(sessionTotalHoldSeconds)}` 
-                  : "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới"}
+                  ? `Đã hoàn thành Hiệp ${challengeSetIndex + 1}` 
+                  : `Hiệp ${challengeSetIndex + 1}`}
               </span>
               <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
             </button>
@@ -926,7 +924,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               ) : (
                 <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
                   <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
-                  <span>Hiệp {challengeSetIndex + 1} • Tổng đã gồng: {formatTotalHoldTime(sessionTotalHoldSeconds)}</span>
+                  <span>Tổng đã gồng: {formatTotalHoldTime(sessionTotalHoldSeconds)}</span>
                 </div>
               )}
             </div>
