@@ -64,6 +64,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const [sessionTotalHoldSeconds, setSessionTotalHoldSeconds] = useState(0);
   const [sessionMaxSingleHold, setSessionMaxSingleHold] = useState(0);
   const [recordedSetsDetail, setRecordedSetsDetail] = useState([]);
+  const workoutSetsRef = useRef([]);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const resetConfirmTimerRef = useRef(null);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -134,6 +135,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
         setCurrentSetIndex(0);
         setIsActive(false);
         setIsResting(false);
+        workoutSetsRef.current = [];
+        setRecordedSetsDetail([]);
         const firstIsMax = Boolean(exs[0].isMaxEffort || exs[0].holdTime === 0);
         const initTime = firstIsMax ? 0 : (exs[0].holdTime || 60);
         setTimeLeft(initTime);
@@ -248,7 +251,11 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               return prev - 1;
             });
           } else if (timeLeft === 0) {
-            handleSetFinished();
+            if (!isResting) {
+              handleHoldFinished();
+            } else {
+              handleRestFinished();
+            }
           }
         }
       }, 1000);
@@ -257,41 +264,43 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     return () => clearInterval(interval);
   }, [isActive, timeLeft, isResting, isMaxChallenge, isCurrentSetMaxEffort, isCurrentSetManualRest, voiceEnabled]);
 
-  // Hoàn thành hiệp bài tập
-  const handleSetFinished = (customHoldTime = null) => {
+  // Hoàn thành giai đoạn gồng của hiệp (Hold Finished)
+  const handleHoldFinished = (customHoldTime = null) => {
     triggerHapticHeavy();
     if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
 
-    // Ghi nhận thời gian gồng của hiệp vừa hoàn thành
+    // Ghi nhận thời gian gồng thực tế của hiệp:
+    // - customHoldTime nếu bấm kết thúc sớm AMRAP
+    // - timeLeft nếu đang gồng tự do AMRAP
+    // - totalSetDuration nếu đếm ngược (đã gồm các lần bấm +15s / -15s của người dùng)
     const holdDuration = customHoldTime !== null 
       ? customHoldTime 
-      : (isCurrentSetMaxEffort ? timeLeft : (currentExercise.holdTime || 60));
+      : (isCurrentSetMaxEffort ? timeLeft : (totalSetDuration || currentExercise.holdTime || 60));
 
-    if (!isResting) {
-      setSessionMaxSingleHold(prev => Math.max(prev, holdDuration));
-      if (holdDuration > (userProfile.record || 0)) {
-        updatePersonalRecord(holdDuration);
-        setUserProfile(getUserProfile());
-      }
+    setSessionMaxSingleHold(prev => Math.max(prev, holdDuration));
+    if (holdDuration > (userProfile.record || 0)) {
+      updatePersonalRecord(holdDuration);
+      setUserProfile(getUserProfile());
     }
 
-    const hasRest = currentExercise.isManualRest || (currentExercise.restTime > 0);
     const hasMoreSets = currentSetIndex < exercises.length - 1;
+    const hasRest = Boolean(currentExercise.isManualRest || (currentExercise.restTime !== undefined ? currentExercise.restTime > 0 : true));
+    const configuredRestTime = currentExercise.isManualRest ? 0 : (currentExercise.restTime !== undefined ? currentExercise.restTime : 20);
 
     const thisSetDetail = {
       setNumber: currentSetIndex + 1,
       name: currentExercise.name || `Hiệp ${currentSetIndex + 1}`,
       holdTime: holdDuration,
-      restTime: hasRest && hasMoreSets ? (currentExercise.isManualRest ? 0 : (currentExercise.restTime || 20)) : 0
+      restTime: (hasMoreSets && hasRest) ? configuredRestTime : 0
     };
 
-    const newSetsDetail = [...recordedSetsDetail, thisSetDetail];
-    setRecordedSetsDetail(newSetsDetail);
+    workoutSetsRef.current.push(thisSetDetail);
+    setRecordedSetsDetail([...workoutSetsRef.current]);
 
-    if (!isResting && hasRest && hasMoreSets) {
+    if (hasMoreSets && hasRest) {
       setIsResting(true);
       const isManual = Boolean(currentExercise.isManualRest || currentExercise.restTime === 0);
-      const restSec = isManual ? 0 : (currentExercise.restTime || 25);
+      const restSec = isManual ? 0 : configuredRestTime;
       setTimeLeft(restSec);
       setTotalSetDuration(restSec);
       if (voiceEnabled) {
@@ -302,23 +311,45 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
         }
       }
     } else if (hasMoreSets) {
+      // Không có nghỉ chuyển hiệp -> Chuyển thẳng sang hiệp kế tiếp
       setIsResting(false);
       const nextIdx = currentSetIndex + 1;
       setCurrentSetIndex(nextIdx);
       const nextEx = exercises[nextIdx];
-      const nextIsMax = Boolean(nextEx.isMaxEffort || nextEx.holdTime === 0);
-      const nextTime = nextIsMax ? 0 : (nextEx.holdTime || 60);
+      const nextIsMax = Boolean(nextEx?.isMaxEffort || nextEx?.holdTime === 0);
+      const nextTime = nextIsMax ? 0 : (nextEx?.holdTime || 60);
       setTimeLeft(nextTime);
       setTotalSetDuration(nextTime);
       if (voiceEnabled) playVoiceClip('prepare_next', `Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
-      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id, newSetsDetail);
+      // Hoàn thành toàn bộ giáo án!
+      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id, workoutSetsRef.current);
+    }
+  };
+
+  // Hoàn thành giai đoạn nghỉ của hiệp (Rest Finished)
+  const handleRestFinished = () => {
+    triggerHapticHeavy();
+    if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
+
+    if (currentSetIndex < exercises.length - 1) {
+      setIsResting(false);
+      const nextIdx = currentSetIndex + 1;
+      setCurrentSetIndex(nextIdx);
+      const nextEx = exercises[nextIdx];
+      const nextIsMax = Boolean(nextEx?.isMaxEffort || nextEx?.holdTime === 0);
+      const nextTime = nextIsMax ? 0 : (nextEx?.holdTime || 60);
+      setTimeLeft(nextTime);
+      setTotalSetDuration(nextTime);
+      if (voiceEnabled) playVoiceClip('prepare_next', `Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
+    } else {
+      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id, workoutSetsRef.current);
     }
   };
 
   // Người dùng bấm "⚡ HẾT SỨC - XONG HIỆP" khi đang gồng max effort
   const handleFinishMaxEffortSet = () => {
-    handleSetFinished(timeLeft);
+    handleHoldFinished(timeLeft);
   };
 
   // Người dùng bấm "🍃 SẴN SÀNG - VÀO HIỆP TIẾP" khi đang nghỉ tự do
@@ -328,29 +359,24 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
 
     // Ghi nhận thời gian nghỉ thực tế của hiệp vừa hoàn thành
     const manualRestDuration = timeLeft;
-    setRecordedSetsDetail(prev => {
-      if (prev.length === 0) return prev;
-      const updated = [...prev];
-      updated[updated.length - 1] = {
-        ...updated[updated.length - 1],
-        restTime: manualRestDuration
-      };
-      return updated;
-    });
+    if (workoutSetsRef.current.length > 0) {
+      workoutSetsRef.current[workoutSetsRef.current.length - 1].restTime = manualRestDuration;
+      setRecordedSetsDetail([...workoutSetsRef.current]);
+    }
 
     if (currentSetIndex < exercises.length - 1) {
       setIsResting(false);
       const nextIdx = currentSetIndex + 1;
       setCurrentSetIndex(nextIdx);
       const nextEx = exercises[nextIdx];
-      const nextIsMax = Boolean(nextEx.isMaxEffort || nextEx.holdTime === 0);
-      const nextTime = nextIsMax ? 0 : (nextEx.holdTime || 60);
+      const nextIsMax = Boolean(nextEx?.isMaxEffort || nextEx?.holdTime === 0);
+      const nextTime = nextIsMax ? 0 : (nextEx?.holdTime || 60);
       setTimeLeft(nextTime);
       setTotalSetDuration(nextTime);
       setIsActive(true); // Tiếp tục tính giờ cho hiệp tiếp theo ngay lập tức
       if (voiceEnabled) playVoiceClip('prepare_next', `Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
-      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id);
+      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id, workoutSetsRef.current);
     }
   };
 
@@ -367,14 +393,18 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       ? (completedSetsCount > 1 ? Math.max(sessionMaxSingleHold, !isResting ? timeLeft : 0) : totalHold) 
       : Math.max(sessionMaxSingleHold, ...exercises.map(e => Number(e.holdTime || 0)));
 
-    const finalSetsDetail = setsOverride || (recordedSetsDetail.length > 0 
-      ? recordedSetsDetail 
-      : [{
-          setNumber: 1,
-          name: isMaxChallenge ? "Thách Thức Giới Hạn" : (currentExercise?.name || "Plank Tiêu Chuẩn"),
-          holdTime: totalHold,
-          restTime: 0
-        }]);
+    const finalSetsDetail = (setsOverride && Array.isArray(setsOverride) && setsOverride.length > 0)
+      ? setsOverride 
+      : (workoutSetsRef.current.length > 0 
+        ? workoutSetsRef.current 
+        : (recordedSetsDetail.length > 0 
+          ? recordedSetsDetail 
+          : [{
+              setNumber: 1,
+              name: isMaxChallenge ? "Thách Thức Giới Hạn" : (currentExercise?.name || "Plank Tiêu Chuẩn"),
+              holdTime: totalHold,
+              restTime: 0
+            }]));
 
     const sessionResult = {
       planId: planId || (isMaxChallenge ? 'max_challenge' : plan?.id || null),
@@ -448,6 +478,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setIsMaxChallenge(nextMode);
     setIsResting(false);
     setCurrentSetIndex(0);
+    workoutSetsRef.current = [];
     setRecordedSetsDetail([]);
 
     if (nextMode) {
@@ -487,15 +518,13 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setUserProfile(getUserProfile());
     }
 
-    setRecordedSetsDetail(prev => [
-      ...prev,
-      {
-        setNumber: challengeSetIndex + 1,
-        name: `Thách Thức Hiệp ${challengeSetIndex + 1}`,
-        holdTime: currentHold,
-        restTime: 0
-      }
-    ]);
+    workoutSetsRef.current.push({
+      setNumber: challengeSetIndex + 1,
+      name: `Thách Thức Hiệp ${challengeSetIndex + 1}`,
+      holdTime: currentHold,
+      restTime: 0
+    });
+    setRecordedSetsDetail([...workoutSetsRef.current]);
 
     setIsResting(true);
     setTimeLeft(0); // Reset đồng hồ về 0 để đếm thời gian nghỉ ngơi
@@ -513,15 +542,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
 
     const restDuration = timeLeft;
-    setRecordedSetsDetail(prev => {
-      if (prev.length === 0) return prev;
-      const updated = [...prev];
-      updated[updated.length - 1] = {
-        ...updated[updated.length - 1],
-        restTime: restDuration
-      };
-      return updated;
-    });
+    if (workoutSetsRef.current.length > 0) {
+      workoutSetsRef.current[workoutSetsRef.current.length - 1].restTime = restDuration;
+      setRecordedSetsDetail([...workoutSetsRef.current]);
+    }
 
     setChallengeSetIndex(prev => prev + 1);
     setIsResting(false);
@@ -545,28 +569,23 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
         updatePersonalRecord(holdTime);
         setUserProfile(getUserProfile());
       }
-    }
-
-    const totalHold = sessionTotalHoldSeconds;
-    const completedSets = challengeSetIndex + 1;
-
-    let setsOverride = [...recordedSetsDetail];
-    if (!isResting && timeLeft > 0) {
-      setsOverride.push({
+      workoutSetsRef.current.push({
         setNumber: challengeSetIndex + 1,
         name: `Thách Thức Hiệp ${challengeSetIndex + 1}`,
-        holdTime: timeLeft,
+        holdTime: holdTime,
         restTime: 0
       });
-    } else if (isResting && setsOverride.length > 0) {
-      setsOverride[setsOverride.length - 1] = {
-        ...setsOverride[setsOverride.length - 1],
-        restTime: timeLeft
-      };
+    } else if (isResting && workoutSetsRef.current.length > 0) {
+      workoutSetsRef.current[workoutSetsRef.current.length - 1].restTime = timeLeft;
     }
 
-    if (totalHold > 0 || timeLeft > 0) {
-      finishWorkoutSession(totalHold, Math.max(1, completedSets), "⚡ Thách Thức Giới Hạn", 'max_challenge', setsOverride);
+    setRecordedSetsDetail([...workoutSetsRef.current]);
+
+    const totalHold = sessionTotalHoldSeconds;
+    const completedSets = Math.max(1, workoutSetsRef.current.length);
+
+    if (totalHold > 0 || workoutSetsRef.current.length > 0) {
+      finishWorkoutSession(totalHold, completedSets, "⚡ Thách Thức Giới Hạn", 'max_challenge', workoutSetsRef.current);
     }
   };
 
@@ -591,6 +610,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setIsResting(false);
     releaseWakeLock();
     stopAllVoice();
+    workoutSetsRef.current = [];
     setRecordedSetsDetail([]);
 
     if (isMaxChallenge) {
@@ -612,6 +632,15 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const handleSkipSet = () => {
     triggerHapticMedium();
     if (currentSetIndex < exercises.length - 1) {
+      const partialHold = totalSetDuration > timeLeft ? (totalSetDuration - timeLeft) : 0;
+      workoutSetsRef.current.push({
+        setNumber: currentSetIndex + 1,
+        name: currentExercise.name || `Hiệp ${currentSetIndex + 1}`,
+        holdTime: partialHold,
+        restTime: 0
+      });
+      setRecordedSetsDetail([...workoutSetsRef.current]);
+
       setIsResting(false);
       const nextIdx = currentSetIndex + 1;
       setCurrentSetIndex(nextIdx);
@@ -622,7 +651,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setTotalSetDuration(nextTime);
       if (voiceEnabled) playVoiceClip('prepare_next', `Chuyển sang ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
-      handleSetFinished();
+      handleHoldFinished();
     }
   };
 
@@ -690,6 +719,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setIsActive(false);
     setIsResting(false);
     setIsMaxChallenge(false);
+    workoutSetsRef.current = [];
+    setRecordedSetsDetail([]);
     const newEx = [{ name, holdTime, restTime, tip: "Hít thở nhịp nhàng, siết chặt cơ bụng và cơ mông" }];
     setExercises(newEx);
     setCurrentSetIndex(0);
@@ -702,6 +733,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setIsActive(false);
     setIsResting(false);
     setIsMaxChallenge(true);
+    workoutSetsRef.current = [];
+    setRecordedSetsDetail([]);
     setChallengeSetIndex(0);
     setTimeLeft(0);
     setTotalSetDuration(0);

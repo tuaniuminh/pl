@@ -812,16 +812,76 @@ export const calculateStreakStats = (history) => {
 
 /**
  * Chuẩn hóa danh sách hiệp tập chi tiết của một buổi tập (Backward-compatible fallback)
- * Nếu buổi tập chưa có setsDetail cũ, tự động tái tạo bảng hiệp chính xác theo dữ liệu lịch sử
+ * Nếu buổi tập chưa có setsDetail cũ hoặc dữ liệu hiệp bị thiếu, tự động tái tạo bảng hiệp chính xác theo giáo án thực tế
  */
 export const getNormalizedSessionSets = (session) => {
   if (!session) return [];
-  if (session.setsDetail && Array.isArray(session.setsDetail) && session.setsDetail.length > 0) {
-    return session.setsDetail;
-  }
-
   const count = session.completedSets || session.totalSets || 1;
   const isSingle = count === 1;
+
+  // 1. Nếu đã có setsDetail hợp lệ và đầy đủ số hiệp -> trả về luôn
+  if (session.setsDetail && Array.isArray(session.setsDetail) && session.setsDetail.length >= count) {
+    return session.setsDetail.slice(0, count);
+  }
+
+  // 2. Tra cứu giáo án tương ứng trong tất cả giáo án (cả tự tạo & mặc định) để lấy chính xác thông số siết core và nghỉ chuyển hiệp
+  const allPlans = getAllPlans();
+  let matchedPlan = allPlans.find(p => 
+    (session.planId && p.id === session.planId) || 
+    (session.planName && p.planName && p.planName.trim().toLowerCase() === session.planName.trim().toLowerCase())
+  );
+
+  let planExercises = [];
+  if (matchedPlan) {
+    if (Array.isArray(matchedPlan.exercises) && matchedPlan.exercises.length > 0) {
+      planExercises = matchedPlan.exercises;
+    } else if (Array.isArray(matchedPlan.days) && Array.isArray(matchedPlan.days[0]?.exercises) && matchedPlan.days[0].exercises.length > 0) {
+      planExercises = matchedPlan.days[0].exercises;
+    }
+  }
+
+  // 3. Nếu tìm thấy giáo án, tái tạo chính xác từng hiệp theo thiết lập của giáo án đó
+  if (planExercises.length > 0) {
+    const sets = [];
+    for (let i = 0; i < count; i++) {
+      const ex = planExercises[i] || planExercises[i % planExercises.length];
+      const isLast = i === count - 1;
+      const configuredHold = Number(ex.holdTime);
+      const holdTime = (!isNaN(configuredHold) && configuredHold > 0)
+        ? configuredHold
+        : (session.maxSingleHold || Math.max(15, Math.round((session.duration || 60) / count)));
+
+      const isManualRest = Boolean(ex.isManualRest || ex.restTime === 0);
+      const configuredRest = Number(ex.restTime);
+      const restTime = isLast 
+        ? 0 
+        : (isManualRest ? 0 : (!isNaN(configuredRest) ? configuredRest : 20));
+
+      sets.push({
+        setNumber: i + 1,
+        name: ex.name || `Hiệp ${i + 1}`,
+        holdTime: holdTime,
+        restTime: restTime
+      });
+    }
+    return sets;
+  }
+
+  // 4. Fallback thông minh khi không tìm thấy giáo án gốc
+  if (session.planId === 'max_challenge' || session.planName?.includes('Thách Thức')) {
+    const avgHold = Math.round((session.duration || 60) / count);
+    const sets = [];
+    for (let i = 0; i < count; i++) {
+      sets.push({
+        setNumber: i + 1,
+        name: `Thách Thức Hiệp ${i + 1}`,
+        holdTime: i === count - 1 && session.maxSingleHold ? session.maxSingleHold : avgHold,
+        restTime: i === count - 1 ? 0 : 30
+      });
+    }
+    return sets;
+  }
+
   const avgHold = isSingle 
     ? (session.duration || 60) 
     : (session.maxSingleHold || Math.max(15, Math.round((session.duration || 60) / count)));
@@ -1008,6 +1068,15 @@ export const recalibrateAndSyncAllData = () => {
         if (matchedPlan && item.planName !== matchedPlan.planName) {
           item.planId = matchedPlan.id;
           item.planName = matchedPlan.planName;
+          historyChanged = true;
+        }
+      }
+
+      // Chuẩn hóa và bổ sung setsDetail nếu lịch sử chưa có hoặc chưa đủ số hiệp
+      if (!item.setsDetail || !Array.isArray(item.setsDetail) || item.setsDetail.length < (item.completedSets || 1)) {
+        const normalized = getNormalizedSessionSets(item);
+        if (normalized && normalized.length > 0) {
+          item.setsDetail = normalized;
           historyChanged = true;
         }
       }

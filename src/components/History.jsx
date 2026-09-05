@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   History as HistoryIcon, 
   Trash2, 
@@ -755,10 +756,10 @@ const History = ({ onStartWorkout }) => {
         </div>
       )}
 
-      {/* MODAL BẢNG THÔNG TIN CHI TIẾT TỪNG HIỆP CỦA BUỔI TẬP */}
-      {selectedSessionDetail && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-          <div className="glass-panel max-w-md w-full p-5 sm:p-6 rounded-3xl border border-emerald-500/30 shadow-2xl bg-white/95 dark:bg-slate-900/95 space-y-4 max-h-[90vh] flex flex-col">
+      {/* MODAL BẢNG THÔNG TIN CHI TIẾT TỪNG HIỆP CỦA BUỔI TẬP (PORTAL TO BODY TO BEAT NAVBAR) */}
+      {selectedSessionDetail && createPortal(
+        <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 pt-12 pb-16 sm:pb-20 overflow-hidden animate-fade-in">
+          <div className="glass-panel max-w-md w-full p-4 sm:p-5 rounded-3xl border border-emerald-500/30 shadow-2xl bg-white/95 dark:bg-slate-900/95 space-y-3.5 max-h-[82vh] sm:max-h-[85vh] flex flex-col">
             {/* Modal Header */}
             <div className="flex items-start justify-between shrink-0">
               <div className="flex items-center space-x-3 min-w-0">
@@ -793,27 +794,27 @@ const History = ({ onStartWorkout }) => {
               </button>
             </div>
 
-            {/* 4 Summary Stats Grid */}
+            {/* 4 Summary Stats Grid (KỶ LỤC ngắn gọn chống vỡ chữ) */}
             <div className="grid grid-cols-4 gap-2 shrink-0">
-              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+              <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Tổng Giữ</div>
                 <div className="font-mono text-sm sm:text-base font-black text-emerald-600 dark:text-neon mt-0.5">
                   {selectedSessionDetail.duration}s
                 </div>
               </div>
-              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+              <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Số Hiệp</div>
                 <div className="font-mono text-sm sm:text-base font-black text-cyan-600 dark:text-cyan-neon mt-0.5">
                   {selectedSessionDetail.completedSets || 1}
                 </div>
               </div>
-              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
-                <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Kỷ Lục Đơn</div>
+              <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+                <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Kỷ Lục</div>
                 <div className="font-mono text-sm sm:text-base font-black text-amber-500 mt-0.5">
                   {selectedSessionDetail.maxSingleHold || (selectedSessionDetail.completedSets === 1 ? selectedSessionDetail.duration : Math.round((selectedSessionDetail.duration || 60) / (selectedSessionDetail.completedSets || 1)))}s
                 </div>
               </div>
-              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+              <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Calo Đốt</div>
                 <div className="font-mono text-sm sm:text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
                   ~{selectedSessionDetail.calories || Math.round((selectedSessionDetail.duration / 60) * 4.5)}
@@ -834,7 +835,7 @@ const History = ({ onStartWorkout }) => {
               </div>
 
               {/* Scrollable Table Container */}
-              <div className="flex-1 overflow-y-auto rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 shadow-inner">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider z-10">
                     <tr>
@@ -851,7 +852,7 @@ const History = ({ onStartWorkout }) => {
                             <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
                               {set.setNumber || idx + 1}
                             </span>
-                            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[130px] sm:max-w-[180px]">
+                            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[120px] sm:max-w-[170px]">
                               {set.name || `Hiệp ${idx + 1}`}
                             </span>
                           </div>
@@ -891,12 +892,13 @@ const History = ({ onStartWorkout }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* MODAL XÁC NHẬN XÓA CHUẨN GIAO DIỆN APP */}
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+      {/* MODAL XÁC NHẬN XÓA CHUẨN GIAO DIỆN APP (PORTAL TO BODY) */}
+      {deleteTarget && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in">
           <div className="glass-panel max-w-xs w-full p-6 rounded-3xl border border-red-500/30 text-center space-y-4 shadow-2xl bg-white/95 dark:bg-slate-900/95">
             {/* Red Warning Icon */}
             <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-inner">
@@ -931,7 +933,8 @@ const History = ({ onStartWorkout }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
