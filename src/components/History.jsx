@@ -21,7 +21,8 @@ import {
   Check,
   X,
   Layers,
-  Filter
+  Filter,
+  Flag
 } from 'lucide-react';
 import { 
   getHistory, 
@@ -841,7 +842,7 @@ const History = ({ onStartWorkout }) => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider z-10">
                     <tr>
-                      <th className="py-2.5 px-3">Hiệp & Bài Tập</th>
+                      <th className="py-2.5 px-3">Hiệp</th>
                       <th className="py-2.5 px-3 text-center">⏱️ Siết Core</th>
                       <th className="py-2.5 px-3 text-right">❄️ Nghỉ Chuyển Hiệp</th>
                     </tr>
@@ -854,8 +855,8 @@ const History = ({ onStartWorkout }) => {
                             <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
                               {set.setNumber || idx + 1}
                             </span>
-                            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[120px] sm:max-w-[170px]">
-                              {set.name || `Hiệp ${idx + 1}`}
+                            <span className="font-bold text-slate-800 dark:text-white">
+                              Hiệp {set.setNumber || idx + 1}
                             </span>
                           </div>
                         </td>
@@ -866,7 +867,10 @@ const History = ({ onStartWorkout }) => {
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           {idx === arr.length - 1 ? (
-                            <span className="text-slate-400 dark:text-gray-500 font-mono text-[11px]">- (Xong)</span>
+                            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-emerald-500/10 via-teal-500/15 to-emerald-500/10 border border-emerald-400/40 dark:border-neon/40 text-emerald-700 dark:text-neon text-[10px] font-black shadow-sm" title="Hiệp cuối - Hoàn thành buổi tập">
+                              <Flag size={10} className="fill-current shrink-0" />
+                              <span>Đích 🏁</span>
+                            </span>
                           ) : set.restTime > 0 ? (
                             <span className="font-mono font-bold text-cyan-600 dark:text-cyan-neon px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/40 dark:border-cyan-500/30">
                               {set.restTime}s

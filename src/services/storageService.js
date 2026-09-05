@@ -38,9 +38,20 @@ export const releaseWakeLock = async () => {
   }
 };
 
+// Trích xuất kỷ lục giữ liên tục đơn hiệp tốt nhất từ 1 buổi tập
+const extractSessionMaxHold = (session) => {
+  if (!session) return 0;
+  if (session.maxSingleHold && session.maxSingleHold > 0) return session.maxSingleHold;
+  if (Array.isArray(session.setsDetail) && session.setsDetail.length > 0) {
+    return Math.max(...session.setsDetail.map(s => Number(s.holdTime) || 0));
+  }
+  if (session.completedSets === 1 || session.totalSets === 1) return session.duration || 0;
+  return session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0;
+};
+
 // ==================== 2. HỆ THỐNG DANH HIỆU & HUY HIỆU ====================
 export const BADGES_LIST = [
-  // --- A. Khởi Đầu & Số Lượng Buổi Tập ---
+  // --- A. Khởi Đầu & Số Lượng Buổi Tập (Workouts Count) ---
   {
     id: 'first_step',
     name: 'Tân Binh Thép',
@@ -48,7 +59,7 @@ export const BADGES_LIST = [
     icon: '🥉',
     rarity: 'Cơ bản',
     color: 'emerald',
-    check: (stats, history) => history.length >= 1
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 1
   },
   {
     id: 'workouts_5',
@@ -57,7 +68,16 @@ export const BADGES_LIST = [
     icon: '🥈',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats, history) => history.length >= 5
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 5
+  },
+  {
+    id: 'workouts_10',
+    name: 'Chiến Binh 10 Buổi',
+    desc: 'Hoàn thành 10 buổi tập Plank',
+    icon: '🎖️',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 10
   },
   {
     id: 'workouts_20',
@@ -66,7 +86,16 @@ export const BADGES_LIST = [
     icon: '🥇',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats, history) => history.length >= 20
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 20
+  },
+  {
+    id: 'workouts_35',
+    name: 'Thói Quen Thép 35 Buổi',
+    desc: 'Duy trì lối sống kiên trì với 35 buổi tập Plank',
+    icon: '⭐',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 35
   },
   {
     id: 'workouts_50',
@@ -75,10 +104,32 @@ export const BADGES_LIST = [
     icon: '🏆',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats, history) => history.length >= 50
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 50
+  },
+  {
+    id: 'workouts_100',
+    name: 'Huyền Thoại 100 Buổi',
+    desc: 'Gia nhập hàng ngũ cao quý với 100 buổi tập Plank',
+    icon: '👑',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats, history) => (stats.totalWorkouts || history.length) >= 100
   },
 
-  // --- B. Kỷ Lục Giữ Plank Đơn Hiệp ---
+  // --- B. Kỷ Lục Giữ Plank Đơn Hiệp (Max Single Hold) ---
+  {
+    id: 'hold_30s',
+    name: 'Khởi Động Năng Lượng',
+    desc: 'Giữ Plank liên tục trong 1 hiệp từ 30 giây trở lên',
+    icon: '⚡',
+    rarity: 'Cơ bản',
+    color: 'emerald',
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 30) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 30);
+    }
+  },
   {
     id: 'hold_60s',
     name: 'Chiến Binh 1 Phút',
@@ -86,7 +137,24 @@ export const BADGES_LIST = [
     icon: '⚡',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 60)
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 60) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 60);
+    }
+  },
+  {
+    id: 'hold_90s',
+    name: 'Bền Bỉ 90 Giây',
+    desc: 'Giữ Plank liên tục trong 1 hiệp từ 90 giây trở lên',
+    icon: '🔥',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 90) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 90);
+    }
   },
   {
     id: 'hold_120s',
@@ -95,7 +163,11 @@ export const BADGES_LIST = [
     icon: '🔥',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 120)
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 120) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 120);
+    }
   },
   {
     id: 'hold_180s',
@@ -104,7 +176,24 @@ export const BADGES_LIST = [
     icon: '🏆',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 180)
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 180) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 180);
+    }
+  },
+  {
+    id: 'hold_240s',
+    name: 'Ý Chí Thép 4 Phút',
+    desc: 'Giữ Plank liên tục trong 1 hiệp từ 240 giây (4 phút) trở lên',
+    icon: '💫',
+    rarity: 'Huyền thoại',
+    color: 'purple',
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 240) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 240);
+    }
   },
   {
     id: 'hold_300s',
@@ -113,10 +202,27 @@ export const BADGES_LIST = [
     icon: '👑',
     rarity: 'Tối thượng',
     color: 'red',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 300)
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 300) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 300);
+    }
+  },
+  {
+    id: 'hold_420s',
+    name: 'Thần Lực Siêu Phàm 7 Phút',
+    desc: 'Chinh phục mốc 420 giây (7 phút) liên tục trong 1 hiệp',
+    icon: '🌌',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats, history) => {
+      const profile = getUserProfile();
+      if ((profile?.record || 0) >= 420) return true;
+      return history.some(h => extractSessionMaxHold(h) >= 420);
+    }
   },
 
-  // --- C. Chuỗi Ngày Tập Liên Tiếp ---
+  // --- C. Chuỗi Ngày Tập Liên Tiếp (Consecutive Streak) ---
   {
     id: 'streak_3',
     name: 'Kiên Trì 3 Ngày',
@@ -124,7 +230,16 @@ export const BADGES_LIST = [
     icon: '🌟',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats) => (stats.bestStreak || stats.streak) >= 3
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 3
+  },
+  {
+    id: 'streak_5',
+    name: 'Nhịp Điệu Không Ngừng',
+    desc: 'Duy trì chuỗi tập 5 ngày liên tiếp',
+    icon: '⚡',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 5
   },
   {
     id: 'streak_7',
@@ -133,7 +248,16 @@ export const BADGES_LIST = [
     icon: '💎',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats) => (stats.bestStreak || stats.streak) >= 7
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 7
+  },
+  {
+    id: 'streak_10',
+    name: 'Kỷ Luật Vàng 10 Ngày',
+    desc: 'Duy trì chuỗi tập 10 ngày liên tiếp',
+    icon: '🏅',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 10
   },
   {
     id: 'streak_14',
@@ -142,7 +266,16 @@ export const BADGES_LIST = [
     icon: '💠',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats) => (stats.bestStreak || stats.streak) >= 14
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 14
+  },
+  {
+    id: 'streak_21',
+    name: 'Bản Năng Thép 21 Ngày',
+    desc: '21 ngày liên tiếp để biến Plank thành bản năng tự nhiên',
+    icon: '🔮',
+    rarity: 'Huyền thoại',
+    color: 'purple',
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 21
   },
   {
     id: 'streak_30',
@@ -151,10 +284,28 @@ export const BADGES_LIST = [
     icon: '👑',
     rarity: 'Tối thượng',
     color: 'red',
-    check: (stats) => (stats.bestStreak || stats.streak) >= 30
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 30
+  },
+  {
+    id: 'streak_60',
+    name: 'Ý Chí Kim Cương 60 Ngày',
+    desc: 'Kỳ tích phi thường: 60 ngày tập luyện không gián đoạn',
+    icon: '🪐',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats) => (stats.bestStreak || stats.streak || 0) >= 60
   },
 
-  // --- D. Tổng Thời Gian Tích Lũy ---
+  // --- D. Tổng Thời Gian Tích Lũy (Cumulative Hold Time) ---
+  {
+    id: 'total_15m',
+    name: 'Bước Đệm 15 Phút',
+    desc: 'Tổng thời gian tích lũy đạt 15 phút (900 giây) Plank',
+    icon: '⏱️',
+    rarity: 'Cơ bản',
+    color: 'emerald',
+    check: (stats) => (stats.totalSeconds || 0) >= 900
+  },
   {
     id: 'total_30m',
     name: 'Chiến Thần 30 Phút',
@@ -162,7 +313,7 @@ export const BADGES_LIST = [
     icon: '🛡️',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats) => stats.totalSeconds >= 1800
+    check: (stats) => (stats.totalSeconds || 0) >= 1800
   },
   {
     id: 'total_1h',
@@ -171,7 +322,16 @@ export const BADGES_LIST = [
     icon: '⚔️',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats) => stats.totalSeconds >= 3600
+    check: (stats) => (stats.totalSeconds || 0) >= 3600
+  },
+  {
+    id: 'total_2h',
+    name: 'Chiến Binh 2 Giờ Core',
+    desc: 'Tổng thời gian tích lũy đạt 120 phút (2 giờ) Plank',
+    icon: '⚡',
+    rarity: 'Huyền thoại',
+    color: 'purple',
+    check: (stats) => (stats.totalSeconds || 0) >= 7200
   },
   {
     id: 'total_3h',
@@ -180,10 +340,28 @@ export const BADGES_LIST = [
     icon: '🌌',
     rarity: 'Tối thượng',
     color: 'red',
-    check: (stats) => stats.totalSeconds >= 10800
+    check: (stats) => (stats.totalSeconds || 0) >= 10800
+  },
+  {
+    id: 'total_5h',
+    name: 'Ý Chí Bất Diệt 5 Giờ',
+    desc: 'Tổng thời gian tích lũy đạt 300 phút (5 giờ) Plank',
+    icon: '👑',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats) => (stats.totalSeconds || 0) >= 18000
   },
 
   // --- E. Tích Lũy Hiệp & Năng Lượng Đốt Cháy ---
+  {
+    id: 'sets_25',
+    name: 'Tập Sự 25 Hiệp',
+    desc: 'Tích lũy hoàn thành 25 hiệp Plank',
+    icon: '🧱',
+    rarity: 'Cơ bản',
+    color: 'emerald',
+    check: (stats) => (stats.totalSets || 0) >= 25
+  },
   {
     id: 'sets_50',
     name: 'Bức Tường Thép 50 Hiệp',
@@ -203,13 +381,40 @@ export const BADGES_LIST = [
     check: (stats) => (stats.totalSets || 0) >= 100
   },
   {
+    id: 'sets_200',
+    name: 'Trường Thành Bất Tử 200 Hiệp',
+    desc: 'Tích lũy hoàn thành 200 hiệp Plank',
+    icon: '🏯',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats) => (stats.totalSets || 0) >= 200
+  },
+  {
+    id: 'cal_100',
+    name: 'Tia Lửa Năng Lượng',
+    desc: 'Đốt cháy tích lũy 100 kcal từ các bài tập',
+    icon: '✨',
+    rarity: 'Cơ bản',
+    color: 'emerald',
+    check: (stats) => (stats.totalCalories || 0) >= 100
+  },
+  {
     id: 'cal_500',
     name: 'Lò Đốt Mỡ 500 kcal',
     desc: 'Đốt cháy tích lũy 500 kcal từ các bài tập',
     icon: '♨️',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats) => stats.totalCalories >= 500
+    check: (stats) => (stats.totalCalories || 0) >= 500
+  },
+  {
+    id: 'cal_1000',
+    name: 'Cỗ Máy Năng Lượng 1000 kcal',
+    desc: 'Đốt cháy tích lũy 1000 kcal từ Plank',
+    icon: '🔥',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats) => (stats.totalCalories || 0) >= 1000
   },
   {
     id: 'cal_2000',
@@ -218,10 +423,28 @@ export const BADGES_LIST = [
     icon: '🌋',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats) => stats.totalCalories >= 2000
+    check: (stats) => (stats.totalCalories || 0) >= 2000
+  },
+  {
+    id: 'cal_5000',
+    name: 'Đại Hỏa Ngục 5000 kcal',
+    desc: 'Đốt cháy tích lũy 5000 kcal từ Plank',
+    icon: '☄️',
+    rarity: 'Tối thượng',
+    color: 'red',
+    check: (stats) => (stats.totalCalories || 0) >= 5000
   },
 
-  // --- F. Thử Thách & Phong Cách Tập Luyện ---
+  // --- F. Thử Thách & Thành Tích Buổi Tập ---
+  {
+    id: 'five_sets_session',
+    name: 'Hiệp Sĩ 5 Hiệp',
+    desc: 'Hoàn thành 1 buổi tập có từ 5 hiệp trở lên',
+    icon: '⚔️',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats, history) => history.some(h => (h.completedSets || h.totalSets || (Array.isArray(h.setsDetail) ? h.setsDetail.length : 1)) >= 5)
+  },
   {
     id: 'ten_sets_session',
     name: 'Chiến Binh 10 Hiệp',
@@ -229,31 +452,34 @@ export const BADGES_LIST = [
     icon: '🎯',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats, history) => history.some(h => (h.completedSets || h.totalSets || 1) >= 10)
+    check: (stats, history) => history.some(h => (h.completedSets || h.totalSets || (Array.isArray(h.setsDetail) ? h.setsDetail.length : 1)) >= 10)
   },
   {
-    id: 'early_bird',
-    name: 'Chiến Binh Bình Minh',
-    desc: 'Hoàn thành bài tập trong khung giờ sáng sớm (5h - 8h)',
-    icon: '🌅',
-    rarity: 'Đặc biệt',
-    color: 'cyan',
-    check: (stats, history) => history.some(h => {
-      const hour = new Date(h.date).getHours();
-      return hour >= 5 && hour <= 8;
-    })
+    id: 'session_300s',
+    name: 'Buổi Tập Thép 5 Phút',
+    desc: 'Hoàn thành 1 buổi tập có tổng thời gian gồng từ 300 giây (5 phút) trở lên',
+    icon: '🏋️',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats, history) => history.some(h => (h.duration || 0) >= 300)
   },
   {
-    id: 'night_owl',
-    name: 'Cú Đêm Bền Bỉ',
-    desc: 'Hoàn thành bài tập trong khung giờ đêm (21h - 24h)',
-    icon: '🌙',
-    rarity: 'Đặc biệt',
+    id: 'session_600s',
+    name: 'Chiến Dịch 10 Phút',
+    desc: 'Hoàn thành 1 buổi tập có tổng thời gian gồng từ 600 giây (10 phút) trở lên',
+    icon: '🛡️',
+    rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats, history) => history.some(h => {
-      const hour = new Date(h.date).getHours();
-      return hour >= 21 || hour === 0 || hour < 4;
-    })
+    check: (stats, history) => history.some(h => (h.duration || 0) >= 600)
+  },
+  {
+    id: 'calorie_crusher_session',
+    name: 'Bão Calo Đơn Buổi',
+    desc: 'Đốt cháy từ 50 kcal trở lên chỉ trong một buổi tập',
+    icon: '💥',
+    rarity: 'Hiếm',
+    color: 'cyan',
+    check: (stats, history) => history.some(h => (h.calories || 0) >= 50)
   },
   {
     id: 'max_challenge',
@@ -263,6 +489,15 @@ export const BADGES_LIST = [
     rarity: 'Đặc biệt',
     color: 'cyan',
     check: (stats, history) => history.some(h => h.planName?.includes('Thách Thức') || h.planId === 'max_challenge')
+  },
+  {
+    id: 'multi_set_challenge',
+    name: 'Ý Chí Đa Hiệp',
+    desc: 'Chinh phục bài Thách Thức Giới Hạn từ 3 hiệp trở lên trong 1 buổi',
+    icon: '⚡',
+    rarity: 'Sử thi',
+    color: 'amber',
+    check: (stats, history) => history.some(h => (h.planName?.includes('Thách Thức') || h.planId === 'max_challenge') && (h.completedSets || (Array.isArray(h.setsDetail) ? h.setsDetail.length : 1)) >= 3)
   }
 ];
 
