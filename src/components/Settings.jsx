@@ -11,7 +11,8 @@ import {
   Play,
   ChevronDown,
   ChevronUp,
-  Scale
+  Scale,
+  Check
 } from 'lucide-react';
 import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS, playHeartbeatSound } from '../utils/audioPack';
