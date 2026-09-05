@@ -762,7 +762,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
             }`}>
               {isResting 
                 ? `🍃 ĐANG NGHỈ HỒI SỨC (HIỆP ${challengeSetIndex + 1})` 
-                : `⚡ THÁCH THỨC GIỚI HẠN • HIỆP ${challengeSetIndex + 1}`}
+                : `⚡ THÁCH THỨC GIỚI HẠN (HIỆP ${challengeSetIndex + 1})`}
             </span>
 
             {/* Nút bấm (i) Mở Modal Chi Tiết */}
