@@ -44,15 +44,26 @@ import {
   ClipboardList
 } from 'lucide-react';
 
-// Định dạng thời gian gồng tích lũy sang phút và giây (ví dụ: 1p 15s hoặc 2 phút)
-const formatTotalHoldTime = (seconds) => {
-  if (!seconds || seconds <= 0) return '0s';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins > 0) {
-    return secs > 0 ? `${mins}p ${secs < 10 ? '0' : ''}${secs}s` : `${mins} phút`;
+// Định dạng thời gian gồng tích lũy sang đầy đủ giờ, phút, giây (ví dụ: 1 giờ 15 phút 30 giây, 1 phút 15 giây, 45 giây)
+const formatTotalHoldTime = (totalSeconds) => {
+  if (!totalSeconds || totalSeconds <= 0) return '0 giây';
+  const hours = Math.floor(totalSeconds / 3600);
+  const remSec = totalSeconds % 3600;
+  const mins = Math.floor(remSec / 60);
+  const secs = remSec % 60;
+
+  if (hours > 0) {
+    if (mins > 0 && secs > 0) return `${hours} giờ ${mins} phút ${secs} giây`;
+    if (mins > 0 && secs === 0) return `${hours} giờ ${mins} phút`;
+    if (mins === 0 && secs > 0) return `${hours} giờ ${secs} giây`;
+    return `${hours} giờ`;
   }
-  return `${secs}s`;
+
+  if (mins > 0) {
+    return secs > 0 ? `${mins} phút ${secs} giây` : `${mins} phút`;
+  }
+
+  return `${secs} giây`;
 };
 
 const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }) => {
