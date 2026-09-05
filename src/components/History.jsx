@@ -22,7 +22,8 @@ import {
   X,
   Layers,
   Filter,
-  Flag
+  Flag,
+  Brain
 } from 'lucide-react';
 import { 
   getHistory, 
@@ -34,8 +35,10 @@ import {
   getUserProfile,
   calculateBMI,
   recalibrateAndSyncAllData,
-  getNormalizedSessionSets
+  getNormalizedSessionSets,
+  getLastAICoachAdvice
 } from '../services/storageService';
+import AICoachModal from './AICoachModal';
 
 const History = ({ onStartWorkout }) => {
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'badges'
@@ -51,6 +54,8 @@ const History = ({ onStartWorkout }) => {
   const [visibleCount, setVisibleCount] = useState(10); // Phân trang 10 buổi/lần
   const [selectedSessionDetail, setSelectedSessionDetail] = useState(null); // Modal chi tiết từng hiệp
   const [deleteTarget, setDeleteTarget] = useState(null); // null | { type: 'single', id: string } | { type: 'all' }
+  const [isAICoachOpen, setIsAICoachOpen] = useState(false);
+  const [lastAdvice, setLastAdvice] = useState(getLastAICoachAdvice());
 
   const bmiInfo = calculateBMI(userProfile.weight || 65, userProfile.height || 170, userProfile.gender || 'male');
   const met = (userProfile.gender || 'male') === 'female' ? 4.1 : 4.4;
@@ -62,6 +67,7 @@ const History = ({ onStartWorkout }) => {
     setStats(getHistoryStats());
     setUnlockedBadges(getUnlockedBadges());
     setUserProfile(getUserProfile());
+    setLastAdvice(getLastAICoachAdvice());
   };
 
   useEffect(() => {
@@ -351,6 +357,40 @@ const History = ({ onStartWorkout }) => {
               <div className="text-[10px] text-slate-400 dark:text-gray-500 mt-1">
                 Kỷ lục: {stats.bestStreak || stats.streak || 0} ngày liên tiếp
               </div>
+            </div>
+          </div>
+
+          {/* BANNER HUẤN LUYỆN VIÊN AI TƯ VẤN & NHẬN XÉT PHONG ĐỘ */}
+          <div className="glass-panel p-4 rounded-3xl border border-purple-400/50 dark:border-purple-500/30 bg-gradient-to-r from-purple-500/15 via-indigo-500/10 to-cyan-500/15 relative overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/30">
+                  <Brain size={22} className="animate-pulse" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-1.5 flex-wrap">
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white tracking-wide">
+                      Huấn Luyện Viên AI Tư Vấn
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 border border-purple-300/40 dark:border-purple-500/30 text-[9px] font-black text-purple-700 dark:text-purple-300 uppercase">
+                      PRO
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 truncate">
+                    {lastAdvice?.motivationalQuote 
+                      ? `"${lastAdvice.motivationalQuote.slice(0, 42)}..."` 
+                      : "Chẩn đoán phong độ thực tế, tìm điểm nghẽn & tư vấn cơ Core"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsAICoachOpen(true)}
+                className="py-2.5 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-md shadow-purple-600/25 active:scale-95 transition-all shrink-0 flex items-center space-x-1.5"
+              >
+                <Sparkles size={14} />
+                <span>{lastAdvice ? "Xem Tư Vấn" : "Tư Vấn Ngay"}</span>
+              </button>
             </div>
           </div>
 
@@ -942,6 +982,15 @@ const History = ({ onStartWorkout }) => {
         </div>,
         document.body
       )}
+
+      {/* MODAL HUẤN LUYỆN VIÊN AI TƯ VẤN & NHẬN XÉT PHONG ĐỘ */}
+      <AICoachModal
+        isOpen={isAICoachOpen}
+        onClose={() => {
+          setIsAICoachOpen(false);
+          refreshData();
+        }}
+      />
     </div>
   );
 };

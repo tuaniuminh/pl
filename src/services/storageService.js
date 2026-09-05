@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   SAVED_PLANS: 'plank_saved_plans_v2',
   USER_PROFILE: 'plank_user_profile_v2',
   UNLOCKED_BADGES: 'plank_unlocked_badges_v2',
-  DELETED_DEFAULT_PLANS: 'plank_deleted_default_plans_v2'
+  DELETED_DEFAULT_PLANS: 'plank_deleted_default_plans_v2',
+  LAST_AI_COACH_ADVICE: 'plank_last_ai_coach_advice_v2'
 };
 
 // ==================== 1. SCREEN WAKE LOCK API ====================
@@ -659,6 +660,25 @@ export const saveUserProfile = (profile) => {
   }
 };
 
+// Lưu và lấy lời khuyên nhận xét mới nhất từ Huấn Luyện Viên AI
+export const getLastAICoachAdvice = () => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.LAST_AI_COACH_ADVICE);
+    return data ? JSON.parse(data) : null;
+  } catch (e) {
+    console.error("Get last AI coach advice error:", e);
+    return null;
+  }
+};
+
+export const saveLastAICoachAdvice = (advice) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LAST_AI_COACH_ADVICE, JSON.stringify(advice));
+  } catch (e) {
+    console.error("Save last AI coach advice error:", e);
+  }
+};
+
 // Cập nhật kỷ lục cá nhân nếu vượt qua kỷ lục cũ
 export const updatePersonalRecord = (newDuration) => {
   const profile = getUserProfile();
@@ -1239,10 +1259,30 @@ export const getWorkoutHistorySummaryForAI = () => {
   const profile = getUserProfile();
 
   const recentSessions = history.slice(0, 5).map((h, i) => {
-    const dateStr = new Date(h.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    const holdTime = h.maxSingleHold || (h.completedSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)));
-    return `- Buổi ${i + 1} (${dateStr}): Bài "${h.planName || 'Plank'}", giữ tổng ${h.duration || 0}s (${Math.round((h.duration || 0) / 60)}p), kỷ lục đơn hiệp: ${holdTime}s, hoàn thành ${h.completedSets || 1} hiệp, đốt ${h.calories || 0} kcal.`;
+    const dateStr = new Date(h.date).toLocaleDateString('vi-VN', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    const sets = getNormalizedSessionSets(h);
+    const setsBreakdown = sets.length > 0
+      ? sets.map((s, sIdx) => {
+          const isLast = sIdx === sets.length - 1;
+          const holdStr = `${s.holdTime || 0}s`;
+          const restStr = isLast ? 'Xong buổi tập (Đích)' : (s.restTime > 0 ? `${s.restTime}s` : 'Nghỉ tự do');
+          const setName = s.name ? ` (${s.name})` : '';
+          return `     + Hiệp ${s.setNumber || sIdx + 1}${setName}: Gồng ${holdStr} | Nghỉ giữa hiệp: ${restStr}`;
+        }).join('\n')
+      : `     + Giữ tổng ${h.duration || 0}s, ${h.completedSets || 1} hiệp.`;
+
+    return `• Buổi ${i + 1} (${dateStr}) - Bài "${h.planName || 'Plank'}" [Tổng: ${h.duration || 0}s, ${sets.length || h.completedSets || 1} hiệp, ${h.calories || 0} kcal]:\n${setsBreakdown}`;
   });
+
+  const height = profile.height || 170;
+  const weight = profile.weight || 65;
+  const heightM = height / 100;
+  const bmi = (weight / (heightM * heightM)).toFixed(1);
 
   return {
     totalWorkouts: stats.totalWorkouts,
@@ -1254,6 +1294,10 @@ export const getWorkoutHistorySummaryForAI = () => {
     personalRecord: profile.record || 60,
     goal: profile.goal || "Tăng sức bền & Giảm mỡ bụng",
     level: profile.level || "Trung bình",
+    gender: profile.gender || "male",
+    height,
+    weight,
+    bmi,
     recentSessionsText: recentSessions.length > 0 
       ? recentSessions.join('\n') 
       : "Chưa có lịch sử buổi tập trước đó (đây là học viên mới bắt đầu)."

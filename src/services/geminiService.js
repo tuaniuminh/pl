@@ -293,3 +293,161 @@ export const getPredefinedPlans = () => [
     ]
   }
 ];
+
+// ==================== TÍNH NĂNG HUẤN LUYỆN VIÊN AI TƯ VẤN PHONG ĐỘ ====================
+
+// Hàm tạo Prompt chuyên sâu cho Huấn Luyện Viên AI phân tích phong độ (Dùng cho cả Copy Prompt và API)
+export const buildPerformanceAnalysisPrompt = (userProfile, historySummary) => {
+  const record = userProfile.record || 60;
+  const height = userProfile.height || 170;
+  const weight = userProfile.weight || 65;
+  const heightM = height / 100;
+  const bmi = (weight / (heightM * heightM)).toFixed(1);
+  const goal = userProfile.goal || "Tăng sức bền & Giảm mỡ bụng";
+  const level = userProfile.level || "Trung bình";
+  const totalWorkouts = historySummary?.totalWorkouts || 0;
+  const totalMinutes = historySummary?.totalMinutes || 0;
+  const totalCalories = historySummary?.totalCalories || 0;
+  const streak = historySummary?.streak || 0;
+  const recentSessionsText = historySummary?.recentSessionsText || "Chưa có lịch sử buổi tập trước đó.";
+
+  return `Bạn là Huấn luyện viên Cá nhân (PT) & Chuyên gia Phục hồi Sức bền Cơ Core cấp cao quốc tế.
+Học viên đang cần bạn PHÂN TÍCH CHUYÊN SÂU LỊCH SỬ TẬP LUYỆN, ĐÁNH GIÁ PHONG ĐỘ VÀ ĐƯA RA LỜI KHUYÊN TƯ VẤN THỰC CHIẾN (Tuyệt đối KHÔNG tạo danh sách bài tập mà tập trung 100% vào chẩn đoán và hướng dẫn).
+
+Dưới đây là BÁO CÁO THỂ LỰC & LỊCH SỬ TẬP THỰC TẾ CỦA HỌC VIÊN:
+
+👤 CHỈ SỐ THỂ TRẠNG:
+- Giới tính sinh học: ${userProfile.gender === 'female' ? 'Nữ 👩 (Định hướng: Siết eo thon gọn, phẳng bụng dưới, tạo rãnh bụng số 11)' : 'Nam 👨 (Định hướng: Phát triển cơ bụng 6 múi dày khỏe, rãnh V-cut, tăng sức mạnh Core)'}
+- Chiều cao: ${height} cm | Cân nặng: ${weight} kg | Chỉ số BMI: ${bmi}
+- Trình độ thể lực: ${level}
+- Mục tiêu chính: ${goal}
+
+📊 TỔNG KẾT QUÁ TRÌNH TẬP LUYỆN:
+- Kỷ lục giữ Plank cao nhất (PR): ${record} giây
+- Tổng số buổi tập đã hoàn thành: ${totalWorkouts} buổi
+- Tổng thời gian Plank tích lũy: ${totalMinutes} phút (${historySummary?.totalSeconds || 0} giây giữ Core)
+- Tổng năng lượng tiêu hao: ${totalCalories} kcal
+- Chuỗi ngày tập liên tục: ${streak} ngày
+
+🗓️ CHI TIẾT TỪNG HIỆP CỦA CÁC BUỔI TẬP GẦN NHẤT (Bao gồm thời gian gồng và thời gian nghỉ giữa hiệp thực tế):
+${recentSessionsText}
+
+NHIỆM VỤ CỦA HUẤN LUYỆN VIÊN (Đưa ra nhận xét sắc bén, chân thực, khoa học và truyền cảm hứng):
+1. Chẩn đoán phong độ & Độ bền giữa các hiệp (evaluation): Đọc kỹ chi tiết từng hiệp ở trên để phân tích xem thời gian gồng có bị sụt giảm ở các hiệp sau không, thời gian nghỉ giữa hiệp hiện tại có đủ để cơ Core tái tạo năng lượng (ATP) không, và sức bền tổng thể đang tiến bộ ra sao.
+2. Điểm mạnh & Điểm nghẽn thể lực (strengthsAndWeaknesses): Học viên đang vượt trội ở điểm nào và đâu là rào cản chính (cơ delta vai, cơ mông, thắt lưng hay nhịp thở) cản trở việc giữ vững thời gian ở các hiệp cuối.
+3. Kỹ thuật gồng siết & Nhịp thở (formAndBreathing): Hướng dẫn kỹ thuật Hollow Body, cách khóa xương chậu (posterior pelvic tilt) và kỹ thuật thở cơ hoành (thở bụng) để duy trì oxy khi gồng lâu.
+4. Cảnh báo an toàn & Phòng ngừa chấn thương (injuryPrevention): Dấu hiệu võng thắt lưng (Lumbar lordosis), mỏi khớp cổ vai gáy và cách khắc phục ngay khi thấy đuối sức.
+5. Dinh dưỡng, Giảm mỡ & Hồi phục (nutritionAndRecovery): Lời khuyên ăn uống trước/sau tập, bù nước và nghỉ ngơi phù hợp với chỉ số BMI ${bmi} để tối ưu cơ bụng.
+6. Lời nhắn truyền lửa (motivationalQuote): Một câu châm ngôn ngắn gọn, đanh thép từ Huấn Luyện Viên.
+
+YÊU CẦU ĐẦU RA BẮT BUỘC:
+Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau (KHÔNG kèm văn bản thừa ngoài JSON):
+{
+  "evaluation": "Nhận xét phân tích chi tiết phong độ và sức bền...",
+  "strengthsAndWeaknesses": "Điểm mạnh và điểm nghẽn thể lực của học viên...",
+  "formAndBreathing": "Chỉ dẫn kỹ thuật gồng siết Hollow Body và nhịp thở cơ hoành...",
+  "injuryPrevention": "Cảnh báo tư thế sai và cách bảo vệ cột sống/khớp vai...",
+  "nutritionAndRecovery": "Tư vấn dinh dưỡng, bù khoáng và thời gian hồi phục cơ...",
+  "motivationalQuote": "Lời nhắn truyền lửa đanh thép..."
+}`;
+};
+
+// Gọi trực tiếp Gemini API để phân tích phong độ học viên
+export const analyzeWorkoutPerformance = async (apiKey, userProfile, historySummary) => {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error("Vui lòng nhập Google Gemini API Key trong phần Cài đặt.");
+  }
+
+  const promptText = buildPerformanceAnalysisPrompt(userProfile, historySummary);
+  const requestBody = {
+    contents: [{ parts: [{ text: promptText }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.7,
+    }
+  };
+
+  let lastError = null;
+
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const rawMsg = errorData.error?.message || `HTTP ${response.status}`;
+        console.warn(`Model ${model} failed for performance analysis: ${rawMsg}. Trying next candidate...`);
+        lastError = new Error(translateErrorMessage(rawMsg));
+        continue;
+      }
+
+      const data = await response.json();
+      const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!resultText) {
+        continue;
+      }
+
+      const parsedAdvice = extractJsonFromText(resultText);
+      return {
+        ...parsedAdvice,
+        analyzedAt: new Date().toISOString()
+      };
+    } catch (err) {
+      console.warn(`Model ${model} analysis network error:`, err);
+      lastError = err;
+    }
+  }
+
+  // Nếu máy chủ Google quá tải, tạo phân tích cục bộ thông minh theo dữ liệu thực tế
+  console.info("Generating offline performance analysis based on workout metrics...");
+  return generateOfflinePerformanceAnalysis(userProfile, historySummary);
+};
+
+// Hàm tạo bài phân tích dự phòng khi ngoại tuyến hoặc máy chủ Google quá tải
+const generateOfflinePerformanceAnalysis = (userProfile, historySummary) => {
+  const record = userProfile.record || 60;
+  const totalWorkouts = historySummary?.totalWorkouts || 0;
+  const streak = historySummary?.streak || 0;
+  const weight = userProfile.weight || 65;
+  const height = userProfile.height || 170;
+  const heightM = height / 100;
+  const bmi = (weight / (heightM * heightM)).toFixed(1);
+  const isFemale = userProfile.gender === 'female';
+
+  let evaluation = "";
+  if (totalWorkouts >= 10) {
+    evaluation = `Bạn đã kiên trì hoàn thành ${totalWorkouts} buổi tập với kỷ lục ${record}s. Phong độ cơ Core của bạn đang bước vào giai đoạn thích nghi vững vàng. Sức bền tĩnh của nhóm cơ thẳng bụng và cơ ngang bụng (TVA) đã tăng trưởng rõ rệt so với giai đoạn đầu.`;
+  } else if (totalWorkouts >= 3) {
+    evaluation = `Bạn đã có khởi đầu rất tích cực với ${totalWorkouts} buổi tập, giữ vững mốc ${record}s. Thể lực đang trong pha kích hoạt nhóm cơ sâu. Đây là thời điểm vàng để rèn luyện thói quen giữ thẳng trục cơ thể.`;
+  } else {
+    evaluation = `Bạn đang ở những bước đầu tiên trên hành trình rèn luyện Core với kỷ lục ${record}s. Cơ thể đang dần làm quen với áp lực tĩnh của tư thế Plank. Đừng vội so sánh, hãy tập trung vào cảm giác siết cơ bụng.`;
+  }
+
+  let strengthsAndWeaknesses = "";
+  if (record >= 90) {
+    strengthsAndWeaknesses = `Điểm mạnh: Ý chí thép và sức chịu đựng cơ bụng rất tốt. Điểm nghẽn: Khi vượt qua mốc 60s, nhóm cơ delta ở vai và cơ gấp hông thường có xu hướng mỏi trước cơ bụng, dễ khiến cơ thể gồng bù sai vị trí.`;
+  } else if (record >= 60) {
+    strengthsAndWeaknesses = `Điểm mạnh: Đạt chuẩn sức bền cơ bản của người trưởng thành (${record}s). Điểm nghẽn: Thường xảy ra tình trạng nín thở ở 15 giây cuối hiệp, dẫn đến tim đập nhanh và cơ bắp cạn kiệt oxy nhanh chóng.`;
+  } else {
+    strengthsAndWeaknesses = `Điểm mạnh: Tinh thần sẵn sàng bứt phá giới hạn. Điểm nghẽn: Cơ mông chưa tham gia khóa xương chậu đủ sâu, dẫn đến trọng lực dồn nhiều vào khớp vai và thắt lưng.`;
+  }
+
+  return {
+    evaluation,
+    strengthsAndWeaknesses,
+    formAndBreathing: `Kỹ thuật Hollow Body: Chủ động cuộn nhẹ xương chậu về phía rốn (Posterior Pelvic Tilt), siết chặt 2 cơ mông như kẹp một đồng xu. Về nhịp thở: Tuyệt đối không nín thở; hãy hít sâu bằng mũi xuống khoang bụng và thở ra từ từ qua kẽ răng (thở xì) để duy trì áp lực trong ổ bụng.`,
+    injuryPrevention: `Cảnh báo an toàn: Khi cảm thấy vùng thắt lưng bị võng xuống sàn hoặc hai bả vai bị sụp trũng (mất form thẳng), hãy hạ gối nghỉ ngay lập tức. Giữ tư thế chuẩn trong 45s có giá trị hơn rất nhiều so với gồng 70s bị võng lưng gây áp lực lên đĩa đệm.`,
+    nutritionAndRecovery: `Với chỉ số BMI ${bmi} (${isFemale ? 'Mục tiêu siết eo thon' : 'Mục tiêu tăng cơ giảm mỡ'}): Hãy bổ sung một ly nước ấm hoặc điện giải trước khi tập 15 phút. Sau buổi tập, ưu tiên thực phẩm giàu đạm (ức gà, trứng, sữa hạt) và duy trì giấc ngủ 7-8 tiếng để sợi cơ Core được tái tạo săn chắc.`,
+    motivationalQuote: streak >= 3 
+      ? `Chuỗi ${streak} ngày của bạn là minh chứng cho kỷ luật sắt. Kỷ lục mới đang chờ bạn bứt phá!`
+      : `Mỗi giây bạn gồng vững trên thảm là một bước tiến đến phiên bản mạnh mẽ nhất của chính mình.`,
+    analyzedAt: new Date().toISOString()
+  };
+};
