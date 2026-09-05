@@ -955,6 +955,27 @@ export const deleteHistoryItem = (id) => {
   }
 };
 
+export const updateHistoryItem = (id, updatedFields) => {
+  try {
+    const history = getHistory();
+    const index = history.findIndex(item => item.id === id);
+    if (index === -1) return null;
+
+    const current = history[index];
+    const updated = { ...current, ...updatedFields };
+
+    history[index] = updated;
+    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+
+    // Cập nhật lại kỷ lục và danh hiệu nếu có
+    recalibrateAndSyncAllData();
+    return updated;
+  } catch (e) {
+    console.error("Update history item error:", e);
+    return null;
+  }
+};
+
 export const getHistoryStats = () => {
   const history = getHistory();
   const totalSeconds = history.reduce((acc, curr) => acc + (curr.duration || 0), 0);
