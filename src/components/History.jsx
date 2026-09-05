@@ -879,44 +879,39 @@ const History = ({ onStartWorkout }) => {
 
               {/* Scrollable Table Container */}
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 shadow-inner">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-center border-collapse text-xs">
                   <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider z-10">
                     <tr>
-                      <th className="py-2.5 px-3">Hiệp</th>
-                      <th className="py-2.5 px-3 text-center">⏱️ Siết Core</th>
-                      <th className="py-2.5 px-3 text-right">❄️ Nghỉ Chuyển Hiệp</th>
+                      <th className="py-2.5 px-2 sm:px-3 text-center whitespace-nowrap w-16">Hiệp</th>
+                      <th className="py-2.5 px-2 sm:px-3 text-center whitespace-nowrap">⏱️ Siết Core</th>
+                      <th className="py-2.5 px-2 sm:px-3 text-center whitespace-nowrap">❄️ Nghỉ Giữa Hiệp</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
                     {getNormalizedSessionSets(selectedSessionDetail).map((set, idx, arr) => (
                       <tr key={idx} className="hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors">
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center space-x-2">
-                            <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
-                              {set.setNumber || idx + 1}
-                            </span>
-                            <span className="font-bold text-slate-800 dark:text-white">
-                              Hiệp {set.setNumber || idx + 1}
-                            </span>
-                          </div>
+                        <td className="py-2.5 px-2 sm:px-3 text-center">
+                          <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-neon/15 dark:text-neon inline-flex items-center justify-center font-mono text-xs font-black shadow-sm">
+                            {set.setNumber || idx + 1}
+                          </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <span className="font-mono font-extrabold text-emerald-600 dark:text-neon px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-neon/10 border border-emerald-300/40 dark:border-neon/30 inline-block">
+                        <td className="py-2.5 px-2 sm:px-3 text-center">
+                          <span className="font-mono font-extrabold text-emerald-600 dark:text-neon px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-neon/10 border border-emerald-300/40 dark:border-neon/30 inline-block">
                             {set.holdTime > 0 ? `${set.holdTime}s` : "Fail"}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-right">
+                        <td className="py-2.5 px-2 sm:px-3 text-center">
                           {idx === arr.length - 1 ? (
                             <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-emerald-500/10 via-teal-500/15 to-emerald-500/10 border border-emerald-400/40 dark:border-neon/40 text-emerald-700 dark:text-neon text-[10px] font-black shadow-sm" title="Hiệp cuối - Hoàn thành buổi tập">
                               <Flag size={10} className="fill-current shrink-0" />
                               <span>Đích 🏁</span>
                             </span>
                           ) : set.restTime > 0 ? (
-                            <span className="font-mono font-bold text-cyan-600 dark:text-cyan-neon px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/40 dark:border-cyan-500/30">
+                            <span className="font-mono font-bold text-cyan-600 dark:text-cyan-neon px-2 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/40 dark:border-cyan-500/30 inline-block">
                               {set.restTime}s
                             </span>
                           ) : (
-                            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950/30 px-1.5 py-0.5 rounded-md">
+                            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950/30 px-2 py-0.5 rounded-md inline-block">
                               🍃 Tự do
                             </span>
                           )}
