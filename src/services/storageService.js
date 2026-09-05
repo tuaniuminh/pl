@@ -86,7 +86,7 @@ export const BADGES_LIST = [
     icon: '⚡',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 60)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 60)
   },
   {
     id: 'hold_120s',
@@ -95,7 +95,7 @@ export const BADGES_LIST = [
     icon: '🔥',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 120)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 120)
   },
   {
     id: 'hold_180s',
@@ -104,7 +104,7 @@ export const BADGES_LIST = [
     icon: '🏆',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 180)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 180)
   },
   {
     id: 'hold_300s',
@@ -113,7 +113,7 @@ export const BADGES_LIST = [
     icon: '👑',
     rarity: 'Tối thượng',
     color: 'red',
-    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : 0)) >= 300)
+    check: (stats, history) => history.some(h => (h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round((h.duration || 60) / (h.completedSets || 1)))) >= 300)
   },
 
   // --- C. Chuỗi Ngày Tập Liên Tiếp ---
@@ -124,7 +124,7 @@ export const BADGES_LIST = [
     icon: '🌟',
     rarity: 'Hiếm',
     color: 'cyan',
-    check: (stats) => stats.streak >= 3
+    check: (stats) => (stats.bestStreak || stats.streak) >= 3
   },
   {
     id: 'streak_7',
@@ -133,7 +133,7 @@ export const BADGES_LIST = [
     icon: '💎',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats) => stats.streak >= 7
+    check: (stats) => (stats.bestStreak || stats.streak) >= 7
   },
   {
     id: 'streak_14',
@@ -142,7 +142,7 @@ export const BADGES_LIST = [
     icon: '💠',
     rarity: 'Huyền thoại',
     color: 'purple',
-    check: (stats) => stats.streak >= 14
+    check: (stats) => (stats.bestStreak || stats.streak) >= 14
   },
   {
     id: 'streak_30',
@@ -151,7 +151,7 @@ export const BADGES_LIST = [
     icon: '👑',
     rarity: 'Tối thượng',
     color: 'red',
-    check: (stats) => stats.streak >= 30
+    check: (stats) => (stats.bestStreak || stats.streak) >= 30
   },
 
   // --- D. Tổng Thời Gian Tích Lũy ---
@@ -229,7 +229,7 @@ export const BADGES_LIST = [
     icon: '🎯',
     rarity: 'Sử thi',
     color: 'amber',
-    check: (stats, history) => history.some(h => (h.completedSets || 1) >= 10)
+    check: (stats, history) => history.some(h => (h.completedSets || h.totalSets || 1) >= 10)
   },
   {
     id: 'early_bird',
@@ -240,7 +240,7 @@ export const BADGES_LIST = [
     color: 'cyan',
     check: (stats, history) => history.some(h => {
       const hour = new Date(h.date).getHours();
-      return hour >= 5 && hour < 8;
+      return hour >= 5 && hour <= 8;
     })
   },
   {
@@ -252,7 +252,7 @@ export const BADGES_LIST = [
     color: 'purple',
     check: (stats, history) => history.some(h => {
       const hour = new Date(h.date).getHours();
-      return hour >= 21 && hour <= 23;
+      return hour >= 21 || hour === 0 || hour < 4;
     })
   },
   {
@@ -262,7 +262,7 @@ export const BADGES_LIST = [
     icon: '🌌',
     rarity: 'Đặc biệt',
     color: 'cyan',
-    check: (stats, history) => history.some(h => h.planName?.includes('Thách Thức Vô Cực') || h.planId === 'max_challenge')
+    check: (stats, history) => history.some(h => h.planName?.includes('Thách Thức') || h.planId === 'max_challenge')
   }
 ];
 
@@ -738,6 +738,106 @@ export const getHistory = () => {
   }
 };
 
+/**
+ * Tính toán chuỗi ngày tập liên tiếp chuẩn xác (Active Streak & Longest Streak)
+ * Không bao giờ bị nhầm lẫn giữa tổng số ngày tập và chuỗi ngày liên tiếp
+ */
+export const calculateStreakStats = (history) => {
+  if (!history || history.length === 0) {
+    return { currentStreak: 0, bestStreak: 0, totalDays: 0 };
+  }
+
+  // Thu thập danh sách ngày tập duy nhất theo định dạng YYYY-MM-DD
+  const dateSet = new Set();
+  history.forEach(item => {
+    if (!item.date) return;
+    const d = new Date(item.date);
+    if (isNaN(d.getTime())) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    dateSet.add(key);
+  });
+
+  const sortedDates = Array.from(dateSet).sort();
+  if (sortedDates.length === 0) {
+    return { currentStreak: 0, bestStreak: 0, totalDays: 0 };
+  }
+
+  // 1. Tính chuỗi ngày liên tiếp tốt nhất trong lịch sử (bestStreak)
+  let bestStreak = 1;
+  let currentRun = 1;
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = new Date(sortedDates[i - 1]);
+    const currDate = new Date(sortedDates[i]);
+    const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      currentRun += 1;
+      if (currentRun > bestStreak) {
+        bestStreak = currentRun;
+      }
+    } else {
+      currentRun = 1;
+    }
+  }
+
+  // 2. Tính chuỗi ngày đang duy trì hiện tại (currentStreak - kết thúc hôm nay hoặc hôm qua)
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  let currentStreak = 0;
+  let checkDate = dateSet.has(todayKey) 
+    ? new Date(now) 
+    : (dateSet.has(yesterdayKey) ? new Date(yesterday) : null);
+
+  if (checkDate) {
+    while (true) {
+      const k = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+      if (dateSet.has(k)) {
+        currentStreak += 1;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return {
+    currentStreak,
+    bestStreak,
+    totalDays: sortedDates.length
+  };
+};
+
+/**
+ * Chuẩn hóa danh sách hiệp tập chi tiết của một buổi tập (Backward-compatible fallback)
+ * Nếu buổi tập chưa có setsDetail cũ, tự động tái tạo bảng hiệp chính xác theo dữ liệu lịch sử
+ */
+export const getNormalizedSessionSets = (session) => {
+  if (!session) return [];
+  if (session.setsDetail && Array.isArray(session.setsDetail) && session.setsDetail.length > 0) {
+    return session.setsDetail;
+  }
+
+  const count = session.completedSets || session.totalSets || 1;
+  const isSingle = count === 1;
+  const avgHold = isSingle 
+    ? (session.duration || 60) 
+    : (session.maxSingleHold || Math.max(15, Math.round((session.duration || 60) / count)));
+
+  const sets = [];
+  for (let i = 0; i < count; i++) {
+    sets.push({
+      setNumber: i + 1,
+      name: isSingle ? (session.planName || "Plank Tiêu Chuẩn") : `Hiệp ${i + 1}`,
+      holdTime: avgHold,
+      restTime: i === count - 1 ? 0 : 20
+    });
+  }
+  return sets;
+};
+
 export const saveHistory = (session) => {
   try {
     const history = getHistory();
@@ -758,7 +858,8 @@ export const saveHistory = (session) => {
       totalSets: session.totalSets || 1,
       calories: calories,
       weightAtTime: Number(profile.weight) || 65,
-      genderAtTime: profile.gender || 'male'
+      genderAtTime: profile.gender || 'male',
+      setsDetail: Array.isArray(session.setsDetail) && session.setsDetail.length > 0 ? session.setsDetail : null
     };
     history.unshift(newRecord);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
@@ -801,11 +902,7 @@ export const getHistoryStats = () => {
   const totalWorkouts = history.length;
   const totalSets = history.reduce((acc, curr) => acc + (curr.completedSets || 1), 0);
   
-  let streak = 0;
-  if (history.length > 0) {
-    const dates = [...new Set(history.map(h => new Date(h.date).toDateString()))];
-    streak = dates.length;
-  }
+  const streakStats = calculateStreakStats(history);
 
   return {
     totalSeconds,
@@ -813,7 +910,10 @@ export const getHistoryStats = () => {
     totalCalories,
     totalWorkouts,
     totalSets,
-    streak
+    streak: streakStats.bestStreak, // Giữ chuỗi tốt nhất cho danh hiệu không bị mất khi lỡ 1 ngày
+    currentStreak: streakStats.currentStreak,
+    bestStreak: streakStats.bestStreak,
+    totalDays: streakStats.totalDays
   };
 };
 
@@ -886,6 +986,12 @@ export const recalibrateAndSyncAllData = () => {
         } else {
           item.maxSingleHold = item.duration || 0;
         }
+        historyChanged = true;
+      }
+
+      // Sửa lỗi maxSingleHold bị gán bằng tổng duration khi tập Thách Thức Giới Hạn nhiều hiệp
+      if ((item.planId === 'max_challenge' || item.planName?.includes('Thách Thức')) && item.completedSets > 1 && item.maxSingleHold === item.duration) {
+        item.maxSingleHold = Math.round(item.duration / item.completedSets);
         historyChanged = true;
       }
 

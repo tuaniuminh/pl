@@ -17,7 +17,10 @@ import {
   ChevronRight,
   Info,
   Edit2,
-  Check
+  Check,
+  X,
+  Layers,
+  Filter
 } from 'lucide-react';
 import { 
   getHistory, 
@@ -28,7 +31,8 @@ import {
   getUnlockedBadges, 
   getUserProfile,
   calculateBMI,
-  recalibrateAndSyncAllData
+  recalibrateAndSyncAllData,
+  getNormalizedSessionSets
 } from '../services/storageService';
 
 const History = ({ onStartWorkout }) => {
@@ -41,6 +45,9 @@ const History = ({ onStartWorkout }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentViewDate, setCurrentViewDate] = useState(new Date());
   const [selectedDayDetail, setSelectedDayDetail] = useState(null);
+  const [selectedFilterDate, setSelectedFilterDate] = useState(null); // 'YYYY-MM-DD' hoặc null
+  const [visibleCount, setVisibleCount] = useState(10); // Phân trang 10 buổi/lần
+  const [selectedSessionDetail, setSelectedSessionDetail] = useState(null); // Modal chi tiết từng hiệp
   const [deleteTarget, setDeleteTarget] = useState(null); // null | { type: 'single', id: string } | { type: 'all' }
 
   const bmiInfo = calculateBMI(userProfile.weight || 65, userProfile.height || 170, userProfile.gender || 'male');
@@ -129,34 +136,66 @@ const History = ({ onStartWorkout }) => {
   const handlePrevMonth = () => {
     setCurrentViewDate(new Date(viewYear, viewMonth - 1, 1));
     setSelectedDayDetail(null);
+    setSelectedFilterDate(null);
+    setVisibleCount(10);
   };
 
   const handleNextMonth = () => {
     setCurrentViewDate(new Date(viewYear, viewMonth + 1, 1));
     setSelectedDayDetail(null);
+    setSelectedFilterDate(null);
+    setVisibleCount(10);
   };
 
   const handleGoToday = () => {
     setCurrentViewDate(new Date());
     setSelectedDayDetail(null);
+    setSelectedFilterDate(null);
+    setVisibleCount(10);
   };
 
   const handleSelectDay = (dayNum, dayData) => {
+    const dateKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
     if (!dayData || dayData.count === 0) {
       setSelectedDayDetail({
+        dateKey,
         dateStr: `${String(dayNum).padStart(2, '0')}/${String(viewMonth + 1).padStart(2, '0')}/${viewYear}`,
         count: 0,
         totalDuration: 0,
         totalCalories: 0,
         sessions: []
       });
+      setSelectedFilterDate(null);
     } else {
       setSelectedDayDetail({
+        dateKey,
         dateStr: `${String(dayNum).padStart(2, '0')}/${String(viewMonth + 1).padStart(2, '0')}/${viewYear}`,
         ...dayData
       });
+      // Bấm vào ngày có buổi tập: toggle bộ lọc danh sách theo ngày đó
+      setSelectedFilterDate(prev => (prev === dateKey ? null : dateKey));
+      setVisibleCount(10);
     }
   };
+
+  const handleClearDateFilter = () => {
+    setSelectedFilterDate(null);
+    setSelectedDayDetail(null);
+    setVisibleCount(10);
+  };
+
+  // Danh sách hiển thị sau khi áp dụng bộ lọc ngày (nếu có)
+  const displayedHistory = historyList.filter((item) => {
+    if (!selectedFilterDate) return true;
+    if (!item.date) return false;
+    const d = new Date(item.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return key === selectedFilterDate;
+  });
+
+  // Phân trang 10 buổi/lần tránh kéo dài danh sách
+  const paginatedHistory = displayedHistory.slice(0, visibleCount);
+  const hasMore = visibleCount < displayedHistory.length;
 
   return (
     <div className="p-4 sm:p-6 space-y-6 pb-24 max-w-lg mx-auto">
@@ -297,16 +336,16 @@ const History = ({ onStartWorkout }) => {
             <div className="glass-panel p-4 rounded-3xl relative overflow-hidden">
               <div className="flex items-center space-x-1.5 text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase">
                 <Zap size={13} className="text-purple-600 dark:text-purple-400" />
-                <span>Ngày Luyện Tập</span>
+                <span>Chuỗi Ngày Tập</span>
               </div>
               <div className="mt-2 flex items-baseline space-x-1">
                 <span className="font-mono text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400">
-                  {stats.streak}
+                  {stats.currentStreak || 0}
                 </span>
                 <span className="text-xs text-slate-500 dark:text-gray-400 font-bold">ngày</span>
               </div>
               <div className="text-[10px] text-slate-400 dark:text-gray-500 mt-1">
-                Chuỗi kiên trì
+                Kỷ lục: {stats.bestStreak || stats.streak || 0} ngày liên tiếp
               </div>
             </div>
           </div>
@@ -475,9 +514,21 @@ const History = ({ onStartWorkout }) => {
           {/* Workout History List */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-gray-300">
-                Chi Tiết Các Buổi Tập ({historyList.length})
-              </h3>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-gray-300">
+                  Chi Tiết Các Buổi Tập ({displayedHistory.length})
+                </h3>
+                {selectedFilterDate && (
+                  <button
+                    onClick={handleClearDateFilter}
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/40 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-all flex items-center space-x-1"
+                    title="Bấm để xem tất cả các ngày"
+                  >
+                    <span>Lọc: {selectedDayDetail?.dateStr}</span>
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
               {historyList.length > 0 && (
                 <div className="flex items-center space-x-2">
                   <button
@@ -505,48 +556,65 @@ const History = ({ onStartWorkout }) => {
               )}
             </div>
 
-            {historyList.length === 0 ? (
+            {displayedHistory.length === 0 ? (
               <div className="text-center py-12 glass-panel rounded-3xl p-6 space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 dark:text-gray-500 mx-auto flex items-center justify-center">
                   <HistoryIcon size={24} />
                 </div>
-                <h4 className="text-sm font-bold text-slate-800 dark:text-gray-300">Chưa có lịch sử tập luyện</h4>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-gray-300">
+                  {selectedFilterDate ? `Không có buổi tập nào trong ngày ${selectedDayDetail?.dateStr}` : "Chưa có lịch sử tập luyện"}
+                </h4>
                 <p className="text-xs text-slate-500 dark:text-gray-400 max-w-xs mx-auto">
-                  Hãy hoàn thành bài tập đầu tiên của bạn để xem biểu đồ và số liệu phân tích tại đây!
+                  {selectedFilterDate ? "Hãy chọn ngày khác hoặc bấm bỏ lọc để xem toàn bộ lịch sử." : "Hãy hoàn thành bài tập đầu tiên của bạn để xem biểu đồ và số liệu phân tích tại đây!"}
                 </p>
-                <button
-                  onClick={onStartWorkout}
-                  className="mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
-                >
-                  Bắt Đầu Tập Ngay
-                </button>
+                {selectedFilterDate ? (
+                  <button
+                    onClick={handleClearDateFilter}
+                    className="mt-2 px-5 py-2.5 rounded-2xl bg-slate-200 dark:bg-white/10 text-slate-800 dark:text-white font-bold text-xs uppercase tracking-wider active:scale-95 transition-all"
+                  >
+                    Xem Tất Cả Các Ngày
+                  </button>
+                ) : (
+                  <button
+                    onClick={onStartWorkout}
+                    className="mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+                  >
+                    Bắt Đầu Tập Ngay
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-2.5">
-                {historyList.map((item) => (
+                {paginatedHistory.map((item) => (
                   <div
                     key={item.id}
-                    className="glass-panel p-4 rounded-2xl flex items-center justify-between hover:border-slate-300 dark:hover:border-white/20 transition-all"
+                    onClick={() => !isEditing && setSelectedSessionDetail(item)}
+                    className={`glass-panel p-4 rounded-2xl flex items-center justify-between transition-all group ${
+                      !isEditing ? 'cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 active:scale-[0.99]' : ''
+                    }`}
                   >
-                    <div className="flex items-start space-x-3">
+                    <div className="flex items-start space-x-3 min-w-0">
                       {isEditing ? (
                         <button
-                          onClick={() => handleRequestDeleteSession(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRequestDeleteSession(item.id);
+                          }}
                           className="w-9 h-9 rounded-2xl bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-sm"
                           title="Xóa buổi tập này"
                         >
                           <Trash2 size={15} />
                         </button>
                       ) : (
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-neon/10 border border-emerald-300 dark:border-neon/20 flex items-center justify-center text-emerald-600 dark:text-neon shrink-0 mt-0.5">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-neon/10 border border-emerald-300 dark:border-neon/20 flex items-center justify-center text-emerald-600 dark:text-neon shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                           <CheckCircle2 size={18} />
                         </div>
                       )}
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
                           {item.planName || "Plank Tự Do"}
                         </div>
-                        <div className="flex items-center space-x-2 text-[10px] text-slate-500 dark:text-gray-400 mt-1">
+                        <div className="flex items-center space-x-2 text-[10px] text-slate-500 dark:text-gray-400 mt-1 flex-wrap">
                           <span className="flex items-center space-x-1">
                             <Calendar size={10} />
                             <span>{new Date(item.date).toLocaleDateString('vi-VN')}</span>
@@ -563,21 +631,42 @@ const History = ({ onStartWorkout }) => {
                       </div>
                     </div>
 
-                    <div className="text-right pl-3 shrink-0">
-                      <div className="font-mono text-sm font-extrabold text-emerald-600 dark:text-neon">
-                        {item.duration}s
+                    <div className="flex items-center space-x-2 shrink-0 pl-3">
+                      <div className="text-right">
+                        <div className="font-mono text-sm font-extrabold text-emerald-600 dark:text-neon">
+                          {item.duration}s
+                        </div>
+                        {item.maxSingleHold && item.completedSets > 1 && (
+                          <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
+                            Max: {item.maxSingleHold}s
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">
+                          ~{item.calories || Math.round((item.duration / 60) * 4.5)} kcal{item.weightAtTime ? ` (${item.weightAtTime}kg)` : ''}
+                        </div>
                       </div>
-                      {item.maxSingleHold && item.completedSets > 1 && (
-                        <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-                          Max: {item.maxSingleHold}s
+                      {!isEditing && (
+                        <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-gray-500 group-hover:text-emerald-500 group-hover:bg-emerald-100 dark:group-hover:bg-neon/10 transition-colors">
+                          <ChevronRight size={14} />
                         </div>
                       )}
-                      <div className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">
-                        ~{item.calories || Math.round((item.duration / 60) * 4.5)} kcal{item.weightAtTime ? ` (${item.weightAtTime}kg)` : ''}
-                      </div>
                     </div>
                   </div>
                 ))}
+
+                {/* Nút Xem Thêm 10 Buổi Trước */}
+                {hasMore && (
+                  <div className="pt-2 text-center">
+                    <button
+                      onClick={() => setVisibleCount(prev => prev + 10)}
+                      className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center space-x-2 active:scale-95 transition-all shadow-sm"
+                    >
+                      <span>Xem thêm 10 buổi trước</span>
+                      <span className="text-[10px] opacity-70 font-mono">({displayedHistory.length - visibleCount} buổi còn lại)</span>
+                      <ChevronRight size={14} className="rotate-90" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -662,6 +751,145 @@ const History = ({ onStartWorkout }) => {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL BẢNG THÔNG TIN CHI TIẾT TỪNG HIỆP CỦA BUỔI TẬP */}
+      {selectedSessionDetail && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="glass-panel max-w-md w-full p-5 sm:p-6 rounded-3xl border border-emerald-500/30 shadow-2xl bg-white/95 dark:bg-slate-900/95 space-y-4 max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between shrink-0">
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-400/40 text-emerald-600 dark:text-neon flex items-center justify-center shrink-0 shadow-sm text-xl">
+                  {selectedSessionDetail.planName?.includes('Thách Thức') ? '⚡' : '🧘'}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-neon/10 dark:text-neon border border-emerald-300/40 dark:border-neon/30">
+                      Chi Tiết Buổi Tập
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-0.5 truncate">
+                    {selectedSessionDetail.planName || "Plank Tự Do"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 mt-0.5">
+                    <Calendar size={11} />
+                    <span>{new Date(selectedSessionDetail.date).toLocaleDateString('vi-VN')}</span>
+                    <span>•</span>
+                    <Clock size={11} />
+                    <span>{new Date(selectedSessionDetail.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedSessionDetail(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-all shrink-0 ml-2"
+                title="Đóng"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* 4 Summary Stats Grid */}
+            <div className="grid grid-cols-4 gap-2 shrink-0">
+              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+                <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Tổng Giữ</div>
+                <div className="font-mono text-sm sm:text-base font-black text-emerald-600 dark:text-neon mt-0.5">
+                  {selectedSessionDetail.duration}s
+                </div>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+                <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Số Hiệp</div>
+                <div className="font-mono text-sm sm:text-base font-black text-cyan-600 dark:text-cyan-neon mt-0.5">
+                  {selectedSessionDetail.completedSets || 1}
+                </div>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+                <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Kỷ Lục Đơn</div>
+                <div className="font-mono text-sm sm:text-base font-black text-amber-500 mt-0.5">
+                  {selectedSessionDetail.maxSingleHold || (selectedSessionDetail.completedSets === 1 ? selectedSessionDetail.duration : Math.round((selectedSessionDetail.duration || 60) / (selectedSessionDetail.completedSets || 1)))}s
+                </div>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
+                <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Calo Đốt</div>
+                <div className="font-mono text-sm sm:text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
+                  ~{selectedSessionDetail.calories || Math.round((selectedSessionDetail.duration / 60) * 4.5)}
+                </div>
+              </div>
+            </div>
+
+            {/* Sets Breakdown Table Section */}
+            <div className="flex-1 min-h-0 flex flex-col space-y-2">
+              <div className="flex items-center justify-between shrink-0 px-1">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-gray-200 flex items-center space-x-1.5">
+                  <Layers size={14} className="text-emerald-500" />
+                  <span>Bảng Thông Số Từng Hiệp</span>
+                </h4>
+                <span className="text-[10px] text-slate-400 dark:text-gray-500 font-medium">
+                  {getNormalizedSessionSets(selectedSessionDetail).length} hiệp hoàn thành
+                </span>
+              </div>
+
+              {/* Scrollable Table Container */}
+              <div className="flex-1 overflow-y-auto rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-[10px] font-black uppercase text-slate-500 dark:text-gray-400 tracking-wider z-10">
+                    <tr>
+                      <th className="py-2.5 px-3">Hiệp & Bài Tập</th>
+                      <th className="py-2.5 px-3 text-center">⏱️ Siết Core</th>
+                      <th className="py-2.5 px-3 text-right">❄️ Nghỉ Chuyển Hiệp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
+                    {getNormalizedSessionSets(selectedSessionDetail).map((set, idx, arr) => (
+                      <tr key={idx} className="hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
+                              {set.setNumber || idx + 1}
+                            </span>
+                            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[130px] sm:max-w-[180px]">
+                              {set.name || `Hiệp ${idx + 1}`}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="font-mono font-extrabold text-emerald-600 dark:text-neon px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-neon/10 border border-emerald-300/40 dark:border-neon/30 inline-block">
+                            {set.holdTime > 0 ? `${set.holdTime}s` : "Fail"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          {idx === arr.length - 1 ? (
+                            <span className="text-slate-400 dark:text-gray-500 font-mono text-[11px]">- (Xong)</span>
+                          ) : set.restTime > 0 ? (
+                            <span className="font-mono font-bold text-cyan-600 dark:text-cyan-neon px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/40 dark:border-cyan-500/30">
+                              {set.restTime}s
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950/30 px-1.5 py-0.5 rounded-md">
+                              🍃 Tự do
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-2 shrink-0">
+              <button
+                onClick={() => setSelectedSessionDetail(null)}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+              >
+                Đóng Chi Tiết
+              </button>
+            </div>
           </div>
         </div>
       )}

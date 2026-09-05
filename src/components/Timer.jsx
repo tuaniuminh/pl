@@ -63,6 +63,9 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const [totalSetDuration, setTotalSetDuration] = useState(60);
   const [sessionTotalHoldSeconds, setSessionTotalHoldSeconds] = useState(0);
   const [sessionMaxSingleHold, setSessionMaxSingleHold] = useState(0);
+  const [recordedSetsDetail, setRecordedSetsDetail] = useState([]);
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+  const resetConfirmTimerRef = useRef(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedSessionData, setCompletedSessionData] = useState(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -275,6 +278,16 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     const hasRest = currentExercise.isManualRest || (currentExercise.restTime > 0);
     const hasMoreSets = currentSetIndex < exercises.length - 1;
 
+    const thisSetDetail = {
+      setNumber: currentSetIndex + 1,
+      name: currentExercise.name || `Hiệp ${currentSetIndex + 1}`,
+      holdTime: holdDuration,
+      restTime: hasRest && hasMoreSets ? (currentExercise.isManualRest ? 0 : (currentExercise.restTime || 20)) : 0
+    };
+
+    const newSetsDetail = [...recordedSetsDetail, thisSetDetail];
+    setRecordedSetsDetail(newSetsDetail);
+
     if (!isResting && hasRest && hasMoreSets) {
       setIsResting(true);
       const isManual = Boolean(currentExercise.isManualRest || currentExercise.restTime === 0);
@@ -299,7 +312,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setTotalSetDuration(nextTime);
       if (voiceEnabled) playVoiceClip('prepare_next', `Bắt đầu hiệp ${nextIdx + 1}: ${nextEx.name}`, { enabled: voiceEnabled });
     } else {
-      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id);
+      finishWorkoutSession(sessionTotalHoldSeconds, exercises.length, plan?.planName || "Plank Tự Do", plan?.id, newSetsDetail);
     }
   };
 
@@ -312,6 +325,18 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const handleAdvanceFromManualRest = () => {
     triggerHapticHeavy();
     if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
+
+    // Ghi nhận thời gian nghỉ thực tế của hiệp vừa hoàn thành
+    const manualRestDuration = timeLeft;
+    setRecordedSetsDetail(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      updated[updated.length - 1] = {
+        ...updated[updated.length - 1],
+        restTime: manualRestDuration
+      };
+      return updated;
+    });
 
     if (currentSetIndex < exercises.length - 1) {
       setIsResting(false);
@@ -330,7 +355,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   };
 
   // Hoàn thành buổi tập / dừng Thách thức Vô cực
-  const finishWorkoutSession = (totalHold, completedSetsCount, planTitle, planId = null) => {
+  const finishWorkoutSession = (totalHold, completedSetsCount, planTitle, planId = null, setsOverride = null) => {
     setIsActive(false);
     setIsResting(false);
     releaseWakeLock();
@@ -339,8 +364,17 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     if (voiceEnabled) playVoiceClip('workout_complete', 'Xuất sắc! Bạn vừa hoàn thành bài tập!', { enabled: voiceEnabled });
     
     const maxSingleHold = isMaxChallenge 
-      ? totalHold 
+      ? (completedSetsCount > 1 ? Math.max(sessionMaxSingleHold, !isResting ? timeLeft : 0) : totalHold) 
       : Math.max(sessionMaxSingleHold, ...exercises.map(e => Number(e.holdTime || 0)));
+
+    const finalSetsDetail = setsOverride || (recordedSetsDetail.length > 0 
+      ? recordedSetsDetail 
+      : [{
+          setNumber: 1,
+          name: isMaxChallenge ? "Thách Thức Giới Hạn" : (currentExercise?.name || "Plank Tiêu Chuẩn"),
+          holdTime: totalHold,
+          restTime: 0
+        }]);
 
     const sessionResult = {
       planId: planId || (isMaxChallenge ? 'max_challenge' : plan?.id || null),
@@ -348,7 +382,8 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       duration: totalHold,
       maxSingleHold: maxSingleHold,
       completedSets: completedSetsCount,
-      totalSets: completedSetsCount
+      totalSets: completedSetsCount,
+      setsDetail: finalSetsDetail
     };
 
     const savedRecord = saveHistory(sessionResult);
@@ -413,6 +448,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     setIsMaxChallenge(nextMode);
     setIsResting(false);
     setCurrentSetIndex(0);
+    setRecordedSetsDetail([]);
 
     if (nextMode) {
       // Chuyển sang Đếm Xuôi (Thách Thức Giới Hạn)
@@ -432,6 +468,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setTimeLeft(firstHold);
       setTotalSetDuration(firstHold);
       setSessionTotalHoldSeconds(0);
+      setSessionMaxSingleHold(0);
       setChallengeSetIndex(0);
     }
   };
@@ -450,6 +487,16 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       setUserProfile(getUserProfile());
     }
 
+    setRecordedSetsDetail(prev => [
+      ...prev,
+      {
+        setNumber: challengeSetIndex + 1,
+        name: `Thách Thức Hiệp ${challengeSetIndex + 1}`,
+        holdTime: currentHold,
+        restTime: 0
+      }
+    ]);
+
     setIsResting(true);
     setTimeLeft(0); // Reset đồng hồ về 0 để đếm thời gian nghỉ ngơi
     setTotalSetDuration(0);
@@ -464,6 +511,17 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
   const handleChallengeNextRound = () => {
     triggerHapticHeavy();
     if (voiceEnabled) playBeep(880, 400, { enabled: voiceEnabled });
+
+    const restDuration = timeLeft;
+    setRecordedSetsDetail(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      updated[updated.length - 1] = {
+        ...updated[updated.length - 1],
+        restTime: restDuration
+      };
+      return updated;
+    });
 
     setChallengeSetIndex(prev => prev + 1);
     setIsResting(false);
@@ -492,17 +550,48 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
     const totalHold = sessionTotalHoldSeconds;
     const completedSets = challengeSetIndex + 1;
 
+    let setsOverride = [...recordedSetsDetail];
+    if (!isResting && timeLeft > 0) {
+      setsOverride.push({
+        setNumber: challengeSetIndex + 1,
+        name: `Thách Thức Hiệp ${challengeSetIndex + 1}`,
+        holdTime: timeLeft,
+        restTime: 0
+      });
+    } else if (isResting && setsOverride.length > 0) {
+      setsOverride[setsOverride.length - 1] = {
+        ...setsOverride[setsOverride.length - 1],
+        restTime: timeLeft
+      };
+    }
+
     if (totalHold > 0 || timeLeft > 0) {
-      finishWorkoutSession(totalHold, Math.max(1, completedSets), "⚡ Thách Thức Giới Hạn");
+      finishWorkoutSession(totalHold, Math.max(1, completedSets), "⚡ Thách Thức Giới Hạn", 'max_challenge', setsOverride);
     }
   };
 
-  const handleResetTimer = () => {
+  const handleResetTimer = (force = false) => {
+    // Nếu đang trong quá trình tập luyện dở dang và không phải ép buộc reset -> yêu cầu bấm 2 lần
+    if (!force && isWorkoutInProgress) {
+      if (!isConfirmingReset) {
+        setIsConfirmingReset(true);
+        triggerHapticWarning();
+        if (resetConfirmTimerRef.current) clearTimeout(resetConfirmTimerRef.current);
+        resetConfirmTimerRef.current = setTimeout(() => {
+          setIsConfirmingReset(false);
+        }, 3000); // 3 giây để bấm lần 2 xác nhận
+        return;
+      }
+    }
+
+    if (resetConfirmTimerRef.current) clearTimeout(resetConfirmTimerRef.current);
+    setIsConfirmingReset(false);
     triggerHapticMedium();
     setIsActive(false);
     setIsResting(false);
     releaseWakeLock();
     stopAllVoice();
+    setRecordedSetsDetail([]);
 
     if (isMaxChallenge) {
       setTimeLeft(0);
@@ -851,13 +940,24 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
             /* Khi đang gồng trong Thách Thức Giới Hạn */
             <>
               {/* Reset */}
-              <button
-                onClick={handleResetTimer}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
-                title="Khởi động lại bài tập"
-              >
-                <RotateCcw size={22} />
-              </button>
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => handleResetTimer(false)}
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl border flex items-center justify-center transition-all shadow-sm active:scale-90 ${
+                    isConfirmingReset
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-500 shadow-lg shadow-rose-500/20 animate-pulse'
+                      : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title={isConfirmingReset ? "Bấm lần nữa để xác nhận đặt lại" : "Khởi động lại bài tập"}
+                >
+                  <RotateCcw size={22} className={isConfirmingReset ? "animate-spin text-rose-500" : ""} />
+                </button>
+                {isConfirmingReset && (
+                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-rose-500 text-[9px] font-black text-white shadow-md animate-bounce pointer-events-none z-20">
+                    Bấm lần nữa!
+                  </span>
+                )}
+              </div>
 
               {/* Nút Nghỉ Hồi Sức */}
               <button
@@ -882,13 +982,24 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
             /* Khi chưa bắt đầu hoặc trong giáo án chuẩn */
             <>
               {/* Reset / Stop Button */}
-              <button
-                onClick={handleResetTimer}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white active:scale-90 transition-all shadow-sm shrink-0"
-                title="Khởi động lại bài tập"
-              >
-                <RotateCcw size={22} />
-              </button>
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => handleResetTimer(false)}
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl border flex items-center justify-center transition-all shadow-sm active:scale-90 ${
+                    isConfirmingReset
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-500 shadow-lg shadow-rose-500/20 animate-pulse'
+                      : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title={isConfirmingReset ? "Bấm lần nữa để xác nhận đặt lại" : "Khởi động lại bài tập"}
+                >
+                  <RotateCcw size={22} className={isConfirmingReset ? "animate-spin text-rose-500" : ""} />
+                </button>
+                {isConfirmingReset && (
+                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-rose-500 text-[9px] font-black text-white shadow-md animate-bounce pointer-events-none z-20">
+                    Bấm lần nữa!
+                  </span>
+                )}
+              </div>
 
               {/* Huge Main Play / Pause / Stop / Next Set Button */}
               {isCurrentSetMaxEffort && isActive ? (
@@ -1074,7 +1185,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               onClick={() => {
                 setShowCelebration(false);
                 setNewlyUnlockedBadges([]);
-                handleResetTimer();
+                handleResetTimer(true);
               }}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-sm uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
             >
