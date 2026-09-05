@@ -755,12 +755,14 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       >
         {isMaxChallenge ? (
           <div className="w-full h-full flex flex-col items-center justify-center space-y-2 py-1">
-            <span className="text-xs sm:text-sm font-black uppercase px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-2 border-cyan-400/60 dark:border-cyan-500/40 shadow-sm">
+            <span className={`text-xs sm:text-sm font-black uppercase px-4 py-1.5 rounded-full border-2 shadow-sm transition-all duration-300 ${
+              isResting
+                ? 'bg-teal-100 text-teal-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-teal-400/60 dark:border-cyan-500/40 animate-pulse'
+                : 'bg-cyan-100 text-cyan-900 dark:bg-cyan-950/80 dark:text-cyan-300 border-cyan-400/60 dark:border-cyan-500/40'
+            }`}>
               {isResting 
-                ? `🍃 NGHỈ HỒI SỨC (SAU HIỆP ${challengeSetIndex + 1})` 
-                : challengeSetIndex > 0 
-                ? `⚡ THÁCH THỨC GIỚI HẠN • HIỆP ${challengeSetIndex + 1}` 
-                : "⚡ THÁCH THỨC GIỚI HẠN"}
+                ? `🍃 ĐANG NGHỈ HỒI SỨC (HIỆP ${challengeSetIndex + 1})` 
+                : `⚡ THÁCH THỨC GIỚI HẠN • HIỆP ${challengeSetIndex + 1}`}
             </span>
 
             {/* Nút bấm (i) Mở Modal Chi Tiết */}
@@ -773,9 +775,9 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               </div>
               <span className="truncate text-[10px] font-medium">
                 {isResting 
-                  ? `Thả lỏng cơ bắp, bấm Hiệp ${challengeSetIndex + 2} khi đã sẵn sàng` 
+                  ? `Đã xong Hiệp ${challengeSetIndex + 1} • Bấm "Tiếp tục gồng" khi sẵn sàng` 
                   : challengeSetIndex > 0 
-                  ? `Tổng thời gian đã gồng: ${sessionTotalHoldSeconds}s` 
+                  ? `Hiệp ${challengeSetIndex + 1} • Tổng thời gian đã gồng: ${sessionTotalHoldSeconds}s` 
                   : "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới"}
               </span>
               <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
@@ -897,12 +899,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               {isResting ? (
                 <div className="text-[11px] font-bold text-cyan-700 dark:text-cyan-300 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/60 dark:border-cyan-500/30 shadow-sm animate-pulse">
                   <span className="text-xs">🍃</span>
-                  <span>Đang nghỉ sau Hiệp {challengeSetIndex + 1} • Bấm Hiệp {challengeSetIndex + 2} để tập tiếp</span>
+                  <span>Đang nghỉ sau Hiệp {challengeSetIndex + 1} • Bấm "Tiếp tục gồng" để vào Hiệp {challengeSetIndex + 2}</span>
                 </div>
               ) : (
                 <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
                   <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
-                  <span>{challengeSetIndex > 0 ? `Hiệp ${challengeSetIndex + 1} • Tổng đã gồng: ${sessionTotalHoldSeconds}s` : 'Gồng giữ tự do không giới hạn'}</span>
+                  <span>Hiệp {challengeSetIndex + 1} • Tổng đã gồng: {sessionTotalHoldSeconds}s</span>
                 </div>
               )}
             </div>
@@ -947,32 +949,10 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
       {/* 4. Giant Tactical Control Buttons (Cố định chiều cao h-16 mb-3 sm:mb-5 chống nhảy vị trí) */}
       <div className="w-full h-16 mb-3 sm:mb-5 shrink-0 flex items-center justify-center">
         <div className="flex items-center justify-center space-x-3.5 mx-auto w-full max-w-md">
-          {isMaxChallenge && isResting ? (
-            /* Khi đang nghỉ trong Thách Thức Giới Hạn */
+          {isMaxChallenge && (isActive || isResting) ? (
+            /* Khi đang trong bài Thách Thức Giới Hạn (đang gồng hoặc đang nghỉ hồi sức) */
             <>
-              {/* Nút Kết Thúc Bài Tập */}
-              <button
-                onClick={handleStopMaxChallenge}
-                className="h-14 sm:h-16 px-4 sm:px-5 rounded-2xl sm:rounded-3xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-400/40 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition-all shadow-sm shrink-0 space-x-1.5 text-xs sm:text-sm font-black uppercase"
-                title="Kết thúc bài tập và lưu thành tích"
-              >
-                <Trophy size={18} />
-                <span>KẾT THÚC</span>
-              </button>
-
-              {/* Nút Vào Hiệp Kế Tiếp: Đúng theo yêu cầu người dùng "HIỆP 2", "HIỆP 3"... */}
-              <button
-                onClick={handleChallengeNextRound}
-                className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-lg shadow-teal-500/30"
-              >
-                <Play size={22} fill="currentColor" />
-                <span>HIỆP {challengeSetIndex + 2}</span>
-              </button>
-            </>
-          ) : isMaxChallenge && isActive ? (
-            /* Khi đang gồng trong Thách Thức Giới Hạn */
-            <>
-              {/* Reset */}
+              {/* 1. Slot Trái: Nút Đặt lại / Reset cố định vị trí (Bảo vệ 2 lần bấm) */}
               <div className="relative shrink-0">
                 <button
                   onClick={() => handleResetTimer(false)}
@@ -992,17 +972,28 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                 )}
               </div>
 
-              {/* Nút Nghỉ Hồi Sức */}
-              <button
-                onClick={handleChallengeRest}
-                className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2 transition-all active:scale-95 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/30"
-                title="Bấm để nghỉ hồi sức và chuẩn bị hiệp tiếp"
-              >
-                <Zap size={22} className="fill-current animate-bounce" />
-                <span>NGHỈ HỒI SỨC</span>
-              </button>
+              {/* 2. Slot Giữa: Nút Chuyển Đổi 2 Trạng Thái Duy Nhất (THẢ LỎNG NGHỈ 🍃 ⇄ TIẾP TỤC GỒNG 🔥) */}
+              {isResting ? (
+                <button
+                  onClick={handleChallengeNextRound}
+                  className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2.5 transition-all active:scale-95 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white shadow-lg shadow-teal-500/30"
+                  title="Bấm khi bạn đã hồi sức để vào hiệp gồng tiếp theo"
+                >
+                  <Play size={22} fill="currentColor" />
+                  <span>TIẾP TỤC GỒNG</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleChallengeRest}
+                  className="flex-1 h-14 sm:h-16 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center space-x-2 transition-all active:scale-95 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/30"
+                  title="Bấm để thả lỏng hồi sức sau hiệp gồng"
+                >
+                  <span className="text-xl">🍃</span>
+                  <span>THẢ LỎNG NGHỈ</span>
+                </button>
+              )}
 
-              {/* Nút Kết Thúc Bài Tập Ngay */}
+              {/* 3. Slot Phải: Nút Kết Thúc Bài Tập Cố Định Vị Trí Bên Phải */}
               <button
                 onClick={handleStopMaxChallenge}
                 className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-400/40 dark:border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-90 transition-all shadow-sm shrink-0"

@@ -27,8 +27,8 @@ const CircularProgress = ({
   let glowColor = "rgba(16, 185, 129, 0.5)";
 
   if (isMaxChallenge || isSetMaxEffort) {
-    strokeGradientId = "cosmicGradient";
-    glowColor = "rgba(6, 182, 212, 0.6)";
+    strokeGradientId = isResting ? "cyanGradient" : "cosmicGradient";
+    glowColor = isResting ? "rgba(6, 182, 212, 0.4)" : "rgba(6, 182, 212, 0.6)";
   } else if (isResting) {
     strokeGradientId = "cyanGradient";
     glowColor = "rgba(6, 182, 212, 0.5)";
@@ -44,7 +44,7 @@ const CircularProgress = ({
             : 'opacity-20 dark:opacity-35 scale-100'
         }`}
         style={{ 
-          backgroundColor: isMaxChallenge ? '#06b6d4' : (isResting ? '#00f2fe' : '#10b981') 
+          backgroundColor: isResting ? '#00f2fe' : (isMaxChallenge ? '#06b6d4' : '#10b981') 
         }}
       />
       {/* Lõi sáng trung tâm giúp tỏa sáng rực rỡ phía sau con số */}
@@ -121,7 +121,7 @@ const CircularProgress = ({
             : 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:border-emerald-500/40 dark:text-emerald-400'
         }`}>
           {isMaxChallenge 
-            ? "⚡ ĐẾM XUÔI" 
+            ? (isResting ? "❄️ HỒI SỨC" : "⚡ ĐẾM XUÔI")
             : isSetMaxEffort && !isResting
             ? "⚡ ĐẾN KHI FAIL" 
             : isResting 
@@ -137,7 +137,11 @@ const CircularProgress = ({
         {/* Secondary Info / Target */}
         <div className="text-[11px] font-medium text-slate-500 dark:text-gray-400 mt-1">
           {isMaxChallenge ? (
-            <span>Kỷ lục: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{personalRecord}s</strong></span>
+            isResting ? (
+              <span>Nghỉ ngơi: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">Thả lỏng cơ bắp</strong></span>
+            ) : (
+              <span>Kỷ lục: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">{personalRecord}s</strong></span>
+            )
           ) : isSetMaxEffort && !isResting ? (
             <span>Mục tiêu: <strong className="text-cyan-600 dark:text-cyan-neon font-bold">Gồng đến khi sập cơ</strong></span>
           ) : isResting ? (
