@@ -27,12 +27,13 @@ import {
   getLastAICoachAdvice, 
   saveLastAICoachAdvice, 
   getWorkoutHistorySummaryForAI, 
-  getUserProfile 
+  getUserProfile,
+  recalibrateAndSyncAllData
 } from '../services/storageService';
 import { triggerHapticSuccess, triggerHapticMedium } from '../utils/hapticsUtils';
 
 const AICoachModal = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState('api'); // 'api' | 'bridge'
+  const [activeTab, setActiveTab] = useState('bridge'); // Mặc định mở tab Cầu Nối Miễn Phí
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState(null);
@@ -46,6 +47,8 @@ const AICoachModal = ({ isOpen, onClose }) => {
   // Tải dữ liệu hồ sơ và bài nhận xét đã lưu khi mở modal
   useEffect(() => {
     if (isOpen) {
+      // Luôn tự động cân chỉnh và đồng bộ kỷ lục cao nhất từ toàn bộ lịch sử
+      recalibrateAndSyncAllData();
       const summary = getWorkoutHistorySummaryForAI();
       const profile = getUserProfile();
       setHistorySummary(summary);
@@ -179,8 +182,8 @@ const AICoachModal = ({ isOpen, onClose }) => {
     : null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
-      <div className="glass-panel max-w-md w-full my-auto rounded-3xl bg-white dark:bg-oled border border-purple-400/40 dark:border-purple-500/30 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 pt-14 sm:pt-12 pb-12 sm:pb-16 overflow-hidden animate-fade-in">
+      <div className="glass-panel max-w-md w-full my-auto rounded-3xl bg-white dark:bg-oled border border-purple-400/40 dark:border-purple-500/30 shadow-2xl flex flex-col max-h-[82vh] sm:max-h-[84vh] overflow-hidden">
         
         {/* MODAL HEADER */}
         <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 text-white p-4 sm:p-5 relative shrink-0">

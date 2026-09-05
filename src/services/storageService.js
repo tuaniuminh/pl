@@ -40,12 +40,17 @@ export const releaseWakeLock = async () => {
 };
 
 // Trích xuất kỷ lục giữ liên tục đơn hiệp tốt nhất từ 1 buổi tập
-const extractSessionMaxHold = (session) => {
+export const extractSessionMaxHold = (session) => {
   if (!session) return 0;
-  if (session.maxSingleHold && session.maxSingleHold > 0) return session.maxSingleHold;
+  // Ưu tiên hàng đầu: Số giây của hiệp cao nhất trong setsDetail thực tế
+  let maxFromSets = 0;
   if (Array.isArray(session.setsDetail) && session.setsDetail.length > 0) {
-    return Math.max(...session.setsDetail.map(s => Number(s.holdTime) || 0));
+    maxFromSets = Math.max(...session.setsDetail.map(s => Number(s.holdTime) || 0));
   }
+  const directMax = (session.maxSingleHold && session.maxSingleHold > 0) ? session.maxSingleHold : 0;
+  const derivedMax = Math.max(maxFromSets, directMax);
+  if (derivedMax > 0) return derivedMax;
+
   if (session.completedSets === 1 || session.totalSets === 1) return session.duration || 0;
   return session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0;
 };
@@ -1158,9 +1163,16 @@ export const saveHistory = (session) => {
     const history = getHistory();
     const profile = getUserProfile();
     const calories = calculatePersonalizedCalories(session.duration || 0, profile.weight, profile.gender);
-    const maxSingleHold = session.maxSingleHold !== undefined 
-      ? session.maxSingleHold 
-      : (session.totalSets === 1 ? (session.duration || 0) : (session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0));
+    let maxSingleHold = (session.maxSingleHold !== undefined && session.maxSingleHold > 0) ? session.maxSingleHold : 0;
+    if (Array.isArray(session.setsDetail) && session.setsDetail.length > 0) {
+      const setsMax = Math.max(...session.setsDetail.map(s => Number(s.holdTime) || 0));
+      if (setsMax > 0) {
+        maxSingleHold = Math.max(maxSingleHold, setsMax);
+      }
+    }
+    if (!maxSingleHold || maxSingleHold <= 0) {
+      maxSingleHold = session.totalSets === 1 ? (session.duration || 0) : (session.duration ? Math.round(session.duration / (session.completedSets || 1)) : 0);
+    }
 
     const newRecord = {
       id: Date.now(),
@@ -1314,7 +1326,7 @@ export const recalibrateAndSyncAllData = () => {
     const currentGender = profile.gender || 'male';
     let historyChanged = false;
 
-    // 1. Cân chỉnh và sửa các bản ghi lịch sử cũ (sửa 660s -> 600s, gán maxSingleHold, cập nhật tên giáo án)
+    // 1. Cân chỉnh và sửa các bản ghi lịch sử cũ
     const updatedHistory = history.map(h => {
       let item = { ...h };
 
@@ -1339,19 +1351,26 @@ export const recalibrateAndSyncAllData = () => {
         historyChanged = true;
       }
 
-      // Đảm bảo có maxSingleHold chính xác
-      if (item.maxSingleHold === undefined || item.maxSingleHold === null) {
-        if (item.completedSets > 1) {
-          item.maxSingleHold = Math.round(item.duration / item.completedSets);
-        } else {
-          item.maxSingleHold = item.duration || 0;
+      // Chuẩn hóa và bổ sung setsDetail nếu lịch sử chưa có hoặc chưa đủ số hiệp
+      if (!item.setsDetail || !Array.isArray(item.setsDetail) || item.setsDetail.length < (item.completedSets || 1)) {
+        const normalized = getNormalizedSessionSets(item);
+        if (normalized && normalized.length > 0) {
+          item.setsDetail = normalized;
+          historyChanged = true;
         }
-        historyChanged = true;
       }
 
-      // Sửa lỗi maxSingleHold bị gán bằng tổng duration khi tập Thách Thức Giới Hạn nhiều hiệp
-      if ((item.planId === 'max_challenge' || item.planName?.includes('Thách Thức')) && item.completedSets > 1 && item.maxSingleHold === item.duration) {
-        item.maxSingleHold = Math.round(item.duration / item.completedSets);
+      // Đảm bảo maxSingleHold luôn phản ánh đúng hiệp giữ lâu nhất trong setsDetail
+      if (Array.isArray(item.setsDetail) && item.setsDetail.length > 0) {
+        const setsMax = Math.max(...item.setsDetail.map(s => Number(s.holdTime) || 0));
+        if (setsMax > 0 && item.maxSingleHold !== setsMax) {
+          item.maxSingleHold = setsMax;
+          historyChanged = true;
+        }
+      } else if (!item.maxSingleHold || item.maxSingleHold <= 0) {
+        item.maxSingleHold = item.completedSets > 1 
+          ? Math.round((item.duration || 60) / item.completedSets) 
+          : (item.duration || 0);
         historyChanged = true;
       }
 
@@ -1359,7 +1378,6 @@ export const recalibrateAndSyncAllData = () => {
       if (customPlans.length > 0) {
         let matchedPlan = customPlans.find(p => p.id === item.planId);
         if (!matchedPlan) {
-          // Nếu item này mang tên mặc định cũ như 'Giáo Án Tự Thiết Kế'
           if (item.planName?.includes('Giáo Án Tự Thiết Kế') || item.planName === 'Plank Tự Do') {
             matchedPlan = customPlans[0];
           }
@@ -1368,15 +1386,6 @@ export const recalibrateAndSyncAllData = () => {
         if (matchedPlan && item.planName !== matchedPlan.planName) {
           item.planId = matchedPlan.id;
           item.planName = matchedPlan.planName;
-          historyChanged = true;
-        }
-      }
-
-      // Chuẩn hóa và bổ sung setsDetail nếu lịch sử chưa có hoặc chưa đủ số hiệp
-      if (!item.setsDetail || !Array.isArray(item.setsDetail) || item.setsDetail.length < (item.completedSets || 1)) {
-        const normalized = getNormalizedSessionSets(item);
-        if (normalized && normalized.length > 0) {
-          item.setsDetail = normalized;
           historyChanged = true;
         }
       }
@@ -1393,14 +1402,16 @@ export const recalibrateAndSyncAllData = () => {
     let trueMaxContinuous = 60;
     if (validHistory.length > 0) {
       trueMaxContinuous = validHistory.reduce((max, h) => {
-        const single = h.maxSingleHold || (h.totalSets === 1 ? h.duration : Math.round(h.duration / (h.completedSets || 1))) || 0;
+        const single = extractSessionMaxHold(h);
         return Math.max(max, single);
       }, 60);
     }
 
     const userProfile = getUserProfile();
-    if (userProfile.record > trueMaxContinuous || !userProfile.record) {
-      userProfile.record = trueMaxContinuous;
+    // Luôn đồng bộ Kỷ lục cá nhân (PR) bằng mốc cao nhất thực tế tìm thấy trong toàn bộ lịch sử
+    const trueHighestRecord = Math.max(userProfile.record || 0, trueMaxContinuous);
+    if (userProfile.record !== trueHighestRecord) {
+      userProfile.record = trueHighestRecord;
       saveUserProfile(userProfile);
     }
 
