@@ -78,13 +78,13 @@ const Header = ({ settings, onToggleTheme, onToggleVoice, activePlan }) => {
           setUpdateStatus('idle');
         }, 2500);
       } else {
-        // Đã là bản mới nhất: Hiển thị hiệu ứng trực tiếp trên huy hiệu thay vì hiện toast
+        // Đã là bản mới nhất: Hiển thị hiệu ứng trực tiếp trên huy hiệu thay vì hiện toast (1 giây)
         setUpdateStatus('latest');
         triggerHapticSuccess();
         if (latestTimerRef.current) clearTimeout(latestTimerRef.current);
         latestTimerRef.current = setTimeout(() => {
           setUpdateStatus(prev => prev === 'latest' ? 'idle' : prev);
-        }, 2500);
+        }, 1000);
       }
     } catch (err) {
       setUpdateStatus('error');
@@ -92,7 +92,7 @@ const Header = ({ settings, onToggleTheme, onToggleVoice, activePlan }) => {
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
       errorTimerRef.current = setTimeout(() => {
         setUpdateStatus('idle');
-      }, 2500);
+      }, 1500);
     }
   };
 

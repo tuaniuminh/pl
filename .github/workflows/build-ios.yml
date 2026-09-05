@@ -32,10 +32,16 @@ jobs:
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Kích hoạt hỗ trợ màn hình 120Hz ProMotion trên iPhone / iPad
+      - name: Kích hoạt hỗ trợ màn hình 120Hz ProMotion & Ngôn ngữ Tiếng Việt cho iOS
         run: |
           echo "Bật cờ CADisableMinimumFrameDurationOnPhone để mở khóa 120Hz ProMotion"
           /usr/libexec/PlistBuddy -c "Add :CADisableMinimumFrameDurationOnPhone bool true" ios/App/App/Info.plist || /usr/libexec/PlistBuddy -c "Set :CADisableMinimumFrameDurationOnPhone true" ios/App/App/Info.plist || true
+          
+          echo "Cấu hình ngôn ngữ tiếng Việt (vi) cho giao diện hệ thống iOS (Share Sheet, Action Sheet, Controls)"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDevelopmentRegion vi" ios/App/App/Info.plist || /usr/libexec/PlistBuddy -c "Add :CFBundleDevelopmentRegion string vi" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string vi" ios/App/App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/App/App/Info.plist || true
 
       - name: Tạo Icon tự động từ Logo mới
         run: npm run generate-icons || true

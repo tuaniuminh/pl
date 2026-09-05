@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import UIKit
+import LinkPresentation
 
 @objc(LiveActivityPlugin)
 public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
@@ -54,8 +55,9 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
                         return
                     }
 
-                    // Mở giao diện chia sẻ iOS Share Sheet (UIActivityViewController)
-                    let activityVC = UIActivityViewController(activityItems: [destinationUrl], applicationActivities: nil)
+                    // Mở giao diện chia sẻ iOS Share Sheet với tiêu đề tiếng Việt
+                    let shareSource = IPAShareItemSource(fileUrl: destinationUrl)
+                    let activityVC = UIActivityViewController(activityItems: [shareSource], applicationActivities: nil)
                     
                     // Chống crash trên iPad
                     if let popover = activityVC.popoverPresentationController {
@@ -137,5 +139,35 @@ class IPADownloadManager: NSObject, URLSessionDownloadDelegate {
         if let error = error {
             onCompletion?(nil, error)
         }
+    }
+}
+
+// MARK: - IPAShareItemSource (Tùy biến tiêu đề tiếng Việt trên iOS Share Sheet)
+class IPAShareItemSource: NSObject, UIActivityItemSource {
+    let fileUrl: URL
+    
+    init(fileUrl: URL) {
+        self.fileUrl = fileUrl
+        super.init()
+    }
+    
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        return fileUrl
+    }
+    
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        return fileUrl
+    }
+    
+    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+        return "Bản cập nhật Plank AI (TrollStore)"
+    }
+    
+    @available(iOS 13.0, *)
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = "Cài đặt bản cập nhật Plank AI"
+        metadata.originalURL = fileUrl
+        return metadata
     }
 }

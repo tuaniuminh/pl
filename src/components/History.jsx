@@ -830,7 +830,7 @@ const History = ({ onStartWorkout }) => {
                   <span>Bảng Thông Số Từng Hiệp</span>
                 </h4>
                 <span className="text-[10px] text-slate-400 dark:text-gray-500 font-medium">
-                  {getNormalizedSessionSets(selectedSessionDetail).length} hiệp hoàn thành
+                  {getNormalizedSessionSets(selectedSessionDetail).length} hiệp {selectedSessionDetail.setsDetail ? 'hoàn thành' : '(ước tính từ bản cũ)'}
                 </span>
               </div>
 
