@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
   Key, 
   Eye, 
@@ -9,14 +9,6 @@ import {
   Volume2, 
   ExternalLink,
   Play,
-  Download,
-  RefreshCw,
-  ArrowUpCircle,
-  Smartphone,
-  Share2,
-  Check,
-  X,
-  Info,
   ChevronDown,
   ChevronUp,
   Scale
@@ -24,10 +16,7 @@ import {
 import { testGeminiApiKey } from '../services/geminiService';
 import { previewVoice, VOICE_PERSONAS, playHeartbeatSound } from '../utils/audioPack';
 import { triggerHapticHeartbeat } from '../utils/hapticsUtils';
-import { checkForUpdate, downloadIPAInApp, cancelDownloadIPA } from '../services/updateService';
 import { getUserProfile, saveUserProfile, calculateBMI } from '../services/storageService';
-
-const APP_VERSION = '2.3.3';
 
 const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
   const [userProfile, setUserProfileState] = useState(getUserProfile());
@@ -37,18 +26,6 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
 
   // Trạng thái đóng/mở danh sách giọng nói để tối ưu diện tích
   const [isVoiceListOpen, setIsVoiceListOpen] = useState(false);
-
-  // Trạng thái kiểm tra & tải bản cập nhật In-App OTA
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState(null);
-  const [updateChecked, setUpdateChecked] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(null);
-  const [downloadError, setDownloadError] = useState(null);
-  const [downloadFinished, setDownloadFinished] = useState(false);
-
-  // Cờ hủy tiến trình tải ngầm
-  const downloadCanceledRef = useRef(false);
 
   const handleGenderChange = (newGender) => {
     const updated = { ...userProfile, gender: newGender };
@@ -112,70 +89,6 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
     }
   };
 
-  const handleCheckUpdate = async () => {
-    setCheckingUpdate(true);
-    setUpdateChecked(false);
-    setDownloadError(null);
-    setDownloadFinished(false);
-
-    try {
-      // Giả lập độ trễ tối thiểu 600ms chống nhấp nháy UI
-      const [res] = await Promise.all([
-        checkForUpdate(APP_VERSION),
-        new Promise(resolve => setTimeout(resolve, 600))
-      ]);
-      setUpdateInfo(res);
-      setUpdateChecked(true);
-    } catch (e) {
-      setUpdateInfo({ hasUpdate: false, error: e.message });
-      setUpdateChecked(true);
-    } finally {
-      setCheckingUpdate(false);
-    }
-  };
-
-  const handleStartDownloadIPA = async () => {
-    if (!updateInfo?.ipaDownloadUrl) return;
-
-    downloadCanceledRef.current = false;
-    setIsDownloading(true);
-    setDownloadError(null);
-    setDownloadFinished(false);
-    setDownloadProgress({
-      progress: 0,
-      downloadedMB: '0.0',
-      totalMB: '...',
-      speed: '0 KB/s'
-    });
-
-    try {
-      const res = await downloadIPAInApp(updateInfo.ipaDownloadUrl, (data) => {
-        if (downloadCanceledRef.current) return;
-        setDownloadProgress(data);
-      });
-      if (res && res.success && !downloadCanceledRef.current) {
-        setDownloadFinished(true);
-      }
-    } catch (err) {
-      if (!downloadCanceledRef.current) {
-        setDownloadError(err.message || "Lỗi tải file IPA. Vui lòng thử lại.");
-      }
-    } finally {
-      if (!downloadCanceledRef.current) {
-        setIsDownloading(false);
-      }
-    }
-  };
-
-  const handleCancelDownload = async () => {
-    downloadCanceledRef.current = true;
-    setIsDownloading(false);
-    setDownloadProgress(null);
-    setDownloadFinished(false);
-    setDownloadError(null);
-    await cancelDownloadIPA();
-  };
-
   const currentPersona = VOICE_PERSONAS.find(p => p.id === (settings.selectedVoice || 'female')) || VOICE_PERSONAS[0];
 
   return (
@@ -186,85 +99,11 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           Cài Đặt Hệ Thống
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-          Cập nhật OTA, phong cách Huấn Luyện Viên AI & Gemini API Key
+          Chỉ số thể trạng, phong cách Huấn Luyện Viên AI & Gemini API Key
         </p>
       </div>
 
-      {/* SECTION 1: CẬP NHẬT ỨNG DỤNG (OTA) */}
-      <div className="glass-panel p-5 rounded-3xl space-y-4 border border-cyan-300/40 dark:border-cyan-500/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/15 text-cyan-600 dark:text-cyan-neon flex items-center justify-center">
-              <ArrowUpCircle size={16} />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Cập Nhật Ứng Dụng (OTA)</h3>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">Tải & cài đặt trực tiếp qua TrollStore không cần máy tính</p>
-            </div>
-          </div>
-          <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-gray-300 border border-slate-200 dark:border-white/10 font-mono">
-            v{APP_VERSION}
-          </span>
-        </div>
-
-        {/* Status Area */}
-        {updateChecked && updateInfo && (
-          <div className={`p-3.5 rounded-2xl text-xs flex items-start space-x-2.5 border transition-all animate-fade-in ${
-            updateInfo.hasUpdate
-              ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-300 dark:border-cyan-500/30 text-cyan-900 dark:text-cyan-200'
-              : updateInfo.error
-              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300'
-              : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
-          }`}>
-            {updateInfo.hasUpdate ? (
-              <Sparkles size={16} className="shrink-0 mt-0.5 text-cyan-500" />
-            ) : updateInfo.error ? (
-              <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-500" />
-            ) : (
-              <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-emerald-500" />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="font-bold flex items-center space-x-2">
-                <span>{updateInfo.hasUpdate ? `Đã có bản phát hành mới: ${updateInfo.tagName}` : updateInfo.error ? "Không thể kiểm tra" : "Ứng dụng đang ở bản mới nhất!"}</span>
-              </div>
-              <div className="text-[11px] mt-0.5 opacity-90 leading-relaxed">
-                {updateInfo.hasUpdate 
-                  ? (updateInfo.releaseName || "Sẵn sàng nâng cấp file IPA trực tiếp vào TrollStore.")
-                  : updateInfo.error
-                  ? (updateInfo.error)
-                  : `Bạn đang dùng phiên bản v${APP_VERSION} mới nhất từ GitHub Releases.`}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Buttons (Nút Tải & Cài Đặt Ngay được ưu tiên đưa lên TRÊN nút Kiểm Tra Cập Nhật khi có bản mới) */}
-        <div className="flex flex-col gap-2 pt-1">
-          {updateInfo?.hasUpdate && updateInfo?.ipaDownloadUrl && (
-            <button
-              type="button"
-              onClick={handleStartDownloadIPA}
-              disabled={isDownloading}
-              className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center space-x-2 transition-all active:scale-95 shadow-md shadow-cyan-500/20"
-            >
-              <Download size={16} />
-              <span>Tải & Cài Đặt Ngay ({updateInfo.tagName})</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={handleCheckUpdate}
-            disabled={checkingUpdate || isDownloading}
-            className="w-full py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={`text-cyan-600 dark:text-cyan-neon ${checkingUpdate ? 'animate-spin' : ''}`} />
-            <span>{checkingUpdate ? "Đang Kiểm Tra..." : "Kiểm Tra Bản Cập Nhật Mới"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* SECTION 2: BỘ SƯU TẬP GIỌNG ĐỌC HUẤN LUYỆN VIÊN STUDIO AI (DẠNG ACCORDION ĐÓNG/MỞ) */}
+      {/* SECTION 1: BỘ SƯU TẬP GIỌNG ĐỌC HUẤN LUYỆN VIÊN STUDIO AI (DẠNG ACCORDION ĐÓNG/MỞ) */}
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-emerald-300/40 dark:border-emerald-500/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -644,77 +483,6 @@ const Settings = ({ settings, onUpdateSettings, onNavigateToAI }) => {
           </a>
         </div>
       </div>
-
-      {/* MODAL TIẾN TRÌNH TẢI IPA TRỰC TIẾP TRONG APP */}
-      {(isDownloading || downloadProgress) && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="glass-panel max-w-sm w-full p-6 rounded-3xl border border-cyan-500/30 text-center space-y-4 shadow-2xl bg-white/95 dark:bg-slate-900/95">
-            {/* Download Icon */}
-            <div className="w-14 h-14 rounded-2xl bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-neon flex items-center justify-center mx-auto shadow-inner">
-              {downloadFinished ? (
-                <CheckCircle2 size={28} className="text-emerald-500" />
-              ) : isDownloading ? (
-                <Download size={26} className="animate-bounce text-cyan-500" />
-              ) : (
-                <AlertCircle size={26} className="text-red-500" />
-              )}
-            </div>
-
-            {/* Title & Status */}
-            <div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white">
-                {downloadFinished ? "Tải File Hoàn Tất!" : downloadError ? "Lỗi Tải File" : "Đang Tải Bản Cập Nhật"}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-                {downloadFinished 
-                  ? "Bảng chia sẻ iOS đang mở. Hãy chọn TrollStore để cài đặt ngay." 
-                  : downloadError 
-                  ? downloadError 
-                  : `Tải gói IPA (${downloadProgress?.downloadedMB || '0.0'} MB / ${downloadProgress?.totalMB || '...'} MB)`}
-              </p>
-            </div>
-
-            {/* Progress Bar */}
-            {!downloadError && (
-              <div className="space-y-2">
-                <div className="w-full h-3.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-white/10 relative">
-                  <div 
-                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, Math.round((downloadProgress?.progress || 0) * 100))}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-gray-400">
-                  <span>{Math.min(100, Math.round((downloadProgress?.progress || 0) * 100))}%</span>
-                  <span className="text-cyan-600 dark:text-cyan-neon font-mono">{downloadProgress?.speed || '0 KB/s'}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="pt-2 flex space-x-2">
-              <button
-                onClick={handleCancelDownload}
-                className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95 transition-all"
-              >
-                {downloadFinished ? "Đóng" : "Hủy"}
-              </button>
-
-              {downloadError && updateInfo?.ipaDownloadUrl && (
-                <button
-                  onClick={() => {
-                    window.open(updateInfo.ipaDownloadUrl, '_blank');
-                    handleCancelDownload();
-                  }}
-                  className="flex-1 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs active:scale-95 transition-all flex items-center justify-center space-x-1"
-                >
-                  <ExternalLink size={12} />
-                  <span>Mở Safari Tải</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
