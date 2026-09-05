@@ -21,24 +21,20 @@ import {
   Check,
   X,
   Layers,
-  Filter,
-  Plus
+  Filter
 } from 'lucide-react';
 import { 
   getHistory, 
   getHistoryStats, 
   clearHistory, 
   deleteHistoryItem,
-  updateHistoryItem,
   BADGES_LIST, 
   getUnlockedBadges, 
   getUserProfile,
   calculateBMI,
-  calculatePersonalizedCalories,
   recalibrateAndSyncAllData,
   getNormalizedSessionSets
 } from '../services/storageService';
-import { triggerHapticSuccess, triggerHapticMedium } from '../utils/hapticsUtils';
 
 const History = ({ onStartWorkout }) => {
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'badges'
@@ -98,104 +94,7 @@ const History = ({ onStartWorkout }) => {
     setDeleteTarget(null);
   };
 
-  // ==================== TÍNH NĂNG SỬA THÔNG SỐ BUỔI TẬP (TẠM THỜI) ====================
-  const [isEditingSets, setIsEditingSets] = useState(false);
-  const [editableSets, setEditableSets] = useState([]);
 
-  const handleStartEditSets = () => {
-    if (!selectedSessionDetail) return;
-    const currentSets = getNormalizedSessionSets(selectedSessionDetail);
-    setEditableSets(currentSets.map(s => ({ ...s })));
-    setIsEditingSets(true);
-    triggerHapticMedium();
-  };
-
-  const handleHoldTimeChange = (index, val) => {
-    const num = Math.max(0, parseInt(val, 10) || 0);
-    setEditableSets(prev => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], holdTime: num };
-      return copy;
-    });
-  };
-
-  const handleRestTimeChange = (index, val) => {
-    const num = Math.max(0, parseInt(val, 10) || 0);
-    setEditableSets(prev => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], restTime: num };
-      return copy;
-    });
-  };
-
-  const handleAddSet = () => {
-    triggerHapticMedium();
-    setEditableSets(prev => [
-      ...prev,
-      {
-        setNumber: prev.length + 1,
-        name: `Hiệp ${prev.length + 1}`,
-        holdTime: 60,
-        restTime: 0
-      }
-    ]);
-  };
-
-  const handleRemoveSet = (index) => {
-    if (editableSets.length <= 1) return;
-    triggerHapticMedium();
-    setEditableSets(prev => {
-      const filtered = prev.filter((_, i) => i !== index);
-      return filtered.map((s, i) => ({ ...s, setNumber: i + 1 }));
-    });
-  };
-
-  const handleSaveEditedSets = () => {
-    if (!selectedSessionDetail || editableSets.length === 0) return;
-
-    triggerHapticSuccess();
-    const totalDuration = editableSets.reduce((sum, s) => sum + (Number(s.holdTime) || 0), 0);
-    const maxHold = Math.max(0, ...editableSets.map(s => Number(s.holdTime) || 0));
-    const completedCount = editableSets.length;
-    const calories = calculatePersonalizedCalories(
-      totalDuration, 
-      selectedSessionDetail.weightAtTime || userProfile.weight || 65, 
-      selectedSessionDetail.genderAtTime || userProfile.gender || 'male'
-    );
-
-    const sanitizedSets = editableSets.map((s, idx) => ({
-      ...s,
-      setNumber: idx + 1,
-      holdTime: Number(s.holdTime) || 0,
-      restTime: idx === editableSets.length - 1 ? 0 : (Number(s.restTime) || 0)
-    }));
-
-    const updated = updateHistoryItem(selectedSessionDetail.id, {
-      duration: totalDuration,
-      maxSingleHold: maxHold,
-      completedSets: completedCount,
-      totalSets: completedCount,
-      calories,
-      setsDetail: sanitizedSets
-    });
-
-    if (updated) {
-      setSelectedSessionDetail(updated);
-      refreshData();
-      setIsEditingSets(false);
-    }
-  };
-
-  const handleCancelEditSets = () => {
-    setIsEditingSets(false);
-    setEditableSets([]);
-  };
-
-  const handleCloseSessionDetail = () => {
-    setSelectedSessionDetail(null);
-    setIsEditingSets(false);
-    setEditableSets([]);
-  };
 
   const unlockedCount = unlockedBadges.length;
   const totalBadgesCount = BADGES_LIST.length;
@@ -889,7 +788,7 @@ const History = ({ onStartWorkout }) => {
               </div>
 
               <button
-                onClick={handleCloseSessionDetail}
+                onClick={() => setSelectedSessionDetail(null)}
                 className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-600 dark:text-gray-300 flex items-center justify-center active:scale-90 transition-all shrink-0 ml-2"
                 title="Đóng"
               >
@@ -897,40 +796,30 @@ const History = ({ onStartWorkout }) => {
               </button>
             </div>
 
-            {/* 4 Summary Stats Grid (KỶ LỤC ngắn gọn chống vỡ chữ & Cập nhật thời gian thực khi sửa) */}
+            {/* 4 Summary Stats Grid (KỶ LỤC ngắn gọn chống vỡ chữ) */}
             <div className="grid grid-cols-4 gap-2 shrink-0">
               <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Tổng Giữ</div>
                 <div className="font-mono text-sm sm:text-base font-black text-emerald-600 dark:text-neon mt-0.5">
-                  {isEditingSets 
-                    ? `${editableSets.reduce((sum, s) => sum + (Number(s.holdTime) || 0), 0)}s`
-                    : `${selectedSessionDetail.duration}s`}
+                  {selectedSessionDetail.duration}s
                 </div>
               </div>
               <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Số Hiệp</div>
                 <div className="font-mono text-sm sm:text-base font-black text-cyan-600 dark:text-cyan-neon mt-0.5">
-                  {isEditingSets ? editableSets.length : (selectedSessionDetail.completedSets || 1)}
+                  {selectedSessionDetail.completedSets || 1}
                 </div>
               </div>
               <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Kỷ Lục</div>
                 <div className="font-mono text-sm sm:text-base font-black text-amber-500 mt-0.5">
-                  {isEditingSets 
-                    ? `${Math.max(0, ...editableSets.map(s => Number(s.holdTime) || 0))}s`
-                    : `${selectedSessionDetail.maxSingleHold || (selectedSessionDetail.completedSets === 1 ? selectedSessionDetail.duration : Math.round((selectedSessionDetail.duration || 60) / (selectedSessionDetail.completedSets || 1)))}s`}
+                  {selectedSessionDetail.maxSingleHold || (selectedSessionDetail.completedSets === 1 ? selectedSessionDetail.duration : Math.round((selectedSessionDetail.duration || 60) / (selectedSessionDetail.completedSets || 1)))}s
                 </div>
               </div>
               <div className="p-2 sm:p-2.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-center">
                 <div className="text-[9px] font-bold text-slate-400 uppercase truncate">Calo Đốt</div>
                 <div className="font-mono text-sm sm:text-base font-black text-purple-600 dark:text-purple-400 mt-0.5">
-                  ~{isEditingSets
-                    ? calculatePersonalizedCalories(
-                        editableSets.reduce((sum, s) => sum + (Number(s.holdTime) || 0), 0),
-                        selectedSessionDetail.weightAtTime || userProfile.weight || 65,
-                        selectedSessionDetail.genderAtTime || userProfile.gender || 'male'
-                      )
-                    : (selectedSessionDetail.calories || Math.round((selectedSessionDetail.duration / 60) * 4.5))}
+                  ~{selectedSessionDetail.calories || Math.round((selectedSessionDetail.duration / 60) * 4.5)}
                 </div>
               </div>
             </div>
@@ -938,31 +827,12 @@ const History = ({ onStartWorkout }) => {
             {/* Sets Breakdown Table Section */}
             <div className="flex-1 min-h-0 flex flex-col space-y-2">
               <div className="flex items-center justify-between shrink-0 px-1">
-                <div className="flex items-center space-x-2">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-gray-200 flex items-center space-x-1.5">
-                    <Layers size={14} className="text-emerald-500" />
-                    <span>Bảng Thông Số Từng Hiệp</span>
-                  </h4>
-                  {!isEditingSets && (
-                    <button
-                      onClick={handleStartEditSets}
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-400/40 hover:bg-amber-500/20 active:scale-95 transition-all flex items-center space-x-1 shadow-sm"
-                      title="Sửa thông số siết core và nghỉ chuyển hiệp của buổi tập này"
-                    >
-                      <Edit2 size={10} />
-                      <span>Sửa Thông Số</span>
-                    </button>
-                  )}
-                  {isEditingSets && (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500 text-white animate-pulse">
-                      Đang Sửa
-                    </span>
-                  )}
-                </div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-gray-200 flex items-center space-x-1.5">
+                  <Layers size={14} className="text-emerald-500" />
+                  <span>Bảng Thông Số Từng Hiệp</span>
+                </h4>
                 <span className="text-[10px] text-slate-400 dark:text-gray-500 font-medium">
-                  {isEditingSets 
-                    ? `${editableSets.length} hiệp` 
-                    : `${getNormalizedSessionSets(selectedSessionDetail).length} hiệp ${selectedSessionDetail.setsDetail ? 'hoàn thành' : '(ước tính từ bản cũ)'}`}
+                  {getNormalizedSessionSets(selectedSessionDetail).length} hiệp {selectedSessionDetail.setsDetail ? 'hoàn thành' : '(ước tính từ bản cũ)'}
                 </span>
               </div>
 
@@ -977,138 +847,51 @@ const History = ({ onStartWorkout }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
-                    {isEditingSets ? (
-                      editableSets.map((set, idx, arr) => (
-                        <tr key={idx} className="hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors">
-                          <td className="py-2 px-3">
-                            <div className="flex items-center space-x-1.5">
-                              {editableSets.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveSet(idx)}
-                                  className="w-5 h-5 rounded-md bg-red-100 dark:bg-red-950/50 text-red-500 hover:bg-red-200 flex items-center justify-center shrink-0 active:scale-90"
-                                  title="Xóa hiệp này"
-                                >
-                                  <Trash2 size={10} />
-                                </button>
-                              )}
-                              <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
-                                {idx + 1}
-                              </span>
-                              <span className="font-bold text-slate-800 dark:text-white truncate max-w-[90px] sm:max-w-[130px]">
-                                {set.name || `Hiệp ${idx + 1}`}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-3 text-center">
-                            <div className="inline-flex items-center space-x-1">
-                              <input
-                                type="number"
-                                min="0"
-                                max="7200"
-                                value={set.holdTime}
-                                onChange={(e) => handleHoldTimeChange(idx, e.target.value)}
-                                className="w-16 px-1.5 py-1 text-center font-mono font-black text-xs rounded-xl bg-white dark:bg-black/60 border border-emerald-400 dark:border-neon text-emerald-600 dark:text-neon shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                              />
-                              <span className="text-[10px] text-slate-400">s</span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-3 text-right">
-                            {idx === arr.length - 1 ? (
-                              <span className="text-slate-400 dark:text-gray-500 font-mono text-[11px]">- (Xong)</span>
-                            ) : (
-                              <div className="inline-flex items-center space-x-1 justify-end">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="1800"
-                                  value={set.restTime}
-                                  onChange={(e) => handleRestTimeChange(idx, e.target.value)}
-                                  className="w-16 px-1.5 py-1 text-center font-mono font-bold text-xs rounded-xl bg-white dark:bg-black/60 border border-cyan-400 dark:border-cyan-500 text-cyan-600 dark:text-cyan-neon shadow-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                                />
-                                <span className="text-[10px] text-slate-400">s</span>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      getNormalizedSessionSets(selectedSessionDetail).map((set, idx, arr) => (
-                        <tr key={idx} className="hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors">
-                          <td className="py-2.5 px-3">
-                            <div className="flex items-center space-x-2">
-                              <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
-                                {set.setNumber || idx + 1}
-                              </span>
-                              <span className="font-bold text-slate-800 dark:text-white truncate max-w-[120px] sm:max-w-[170px]">
-                                {set.name || `Hiệp ${idx + 1}`}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className="font-mono font-extrabold text-emerald-600 dark:text-neon px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-neon/10 border border-emerald-300/40 dark:border-neon/30 inline-block">
-                              {set.holdTime > 0 ? `${set.holdTime}s` : "Fail"}
+                    {getNormalizedSessionSets(selectedSessionDetail).map((set, idx, arr) => (
+                      <tr key={idx} className="hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-neon/10 dark:text-neon flex items-center justify-center text-[10px] font-black shrink-0">
+                              {set.setNumber || idx + 1}
                             </span>
-                          </td>
-                          <td className="py-2.5 px-3 text-right">
-                            {idx === arr.length - 1 ? (
-                              <span className="text-slate-400 dark:text-gray-500 font-mono text-[11px]">- (Xong)</span>
-                            ) : set.restTime > 0 ? (
-                              <span className="font-mono font-bold text-cyan-600 dark:text-cyan-neon px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/40 dark:border-cyan-500/30">
-                                {set.restTime}s
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950/30 px-1.5 py-0.5 rounded-md">
-                                🍃 Tự do
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                            <span className="font-bold text-slate-800 dark:text-white truncate max-w-[120px] sm:max-w-[170px]">
+                              {set.name || `Hiệp ${idx + 1}`}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="font-mono font-extrabold text-emerald-600 dark:text-neon px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-neon/10 border border-emerald-300/40 dark:border-neon/30 inline-block">
+                            {set.holdTime > 0 ? `${set.holdTime}s` : "Fail"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          {idx === arr.length - 1 ? (
+                            <span className="text-slate-400 dark:text-gray-500 font-mono text-[11px]">- (Xong)</span>
+                          ) : set.restTime > 0 ? (
+                            <span className="font-mono font-bold text-cyan-600 dark:text-cyan-neon px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/40 dark:border-cyan-500/30">
+                              {set.restTime}s
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold bg-teal-50 dark:bg-teal-950/30 px-1.5 py-0.5 rounded-md">
+                              🍃 Tự do
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-                {isEditingSets && (
-                  <div className="p-2 border-t border-slate-200 dark:border-white/10 flex justify-center bg-slate-100/50 dark:bg-white/5">
-                    <button
-                      type="button"
-                      onClick={handleAddSet}
-                      className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-200 flex items-center space-x-1.5 transition-all active:scale-95"
-                    >
-                      <Plus size={13} />
-                      <span>Thêm Hiệp Mới</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Modal Footer */}
             <div className="pt-2 shrink-0">
-              {isEditingSets ? (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={handleCancelEditSets}
-                    className="flex-1 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-gray-300 font-bold text-xs active:scale-95 transition-all"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={handleSaveEditedSets}
-                    className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
-                  >
-                    <Check size={14} />
-                    <span>Lưu Thay Đổi</span>
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleCloseSessionDetail}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
-                >
-                  Đóng Chi Tiết
-                </button>
-              )}
+              <button
+                onClick={() => setSelectedSessionDetail(null)}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+              >
+                Đóng Chi Tiết
+              </button>
             </div>
           </div>
         </div>,
