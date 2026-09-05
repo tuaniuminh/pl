@@ -44,6 +44,17 @@ import {
   ClipboardList
 } from 'lucide-react';
 
+// Định dạng thời gian gồng tích lũy sang phút và giây (ví dụ: 1p 15s hoặc 2 phút)
+const formatTotalHoldTime = (seconds) => {
+  if (!seconds || seconds <= 0) return '0s';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins > 0) {
+    return secs > 0 ? `${mins}p ${secs < 10 ? '0' : ''}${secs}s` : `${mins} phút`;
+  }
+  return `${secs}s`;
+};
+
 const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }) => {
   const [exercises, setExercises] = useState(() => {
     if (plan && plan.days && plan.days[0]?.exercises?.length > 0) {
@@ -777,7 +788,7 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
                 {isResting 
                   ? `Đã xong Hiệp ${challengeSetIndex + 1} • Bấm "Tiếp tục gồng" khi sẵn sàng` 
                   : challengeSetIndex > 0 
-                  ? `Hiệp ${challengeSetIndex + 1} • Tổng thời gian đã gồng: ${sessionTotalHoldSeconds}s` 
+                  ? `Hiệp ${challengeSetIndex + 1} • Tổng đã gồng: ${formatTotalHoldTime(sessionTotalHoldSeconds)}` 
                   : "Giữ tư thế chuẩn đến khi chạm sàn để lập kỷ lục mới"}
               </span>
               <span className="text-[10px] text-cyan-600 dark:text-cyan-neon font-bold ml-1 shrink-0">Chi tiết</span>
@@ -899,12 +910,12 @@ const Timer = ({ plan, onOpenAIPlan, voiceEnabled = true, onWorkoutStateChange }
               {isResting ? (
                 <div className="text-[11px] font-bold text-cyan-700 dark:text-cyan-300 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300/60 dark:border-cyan-500/30 shadow-sm animate-pulse">
                   <span className="text-xs">🍃</span>
-                  <span>Đang nghỉ sau Hiệp {challengeSetIndex + 1} • Bấm "Tiếp tục gồng" để vào Hiệp {challengeSetIndex + 2}</span>
+                  <span>Đang nghỉ sau Hiệp {challengeSetIndex + 1} • Tổng đã gồng: {formatTotalHoldTime(sessionTotalHoldSeconds)}</span>
                 </div>
               ) : (
                 <div className="text-[11px] font-bold text-slate-500 dark:text-gray-400 flex items-center space-x-1.5 px-4 py-2 rounded-full bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300/40 dark:border-cyan-500/20 shadow-sm">
                   <Zap size={13} className="text-cyan-600 dark:text-cyan-neon" />
-                  <span>Hiệp {challengeSetIndex + 1} • Tổng đã gồng: {sessionTotalHoldSeconds}s</span>
+                  <span>Hiệp {challengeSetIndex + 1} • Tổng đã gồng: {formatTotalHoldTime(sessionTotalHoldSeconds)}</span>
                 </div>
               )}
             </div>
